@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using testBdControllers.Models;
-using testBdControllers.Services;
+using testBdControllers.Services.Interfaces;
 
 namespace testBdControllers.Controllers
 {

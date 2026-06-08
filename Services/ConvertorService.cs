@@ -1,4 +1,5 @@
 ﻿using testBdControllers.Models;
+using testBdControllers.Services.Interfaces;
 
 namespace testBdControllers.Services
 {

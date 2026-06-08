@@ -1,6 +1,6 @@
 ﻿using testBdControllers.Models;
 
-namespace testBdControllers.Services
+namespace testBdControllers.Services.Interfaces
 {
     public enum CurrencyCode
     {

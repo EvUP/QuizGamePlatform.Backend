@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using testBdControllers.Models;
+﻿using testBdControllers.Models;
+using testBdControllers.Services.Interfaces;
 
 namespace testBdControllers.Services
 {
