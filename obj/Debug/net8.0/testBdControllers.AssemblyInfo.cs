@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("testBdControllers")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+88194e8becf957050ebc3dd28629d3563c24c65a")]
 [assembly: System.Reflection.AssemblyProductAttribute("testBdControllers")]
 [assembly: System.Reflection.AssemblyTitleAttribute("testBdControllers")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

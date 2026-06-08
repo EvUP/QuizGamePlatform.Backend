@@ -33,3 +33,4 @@ C:\Users\Кирилл\source\repos\testBdControllers\testBdControllers\obj\Debug
 C:\Users\Кирилл\source\repos\testBdControllers\testBdControllers\obj\Debug\net8.0\testBdControllers.pdb
 C:\Users\Кирилл\source\repos\testBdControllers\testBdControllers\obj\Debug\net8.0\testBdControllers.genruntimeconfig.cache
 C:\Users\Кирилл\source\repos\testBdControllers\testBdControllers\obj\Debug\net8.0\ref\testBdControllers.dll
+C:\Users\Кирилл\source\repos\testBdControllers\testBdControllers\obj\Debug\net8.0\testBdControllers.sourcelink.json
