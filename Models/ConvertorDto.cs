@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using testBdControllers.Services;
+﻿using testBdControllers.Services;
 
 namespace testBdControllers.Models
 {
