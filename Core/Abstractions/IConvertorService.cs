@@ -1,6 +1,7 @@
-﻿using testBdControllers.Models;
+﻿
+using testBdControllers.Api.Contracts;
 
-namespace testBdControllers.Services.Interfaces
+namespace testBdControllers.Core.Abstractions
 {
     public enum CurrencyCode
     {
@@ -11,6 +12,6 @@ namespace testBdControllers.Services.Interfaces
 
     public interface IConvertorService
     {
-        Task<OutConverterDto> GetRubles(InConvertorDto convertorDto);
+        Task<ConvertorResponse> GetRubles(ConvertorRequest convertorDto);
     }
 }

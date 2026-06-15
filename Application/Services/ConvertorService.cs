@@ -1,11 +1,9 @@
-﻿using testBdControllers.Models;
-using testBdControllers.Services.Interfaces;
-
-namespace testBdControllers.Services
+﻿using testBdControllers.Api.Contracts;
+using testBdControllers.Core.Abstractions;
+namespace testBdControllers.Application.Services
 {
     public class ConvertorService : IConvertorService
     {
-
         private static readonly Dictionary<CurrencyCode, decimal> _rates = new()
         {
             [CurrencyCode.USD] = 75m,
@@ -13,7 +11,7 @@ namespace testBdControllers.Services
             [CurrencyCode.TRY] = 2.80m
         };
 
-        public  Task<OutConverterDto> GetRubles(InConvertorDto convertorDto)
+        public  Task<ConvertorResponse> GetRubles(ConvertorRequest convertorDto)
         {
             ArgumentNullException.ThrowIfNull(convertorDto);
 
@@ -23,7 +21,7 @@ namespace testBdControllers.Services
 
             var result = convertorDto.Value * rate;
 
-            return Task.FromResult(new OutConverterDto
+            return Task.FromResult(new ConvertorResponse
             {
                 Result = result,
                 Type = convertorDto.Type,

@@ -1,4 +1,4 @@
-﻿namespace testBdControllers.Models
+﻿namespace testBdControllers.Api.Contracts
 {
     public class UserDto
     {

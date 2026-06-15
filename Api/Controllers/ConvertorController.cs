@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using testBdControllers.Models;
-using testBdControllers.Services.Interfaces;
+using testBdControllers.Api.Contracts;
+using testBdControllers.Core.Abstractions;
 
-namespace testBdControllers.Controllers
+namespace testBdControllers.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class ConvertorController(IConvertorService convertorService) : ControllerBase
     {
         [HttpPost]
-        public async Task<ActionResult<OutConverterDto>> GetCurrency([FromBody] InConvertorDto convertorDto)
+        public async Task<ActionResult<ConvertorResponse>> GetCurrency([FromBody] ConvertorRequest convertorDto)
         {
             try
             {

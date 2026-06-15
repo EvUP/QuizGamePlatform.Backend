@@ -1,6 +1,6 @@
-﻿using testBdControllers.Models;
+﻿using testBdControllers.Api.Contracts;
 
-namespace testBdControllers.Services.Interfaces
+namespace testBdControllers.Core.Abstractions
 {
     public interface IUserService
     {
