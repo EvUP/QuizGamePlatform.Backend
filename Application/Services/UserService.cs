@@ -3,43 +3,40 @@ using testBdControllers.Core.Abstractions;
 
 namespace testBdControllers.Application.Services
 {
-    public class UserService : IUserService
+    public class UserService(IUserRepository repository) : IUserService
     {
-        private readonly List<UserDto> _users = [];
-
-        private int _nextId = 0;
-
-        public Task<List<UserDto>> GetAllUsersAsync()
+        private readonly IUserRepository _repository = repository;
+        public async Task<List<UserDto>> GetAllUsersAsync()
         {
-            return Task.FromResult(_users.ToList());
+            var entities = await _repository.GetAllAsync();
+
+            return [.. entities.Select(e => new UserDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Surname = e.Surname
+            })];
         }
 
-        public Task<UserDto> AddUserAsync(CreateUserDto dto)
+        public async Task<UserDto> AddUserAsync(CreateUserDto dto)
         {
             var newUser = new UserDto
             {
-                Id = _nextId.ToString(),
+                Id = Guid.NewGuid().ToString(),
                 Name = dto.Name,
                 Surname = dto.Surname
             };
 
-            _nextId++;
-            _users.Add(newUser);
+            await _repository.AddAsync(newUser);
 
-            return Task.FromResult(newUser);
+            return newUser;
         }
 
-        public Task<bool> RemoveUserAsync(string id)
+        public async Task<bool> RemoveUserAsync(string id)
         {
-            var user = _users.FirstOrDefault(u => u.Id == id);
+            await _repository.RemoveAsync(id);
 
-            if (user == null)
-            {
-                return Task.FromResult(false);
-            }
-
-            _users.Remove(user);
-            return Task.FromResult(true);
+            return true;
         }
     }
 }

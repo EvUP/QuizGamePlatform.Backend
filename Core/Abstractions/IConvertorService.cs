@@ -1,5 +1,4 @@
-﻿
-using testBdControllers.Api.Contracts;
+﻿using testBdControllers.Api.Contracts;
 
 namespace testBdControllers.Core.Abstractions
 {

@@ -11,8 +11,8 @@ using testBdControllers.DataAccess.Repositories;
 namespace testBdControllers.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260615170737_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260616081138_AddAssemblyConfig")]
+    partial class AddAssemblyConfig
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,11 +31,13 @@ namespace testBdControllers.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Surname")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
