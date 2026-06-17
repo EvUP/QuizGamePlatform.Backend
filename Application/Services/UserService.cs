@@ -34,9 +34,12 @@ namespace testBdControllers.Application.Services
 
         public async Task<bool> RemoveUserAsync(string id)
         {
-            await _repository.RemoveAsync(id);
+            if (id == null)
+            {
+                return false;
+            }
 
-            return true;
+            return await _repository.RemoveAsync(id);
         }
     }
 }

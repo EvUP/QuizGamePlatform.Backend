@@ -27,16 +27,17 @@ namespace testBdControllers.Api.Controllers
             return CreatedAtAction(nameof(Get), new { }, user);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id)
+        [HttpDelete]
+        public async Task<IActionResult> Delete([FromBody] RemoveUserDto removeUserDto)
         {
-            var removed = await userService.RemoveUserAsync(id);
+            var removed = await userService.RemoveUserAsync(removeUserDto.Id);
+
             if (!removed)
             {
-                return NotFound(new { message = $"User with id {id} not found." });
+                return NotFound(new { message = $"User with id {removeUserDto.Id} not found." });
             }
 
-            return NoContent();
+            return Ok(new { message = $"User {removeUserDto.Id} was deleted" });
         }
     }
 }

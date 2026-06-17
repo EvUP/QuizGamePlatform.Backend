@@ -18,4 +18,9 @@ namespace testBdControllers.Api.Contracts
         public string Surname { get; set; } = string.Empty;
     }
 
+    public class RemoveUserDto
+    {
+        public string Id { get; set; } = string.Empty;
+    }
+
 }
