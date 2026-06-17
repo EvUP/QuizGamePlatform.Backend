@@ -1,4 +1,6 @@
-﻿namespace testBdControllers.Api.Contracts
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace testBdControllers.Api.Contracts
 {
     public class UserDto
     {
@@ -9,7 +11,11 @@
 
     public class CreateUserDto
     {
+        [Required]
         public string Name { get; set; } = string.Empty;
+
+        [Required]
         public string Surname { get; set; } = string.Empty;
     }
+
 }

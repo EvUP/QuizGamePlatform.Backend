@@ -13,7 +13,7 @@ namespace testBdControllers.DataAccess.Repositories
         {
             return await _context.Users.ToListAsync();
         }
-        
+
         public async Task<UserEntity> AddAsync(UserDto dto)
         {
             var entity = new UserEntity
@@ -31,7 +31,7 @@ namespace testBdControllers.DataAccess.Repositories
 
         public async Task<bool> RemoveAsync(string id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
             {

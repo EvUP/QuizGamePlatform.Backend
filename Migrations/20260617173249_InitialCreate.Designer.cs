@@ -4,15 +4,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using testBdControllers.DataAccess.Repositories;
+using testBdControllers.DataAccess;
 
 #nullable disable
 
 namespace testBdControllers.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260616081138_AddAssemblyConfig")]
-    partial class AddAssemblyConfig
+    [Migration("20260617173249_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

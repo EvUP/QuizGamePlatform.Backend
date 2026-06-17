@@ -18,7 +18,7 @@ namespace testBdControllers.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Surname))
+            if (!ModelState.IsValid)
             {
                 return BadRequest(new { message = "Name and Surname are required." });
             }
