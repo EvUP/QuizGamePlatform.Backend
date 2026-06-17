@@ -15,7 +15,7 @@ namespace testBdControllers.Api.Controllers
             return Ok(users);
         }
 
-        [HttpPost]
+        [HttpPost("create")]
         public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto)
         {
             if (!ModelState.IsValid)
