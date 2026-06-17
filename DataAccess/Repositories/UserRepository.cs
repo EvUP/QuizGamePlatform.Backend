@@ -9,9 +9,13 @@ namespace testBdControllers.DataAccess.Repositories
     {
         private readonly ApplicationDbContext _context = context;
 
-        public async Task<List<UserEntity>> GetAllAsync()
+        public async Task<List<UserEntity>> GetAllAsync(int limit)
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+            .AsNoTracking()
+            .OrderBy(u => u.Id)
+            .Take(limit)
+            .ToListAsync();
         }
 
         public async Task<UserEntity> AddAsync(UserDto dto)

@@ -6,9 +6,9 @@ namespace testBdControllers.Application.Services
     public class UserService(IUserRepository repository) : IUserService
     {
         private readonly IUserRepository _repository = repository;
-        public async Task<List<UserDto>> GetAllUsersAsync()
+        public async Task<List<UserDto>> GetAllUsersAsync(int limit)
         {
-            var entities = await _repository.GetAllAsync();
+            var entities = await _repository.GetAllAsync(limit);
 
             return [.. entities.Select(e => new UserDto
             {

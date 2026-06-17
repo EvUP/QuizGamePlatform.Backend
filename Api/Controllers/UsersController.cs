@@ -8,10 +8,10 @@ namespace testBdControllers.Api.Controllers
     [Route("api/[controller]")]
     public class UsersController(IUserService userService) : ControllerBase
     {
-        [HttpGet]
-        public async Task<ActionResult<List<UserDto>>> Get()
+        [HttpPost]
+        public async Task<ActionResult<List<UserDto>>> Get([FromBody] GetUserDto getUserDto)
         {
-            var users = await userService.GetAllUsersAsync();
+            var users = await userService.GetAllUsersAsync(getUserDto.Limit);
             return Ok(users);
         }
 

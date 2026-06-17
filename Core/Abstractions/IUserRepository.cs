@@ -8,7 +8,7 @@ namespace testBdControllers.Core.Abstractions
         /// <summary>
         /// Получает список всех пользователей из базы данных.
         /// </summary>
-        Task<List<UserEntity>> GetAllAsync();
+        Task<List<UserEntity>> GetAllAsync(int limit);
 
         /// <summary>
         /// Добавляет нового пользователя в базу данных.

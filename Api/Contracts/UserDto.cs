@@ -23,4 +23,9 @@ namespace testBdControllers.Api.Contracts
         public string Id { get; set; } = string.Empty;
     }
 
+    public class GetUserDto
+    {
+        public int Limit { get; set; }
+    }
+
 }
