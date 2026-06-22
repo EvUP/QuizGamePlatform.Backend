@@ -18,11 +18,6 @@ namespace testBdControllers.Api.Controllers
         [HttpPost("create")]
         public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new { message = "Name and Surname are required." });
-            }
-
             var user = await userService.AddUserAsync(dto);
             return CreatedAtAction(nameof(Get), new { }, user);
         }

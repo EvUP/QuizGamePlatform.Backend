@@ -8,25 +8,24 @@ namespace testBdControllers.DataAccess.Repositories
     public class UserRepository(ApplicationDbContext context) : IUserRepository
     {
         private readonly ApplicationDbContext _context = context;
-
-        public async Task<List<UserEntity>> GetAllAsync(int limit)
+        public async Task<List<UserEntity>> GetAllAsync(int? limit)
         {
-            return await _context.Users
-            .AsNoTracking()
-            .OrderBy(u => u.Id)
-            .Take(limit)
-            .ToListAsync();
+            var baseQuery = _context.Users
+                .AsNoTracking()
+                .OrderBy(u => u.Id);
+
+            IQueryable<UserEntity> query = baseQuery;
+
+            if (limit.HasValue && limit.Value > 0)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
-        public async Task<UserEntity> AddAsync(UserDto dto)
+        public async Task<UserEntity> AddAsync(UserEntity entity)
         {
-            var entity = new UserEntity
-            {
-                Id = dto.Id,
-                Name = dto.Name,
-                Surname = dto.Surname,
-            };
-
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
 

@@ -1,26 +1,28 @@
 ﻿using testBdControllers.Api.Contracts;
 using testBdControllers.Core.Abstractions;
+using testBdControllers.DataAccess.Entities;
 
 namespace testBdControllers.Application.Services
 {
     public class UserService(IUserRepository repository) : IUserService
     {
         private readonly IUserRepository _repository = repository;
-        public async Task<List<UserDto>> GetAllUsersAsync(int limit)
+        public async Task<List<UserDto>> GetAllUsersAsync(int? limit)
         {
             var entities = await _repository.GetAllAsync(limit);
 
-            return [.. entities.Select(e => new UserDto
+            return entities.Select(el => new UserDto
             {
-                Id = e.Id,
-                Name = e.Name,
-                Surname = e.Surname
-            })];
+                Id = el.Id,
+                Name = el.Name,
+                Surname = el.Surname
+            }).ToList();
+
         }
 
         public async Task<UserDto> AddUserAsync(CreateUserDto dto)
         {
-            var newUser = new UserDto
+            var newUser = new UserEntity
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = dto.Name,
@@ -29,7 +31,12 @@ namespace testBdControllers.Application.Services
 
             await _repository.AddAsync(newUser);
 
-            return newUser;
+            return new UserDto
+            {
+                Id = newUser.Id,
+                Name = newUser.Name,
+                Surname = newUser.Surname
+            };
         }
 
         public async Task<bool> RemoveUserAsync(string id)

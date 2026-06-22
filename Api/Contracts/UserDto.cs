@@ -20,12 +20,13 @@ namespace testBdControllers.Api.Contracts
 
     public class RemoveUserDto
     {
+        [Required]
         public string Id { get; set; } = string.Empty;
     }
 
     public class GetUserDto
     {
-        public int Limit { get; set; }
+        public int? Limit { get; set; }
     }
 
 }
