@@ -4,8 +4,8 @@ namespace testBdControllers.Core.Abstractions
 {
     public interface IUserService
     {
-        Task<List<UserDto>> GetAllUsersAsync(int? limit);
-        Task<UserDto> AddUserAsync(CreateUserDto dto);
-        Task<bool> RemoveUserAsync(string id);
+        Task<List<UserDto>> GetAllUsersAsync(int? limit,CancellationToken ct);
+        Task<UserDto> AddUserAsync(CreateUserDto dto,CancellationToken ct);
+        Task<bool> RemoveUserAsync(string id,CancellationToken ct);
     }
 }

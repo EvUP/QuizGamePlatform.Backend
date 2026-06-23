@@ -6,10 +6,9 @@ namespace testBdControllers.Application.Services
 {
     public class UserService(IUserRepository repository) : IUserService
     {
-        private readonly IUserRepository _repository = repository;
-        public async Task<List<UserDto>> GetAllUsersAsync(int? limit)
+        public async Task<List<UserDto>> GetAllUsersAsync(int? limit, CancellationToken ct)
         {
-            var entities = await _repository.GetAllAsync(limit);
+            var entities = await repository.GetAllAsync(limit, ct);
 
             return entities.Select(el => new UserDto
             {
@@ -17,10 +16,9 @@ namespace testBdControllers.Application.Services
                 Name = el.Name,
                 Surname = el.Surname
             }).ToList();
-
         }
 
-        public async Task<UserDto> AddUserAsync(CreateUserDto dto)
+        public async Task<UserDto> AddUserAsync(CreateUserDto dto, CancellationToken ct)
         {
             var newUser = new UserEntity
             {
@@ -29,7 +27,7 @@ namespace testBdControllers.Application.Services
                 Surname = dto.Surname
             };
 
-            await _repository.AddAsync(newUser);
+            await repository.AddAsync(newUser, ct);
 
             return new UserDto
             {
@@ -39,14 +37,14 @@ namespace testBdControllers.Application.Services
             };
         }
 
-        public async Task<bool> RemoveUserAsync(string id)
+        public async Task<bool> RemoveUserAsync(string id, CancellationToken ct)
         {
-            if (id == null)
+            if (string.IsNullOrEmpty(id))
             {
                 return false;
             }
 
-            return await _repository.RemoveAsync(id);
+            return await repository.RemoveAsync(id, ct);
         }
     }
 }

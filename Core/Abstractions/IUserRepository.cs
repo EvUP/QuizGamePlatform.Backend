@@ -8,16 +8,16 @@ namespace testBdControllers.Core.Abstractions
         /// <summary>
         /// Получает список всех пользователей из базы данных.
         /// </summary>
-        Task<List<UserEntity>> GetAllAsync(int? limit);
+        Task<List<UserEntity>> GetAllAsync(int? limit, CancellationToken ct);
 
         /// <summary>
         /// Добавляет нового пользователя в базу данных.
         /// </summary>
-        Task<UserEntity> AddAsync(UserEntity dto);
+        Task<UserEntity> AddAsync(UserEntity dto, CancellationToken ct);
 
         /// <summary>
         /// Удаляет пользователя по идентификатору.
         /// </summary>
-        Task<bool> RemoveAsync(string id);
+        Task<bool> RemoveAsync(string id, CancellationToken ct);
     }
 }
