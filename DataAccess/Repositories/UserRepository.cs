@@ -7,7 +7,6 @@ namespace testBdControllers.DataAccess.Repositories
 {
     public class UserRepository(ApplicationDbContext context) : IUserRepository
     {
-        // Добавлен CancellationToken ct
         public async Task<List<UserEntity>> GetAllAsync(int? limit, CancellationToken ct)
         {
             var baseQuery = context.Users
@@ -21,25 +20,20 @@ namespace testBdControllers.DataAccess.Repositories
                 query = query.Take(limit.Value);
             }
 
-            // Передаем токен в ToListAsync
             return await query.ToListAsync(ct);
         }
 
-        // Добавлен CancellationToken ct
         public async Task<UserEntity> AddAsync(UserEntity entity, CancellationToken ct)
         {
             context.Users.Add(entity);
 
-            // Передаем токен в SaveChangesAsync
             await context.SaveChangesAsync(ct);
 
             return entity;
         }
 
-        // Добавлен CancellationToken ct
         public async Task<bool> RemoveAsync(string id, CancellationToken ct)
         {
-            // Передаем токен в FirstOrDefaultAsync
             var user = await context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
             if (user == null)
@@ -49,7 +43,6 @@ namespace testBdControllers.DataAccess.Repositories
 
             context.Users.Remove(user);
 
-            // Передаем токен в SaveChangesAsync
             await context.SaveChangesAsync(ct);
 
             return true;
