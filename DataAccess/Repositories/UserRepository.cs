@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using testBdControllers.Api.Contracts;
 using testBdControllers.Core.Abstractions;
 using testBdControllers.DataAccess.Entities;
 
@@ -6,12 +7,10 @@ namespace testBdControllers.DataAccess.Repositories
 {
     public class UserRepository(ApplicationDbContext context) : IUserRepository
     {
-        private readonly ApplicationDbContext _context = context;
-
         // Добавлен CancellationToken ct
         public async Task<List<UserEntity>> GetAllAsync(int? limit, CancellationToken ct)
         {
-            var baseQuery = _context.Users
+            var baseQuery = context.Users
                 .AsNoTracking()
                 .OrderBy(u => u.Id);
 
@@ -29,10 +28,10 @@ namespace testBdControllers.DataAccess.Repositories
         // Добавлен CancellationToken ct
         public async Task<UserEntity> AddAsync(UserEntity entity, CancellationToken ct)
         {
-            _context.Users.Add(entity);
+            context.Users.Add(entity);
 
             // Передаем токен в SaveChangesAsync
-            await _context.SaveChangesAsync(ct);
+            await context.SaveChangesAsync(ct);
 
             return entity;
         }
@@ -41,19 +40,38 @@ namespace testBdControllers.DataAccess.Repositories
         public async Task<bool> RemoveAsync(string id, CancellationToken ct)
         {
             // Передаем токен в FirstOrDefaultAsync
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
             if (user == null)
             {
                 return false;
             }
 
-            _context.Users.Remove(user);
+            context.Users.Remove(user);
 
             // Передаем токен в SaveChangesAsync
-            await _context.SaveChangesAsync(ct);
+            await context.SaveChangesAsync(ct);
 
             return true;
         }
+
+        public async Task<UserEntity?> UpdateAsync(string id, UpdateUserDto dto, CancellationToken ct)
+        {
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+
+            if (user == null)
+                return null;
+
+            if (!string.IsNullOrEmpty(dto.Name))
+                user.Name = dto.Name;
+
+            if (!string.IsNullOrEmpty(dto.Surname))
+                user.Surname = dto.Surname;
+
+            await context.SaveChangesAsync(ct);
+            
+            return user;
+        }
     }
 }
+

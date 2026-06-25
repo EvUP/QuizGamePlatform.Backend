@@ -9,23 +9,23 @@ namespace testBdControllers.Api.Controllers
     public class UsersController(IUserService userService) : ControllerBase
     {
         [HttpPost]
-        public async Task<ActionResult<List<UserDto>>> Get([FromBody] GetUserDto getUserDto)
+        public async Task<ActionResult<List<UserDto>>> Get([FromBody] GetUserDto getUserDto, CancellationToken ct)
         {
-            var users = await userService.GetAllUsersAsync(getUserDto.Limit);
+            var users = await userService.GetAllUsersAsync(getUserDto.Limit, ct);
             return Ok(users);
         }
 
         [HttpPost("create")]
-        public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto)
+        public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto, CancellationToken ct)
         {
-            var user = await userService.AddUserAsync(dto);
+            var user = await userService.AddUserAsync(dto, ct);
             return CreatedAtAction(nameof(Get), new { }, user);
         }
 
         [HttpDelete]
-        public async Task<IActionResult> Delete([FromBody] RemoveUserDto removeUserDto)
+        public async Task<IActionResult> Delete([FromBody] RemoveUserDto removeUserDto, CancellationToken ct)
         {
-            var removed = await userService.RemoveUserAsync(removeUserDto.Id);
+            var removed = await userService.RemoveUserAsync(removeUserDto.Id, ct);
 
             if (!removed)
             {
@@ -34,5 +34,18 @@ namespace testBdControllers.Api.Controllers
 
             return Ok(new { message = $"User {removeUserDto.Id} was deleted" });
         }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] UpdateUserDto dto, CancellationToken ct)
+        {
+            var result = await userService.UpdateUserAsync(id, dto, ct);
+
+            if (result == null)
+                return NotFound($"User with id {id} not found");
+
+            return Ok(result);
+        }
     }
+
+
 }

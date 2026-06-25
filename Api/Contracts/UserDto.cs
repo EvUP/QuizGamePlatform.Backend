@@ -9,6 +9,15 @@ namespace testBdControllers.Api.Contracts
         public string Surname { get; set; } = string.Empty;
     }
 
+    public class UpdateUserDto
+    {
+        [Required]
+        public string Name { get; set; } = null!;
+        [Required]
+        public string Surname { get; set; } = null!;
+    }
+
+
     public class CreateUserDto
     {
         [Required]

@@ -46,5 +46,20 @@ namespace testBdControllers.Application.Services
 
             return await repository.RemoveAsync(id, ct);
         }
+
+        public async Task<UserDto?> UpdateUserAsync(string id, UpdateUserDto userDto, CancellationToken ct)
+        {
+            var entity = await repository.UpdateAsync(id, userDto, ct);
+            
+            if (entity == null)
+                return null;
+
+            return new UserDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Surname = entity.Surname
+            };
+        }
     }
 }
