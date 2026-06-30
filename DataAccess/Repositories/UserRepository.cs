@@ -25,11 +25,11 @@ namespace testBdControllers.DataAccess.Repositories
 
         public async Task<UserEntity> AddAsync(UserEntity entity, CancellationToken ct)
         {
-            context.Users.Add(entity);
+            var userRes = await context.Users.AddAsync(entity, ct);
 
             await context.SaveChangesAsync(ct);
 
-            return entity;
+            return userRes.Entity;
         }
 
         public async Task<bool> RemoveAsync(string id, CancellationToken ct)
@@ -62,7 +62,7 @@ namespace testBdControllers.DataAccess.Repositories
                 user.Surname = dto.Surname;
 
             await context.SaveChangesAsync(ct);
-            
+
             return user;
         }
     }
