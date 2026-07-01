@@ -31,3 +31,13 @@
 
 - Swagger: `https://localhost:53506/swagger` (для https может понадобиться `dotnet dev-certs https --trust`)
 - Проверка живости: `GET /health`
+
+## Тесты
+
+```bash
+dotnet test
+```
+
+## CI
+
+GitHub Actions прогоняет build + test на каждый push и PR в `develop`.
