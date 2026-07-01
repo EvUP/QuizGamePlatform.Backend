@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.Api.Contracts;
 using testBdControllers.Core.Abstractions;
 using testBdControllers.DataAccess.Entities;
 
@@ -21,6 +20,13 @@ namespace testBdControllers.DataAccess.Repositories
             }
 
             return await query.ToListAsync(ct);
+        }
+
+        public async Task<UserEntity?> GetByIdAsync(string id, CancellationToken ct)
+        {
+            return await context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id, ct);
         }
 
         public async Task<UserEntity> AddAsync(UserEntity entity, CancellationToken ct)
@@ -48,18 +54,18 @@ namespace testBdControllers.DataAccess.Repositories
             return true;
         }
 
-        public async Task<UserEntity?> UpdateAsync(string id, UpdateUserDto dto, CancellationToken ct)
+        public async Task<UserEntity?> UpdateAsync(string id, string name, string surname, CancellationToken ct)
         {
             var user = await context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
             if (user == null)
                 return null;
 
-            if (!string.IsNullOrEmpty(dto.Name))
-                user.Name = dto.Name;
+            if (!string.IsNullOrEmpty(name))
+                user.Name = name;
 
-            if (!string.IsNullOrEmpty(dto.Surname))
-                user.Surname = dto.Surname;
+            if (!string.IsNullOrEmpty(surname))
+                user.Surname = surname;
 
             await context.SaveChangesAsync(ct);
 

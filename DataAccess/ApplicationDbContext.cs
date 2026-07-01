@@ -3,15 +3,8 @@ using testBdControllers.DataAccess.Entities;
 
 namespace testBdControllers.DataAccess
 {
-    public class ApplicationDbContext(IConfiguration config) : DbContext
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        private readonly IConfiguration _config = config;
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql(_config.GetConnectionString("DefaultConnection"));
-        }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

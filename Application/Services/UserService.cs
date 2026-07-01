@@ -1,4 +1,5 @@
-﻿using testBdControllers.Api.Contracts;
+﻿using testBdControllers.Application.Abstractions;
+using testBdControllers.Application.Contracts;
 using testBdControllers.Core.Abstractions;
 using testBdControllers.DataAccess.Entities;
 
@@ -18,6 +19,26 @@ namespace testBdControllers.Application.Services
                 Name = el.Name,
                 Surname = el.Surname
             }).ToList();
+        }
+
+        public async Task<UserDto?> GetUserByIdAsync(string id, CancellationToken ct)
+        {
+            logger.LogInformation("Получаем пользователя по Id={Id}", id);
+
+            var entity = await repository.GetByIdAsync(id, ct);
+
+            if (entity == null)
+            {
+                logger.LogWarning("Пользователь не найден. Id={Id}", id);
+                return null;
+            }
+
+            return new UserDto
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Surname = entity.Surname
+            };
         }
 
         public async Task<UserDto> AddUserAsync(CreateUserDto dto, CancellationToken ct)
@@ -60,7 +81,7 @@ namespace testBdControllers.Application.Services
         {
             logger.LogDebug("Обновляем пользователя. Id={Id}, Name={Name}", id, userDto.Name);
 
-            var entity = await repository.UpdateAsync(id, userDto, ct);
+            var entity = await repository.UpdateAsync(id, userDto.Name, userDto.Surname, ct);
 
             if (entity == null)
             {

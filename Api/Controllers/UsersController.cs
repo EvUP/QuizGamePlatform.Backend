@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using testBdControllers.Api.Contracts;
-using testBdControllers.Core.Abstractions;
+using testBdControllers.Application.Abstractions;
+using testBdControllers.Application.Contracts;
 
 namespace testBdControllers.Api.Controllers
 {
@@ -15,11 +15,24 @@ namespace testBdControllers.Api.Controllers
             return Ok(users);
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDto>> GetById(string id, CancellationToken ct)
+        {
+            var user = await userService.GetUserByIdAsync(id, ct);
+
+            if (user == null)
+            {
+                return NotFound(new { message = $"User with id {id} not found." });
+            }
+
+            return Ok(user);
+        }
+
         [HttpPost("create")]
         public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserDto dto, CancellationToken ct)
         {
             var user = await userService.AddUserAsync(dto, ct);
-            return CreatedAtAction(nameof(Get), new { }, user);
+            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
         }
 
         [HttpDelete("{id}")]

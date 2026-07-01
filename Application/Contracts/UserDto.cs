@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace testBdControllers.Api.Contracts
+namespace testBdControllers.Application.Contracts
 {
     public class UserDto
     {
@@ -37,5 +37,4 @@ namespace testBdControllers.Api.Contracts
     {
         public int? Limit { get; set; }
     }
-
 }

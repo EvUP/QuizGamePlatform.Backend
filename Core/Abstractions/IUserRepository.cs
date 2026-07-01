@@ -1,4 +1,3 @@
-using testBdControllers.Api.Contracts;
 using testBdControllers.DataAccess.Entities;
 
 namespace testBdControllers.Core.Abstractions
@@ -9,6 +8,11 @@ namespace testBdControllers.Core.Abstractions
         /// Получает список всех пользователей из базы данных.
         /// </summary>
         Task<List<UserEntity>> GetAllAsync(int? limit, CancellationToken ct);
+
+        /// <summary>
+        /// Получает пользователя по идентификатору.
+        /// </summary>
+        Task<UserEntity?> GetByIdAsync(string id, CancellationToken ct);
 
         /// <summary>
         /// Добавляет нового пользователя в базу данных.
@@ -22,6 +26,6 @@ namespace testBdControllers.Core.Abstractions
         /// <summary>
         /// Обновляет пользователя.
         /// </summary>
-        Task<UserEntity?> UpdateAsync(string id, UpdateUserDto dto, CancellationToken ct);
+        Task<UserEntity?> UpdateAsync(string id, string name, string surname, CancellationToken ct);
     }
 }
