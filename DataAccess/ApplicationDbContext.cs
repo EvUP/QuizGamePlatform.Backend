@@ -9,9 +9,16 @@ namespace testBdControllers.DataAccess
         {
             base.OnModelCreating(modelBuilder);
 
-            //Применит все конфигурации которые найдет
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         }
         public DbSet<UserEntity> Users { get; set; } = null!;
+
+        //_________QUIZE GAME___________
+        public DbSet<PlayerEntity> Players { get; set; } = null!;
+        public DbSet<RoomEntity> Rooms { get; set; } = null!;
+        public DbSet<RoomPlayerEntity> RoomParticipations { get; set; } = null!;
+
+        public DbSet<QuestionEntity> Questions { get; set; } = null!;
+        public DbSet<AnswerOptionEntity> AnswerOptions { get; set; } = null!;
     }
 }
