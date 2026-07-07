@@ -18,6 +18,7 @@ namespace testBdControllers.DataAccess
         public DbSet<RoomEntity> Rooms { get; set; } = null!;
         public DbSet<RoomPlayerEntity> RoomParticipations { get; set; } = null!;
 
+        public DbSet<CategoryEntity> Categories { get; set; } = null!;
         public DbSet<QuestionEntity> Questions { get; set; } = null!;
         public DbSet<AnswerOptionEntity> AnswerOptions { get; set; } = null!;
     }

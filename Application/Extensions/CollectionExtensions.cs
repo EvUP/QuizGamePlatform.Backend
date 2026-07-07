@@ -15,6 +15,8 @@ namespace testBdControllers.Application.Extensions
 
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+            builder.Services.AddScoped<IQuizContentService, QuizContentService>();
+            builder.Services.AddScoped<IQuizContentRepository, QuizContentRepository>();
 
             return builder;
         }
