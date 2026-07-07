@@ -1,14 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using testBdControllers.Api.Handlers;
 using testBdControllers.Application.Extensions;
-using testBdControllers.DataAccess;
 using testBdControllers.DataAccess.HealthChecks;
-using testBdControllers.DataAccess.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddApplicationDbContext(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -34,12 +30,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(db, app.Environment.ContentRootPath);
-}
+await app.MigrateAndSeedIfNeededAsync();
 
 app.UseExceptionHandler();
 
@@ -52,4 +43,5 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapHealthChecks("/health");
+
 app.Run();
