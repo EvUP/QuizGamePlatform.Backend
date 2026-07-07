@@ -10,9 +10,6 @@ namespace testBdControllers.Application.Extensions
     {
         public static WebApplicationBuilder AddAppServices(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
-
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();
             builder.Services.AddScoped<IQuizContentService, QuizContentService>();
