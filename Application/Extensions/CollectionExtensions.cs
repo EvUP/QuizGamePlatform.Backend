@@ -13,6 +13,9 @@ namespace testBdControllers.Application.Extensions
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+            builder.Services.AddScoped<IQuizContentService, QuizContentService>();
+            builder.Services.AddScoped<IQuizContentRepository, QuizContentRepository>();
+
             return builder;
         }
     }

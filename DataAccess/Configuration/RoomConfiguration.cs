@@ -24,10 +24,6 @@ namespace testBdControllers.DataAccess.Configuration
                 .WithOne(rp => rp.Room)
                 .HasForeignKey(rp => rp.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasMany(r => r. Questions)
-                .WithOne(q => q.Room)
-                .HasForeignKey(q => q.RoomId);
         }
     }
 }

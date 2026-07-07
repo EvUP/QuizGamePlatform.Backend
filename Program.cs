@@ -3,6 +3,7 @@ using testBdControllers.Api.Handlers;
 using testBdControllers.Application.Extensions;
 using testBdControllers.DataAccess;
 using testBdControllers.DataAccess.HealthChecks;
+using testBdControllers.DataAccess.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(db, app.Environment.ContentRootPath);
+}
 
 app.UseExceptionHandler();
 

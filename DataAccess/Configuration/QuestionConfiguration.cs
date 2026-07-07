@@ -14,14 +14,14 @@ namespace testBdControllers.DataAccess.Configuration
                 .IsRequired()
                 .HasMaxLength(2000);
 
-            builder.Property(q => q.Order)
-                .IsRequired();
+            builder.Property(q => q.Source)
+                .HasMaxLength(50);
 
-            builder.HasIndex(q => new { q.RoomId, q.Order });
+            builder.HasIndex(q => q.CategoryId);
 
-            builder.HasOne(q => q.Room)
-                .WithMany(r => r.Questions)
-                .HasForeignKey(q => q.RoomId)
+            builder.HasOne(q => q.Category)
+                .WithMany(c => c.Questions)
+                .HasForeignKey(q => q.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
