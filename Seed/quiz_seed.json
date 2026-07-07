@@ -1,0 +1,1254 @@
+{
+  "categories": [
+    {
+      "name": "Общие знания",
+      "questions": [
+        {
+          "text": "Какой город называют «Вечным городом»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Рим", "isCorrect": true },
+            { "text": "Афины", "isCorrect": false },
+            { "text": "Иерусалим", "isCorrect": false },
+            { "text": "Стамбул", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой драгоценный камень традиционно оценивают по системе «4C»: cut, color, clarity, carat?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Бриллиант", "isCorrect": true },
+            { "text": "Изумруд", "isCorrect": false },
+            { "text": "Рубин", "isCorrect": false },
+            { "text": "Сапфир", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется знак &, используемый вместо союза «и»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Амперсанд", "isCorrect": true },
+            { "text": "Апостроф", "isCorrect": false },
+            { "text": "Тильда", "isCorrect": false },
+            { "text": "Октоторп", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что измеряют по шкале Бофорта?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Силу ветра", "isCorrect": true },
+            { "text": "Глубину моря", "isCorrect": false },
+            { "text": "Влажность воздуха", "isCorrect": false },
+            { "text": "Яркость звёзд", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой напиток получают ферментацией чайного гриба?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Комбуча", "isCorrect": true },
+            { "text": "Матча", "isCorrect": false },
+            { "text": "Ройбуш", "isCorrect": false },
+            { "text": "Мате", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется официальный список блюд и напитков в ресторане?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Меню", "isCorrect": true },
+            { "text": "Реестр", "isCorrect": false },
+            { "text": "Каталог", "isCorrect": false },
+            { "text": "Прейскурант", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой предмет обычно используют в игре в бильярд для удара по шару?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Кий", "isCorrect": true },
+            { "text": "Ракетка", "isCorrect": false },
+            { "text": "Бита", "isCorrect": false },
+            { "text": "Клюшка", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется краткое описание содержания книги или фильма?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Аннотация", "isCorrect": true },
+            { "text": "Пролог", "isCorrect": false },
+            { "text": "Эпиграф", "isCorrect": false },
+            { "text": "Колонтитул", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется искусство красивого письма?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Каллиграфия", "isCorrect": true },
+            { "text": "Типография", "isCorrect": false },
+            { "text": "Гравюра", "isCorrect": false },
+            { "text": "Литография", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой цвет получится при смешивании красного и синего пигмента?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Фиолетовый", "isCorrect": true },
+            { "text": "Зелёный", "isCorrect": false },
+            { "text": "Оранжевый", "isCorrect": false },
+            { "text": "Серый", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется человек, который составляет карты?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Картограф", "isCorrect": true },
+            { "text": "Топонимист", "isCorrect": false },
+            { "text": "Геолог", "isCorrect": false },
+            { "text": "Архивариус", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой прибор показывает направление на север с помощью магнитной стрелки?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Компас", "isCorrect": true },
+            { "text": "Барометр", "isCorrect": false },
+            { "text": "Секстант", "isCorrect": false },
+            { "text": "Альтиметр", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "История",
+      "questions": [
+        {
+          "text": "Какой правитель принял титул первого императора России после победы в Северной войне?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Пётр I", "isCorrect": true },
+            { "text": "Алексей Михайлович", "isCorrect": false },
+            { "text": "Екатерина II", "isCorrect": false },
+            { "text": "Иван IV", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какое событие традиционно связывают с 988 годом в истории Руси?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Крещение Руси", "isCorrect": true },
+            { "text": "Ледовое побоище", "isCorrect": false },
+            { "text": "Основание Москвы", "isCorrect": false },
+            { "text": "Куликовская битва", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой город был столицей Византийской империи?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Константинополь", "isCorrect": true },
+            { "text": "Александрия", "isCorrect": false },
+            { "text": "Антиохия", "isCorrect": false },
+            { "text": "Карфаген", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто командовал русскими войсками в Бородинском сражении 1812 года?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Михаил Кутузов", "isCorrect": true },
+            { "text": "Александр Суворов", "isCorrect": false },
+            { "text": "Пётр Багратион", "isCorrect": false },
+            { "text": "Михаил Барклай-де-Толли", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой торговый маршрут связывал Балтийский регион с Византией через земли Руси?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Путь «из варяг в греки»", "isCorrect": true },
+            { "text": "Великий шёлковый путь", "isCorrect": false },
+            { "text": "Янтарный путь", "isCorrect": false },
+            { "text": "Волжский торговый путь", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая империя построила сеть дорог, выражение о которых сохранилось во фразе «все дороги ведут...»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Римская империя", "isCorrect": true },
+            { "text": "Персидская империя", "isCorrect": false },
+            { "text": "Монгольская империя", "isCorrect": false },
+            { "text": "Османская империя", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой документ ограничил власть английского короля Иоанна Безземельного в 1215 году?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Великая хартия вольностей", "isCorrect": true },
+            { "text": "Билль о правах", "isCorrect": false },
+            { "text": "Акт о супрематии", "isCorrect": false },
+            { "text": "Декларация независимости", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой мореплаватель возглавил первую экспедицию, совершившую кругосветное плавание?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Фернан Магеллан", "isCorrect": true },
+            { "text": "Васко да Гама", "isCorrect": false },
+            { "text": "Христофор Колумб", "isCorrect": false },
+            { "text": "Джеймс Кук", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как назывался период противостояния США и СССР после Второй мировой войны?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Холодная война", "isCorrect": true },
+            { "text": "Крымская война", "isCorrect": false },
+            { "text": "Семилетняя война", "isCorrect": false },
+            { "text": "Франко-прусская война", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой древний город был погребён извержением Везувия в 79 году?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Помпеи", "isCorrect": true },
+            { "text": "Эфес", "isCorrect": false },
+            { "text": "Коринф", "isCorrect": false },
+            { "text": "Микены", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто стал первым человеком, побывавшим в космосе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Юрий Гагарин", "isCorrect": true },
+            { "text": "Герман Титов", "isCorrect": false },
+            { "text": "Алексей Леонов", "isCorrect": false },
+            { "text": "Нил Армстронг", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком году была отменена крепостная зависимость крестьян в Российской империи?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "1861", "isCorrect": true },
+            { "text": "1812", "isCorrect": false },
+            { "text": "1905", "isCorrect": false },
+            { "text": "1917", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "География",
+      "questions": [
+        {
+          "text": "Какая страна занимает весь материк и одновременно является государством-континентом?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Австралия", "isCorrect": true },
+            { "text": "Канада", "isCorrect": false },
+            { "text": "Индонезия", "isCorrect": false },
+            { "text": "Бразилия", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая река считается самой длинной в Европе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Волга", "isCorrect": true },
+            { "text": "Дунай", "isCorrect": false },
+            { "text": "Рейн", "isCorrect": false },
+            { "text": "Днепр", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой пролив отделяет Европу от Африки у входа в Средиземное море?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Гибралтарский пролив", "isCorrect": true },
+            { "text": "Босфор", "isCorrect": false },
+            { "text": "Малаккский пролив", "isCorrect": false },
+            { "text": "Берингов пролив", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая пустыня является крупнейшей жаркой пустыней мира?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Сахара", "isCorrect": true },
+            { "text": "Гоби", "isCorrect": false },
+            { "text": "Калахари", "isCorrect": false },
+            { "text": "Атакама", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "На каком материке находится водопад Виктория?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Африка", "isCorrect": true },
+            { "text": "Южная Америка", "isCorrect": false },
+            { "text": "Азия", "isCorrect": false },
+            { "text": "Австралия", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой океан омывает западное побережье Южной Америки?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Тихий океан", "isCorrect": true },
+            { "text": "Атлантический океан", "isCorrect": false },
+            { "text": "Индийский океан", "isCorrect": false },
+            { "text": "Северный Ледовитый океан", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой город расположен сразу в Европе и Азии?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Стамбул", "isCorrect": true },
+            { "text": "Каир", "isCorrect": false },
+            { "text": "Рим", "isCorrect": false },
+            { "text": "Тбилиси", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая горная система отделяет Европейскую часть России от Западной Сибири?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Уральские горы", "isCorrect": true },
+            { "text": "Кавказские горы", "isCorrect": false },
+            { "text": "Алтай", "isCorrect": false },
+            { "text": "Саяны", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая столица расположена на реке Темзе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Лондон", "isCorrect": true },
+            { "text": "Париж", "isCorrect": false },
+            { "text": "Берлин", "isCorrect": false },
+            { "text": "Прага", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая страна известна фьордами западного побережья и столицей Осло?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Норвегия", "isCorrect": true },
+            { "text": "Швеция", "isCorrect": false },
+            { "text": "Финляндия", "isCorrect": false },
+            { "text": "Дания", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какое озеро является самым глубоким на Земле?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Байкал", "isCorrect": true },
+            { "text": "Танганьика", "isCorrect": false },
+            { "text": "Виктория", "isCorrect": false },
+            { "text": "Ладожское", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая страна имеет самую длинную сухопутную границу с Россией?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Казахстан", "isCorrect": true },
+            { "text": "Китай", "isCorrect": false },
+            { "text": "Монголия", "isCorrect": false },
+            { "text": "Беларусь", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Наука",
+      "questions": [
+        {
+          "text": "Какой химический элемент является основой органической химии?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Углерод", "isCorrect": true },
+            { "text": "Кислород", "isCorrect": false },
+            { "text": "Азот", "isCorrect": false },
+            { "text": "Кремний", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая частица имеет отрицательный электрический заряд?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Электрон", "isCorrect": true },
+            { "text": "Протон", "isCorrect": false },
+            { "text": "Нейтрон", "isCorrect": false },
+            { "text": "Фотон", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется процесс деления ядра клетки у эукариот?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Митоз", "isCorrect": true },
+            { "text": "Осмос", "isCorrect": false },
+            { "text": "Фотосинтез", "isCorrect": false },
+            { "text": "Ферментация", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой газ растения в основном поглощают из воздуха при фотосинтезе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Углекислый газ", "isCorrect": true },
+            { "text": "Кислород", "isCorrect": false },
+            { "text": "Азот", "isCorrect": false },
+            { "text": "Гелий", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что показывает pH раствора?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Кислотность или щёлочность", "isCorrect": true },
+            { "text": "Температуру кипения", "isCorrect": false },
+            { "text": "Плотность вещества", "isCorrect": false },
+            { "text": "Электрическое сопротивление", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой учёный сформулировал три классических закона движения?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Исаак Ньютон", "isCorrect": true },
+            { "text": "Альберт Эйнштейн", "isCorrect": false },
+            { "text": "Галилео Галилей", "isCorrect": false },
+            { "text": "Джеймс Максвелл", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется единица измерения электрического сопротивления?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Ом", "isCorrect": true },
+            { "text": "Вольт", "isCorrect": false },
+            { "text": "Ампер", "isCorrect": false },
+            { "text": "Ватт", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой органоид клетки часто называют «энергетической станцией»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Митохондрия", "isCorrect": true },
+            { "text": "Рибосома", "isCorrect": false },
+            { "text": "Лизосома", "isCorrect": false },
+            { "text": "Аппарат Гольджи", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой металл обозначается символом Fe?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Железо", "isCorrect": true },
+            { "text": "Фтор", "isCorrect": false },
+            { "text": "Франций", "isCorrect": false },
+            { "text": "Фермий", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется переход вещества из твёрдого состояния сразу в газообразное?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Сублимация", "isCorrect": true },
+            { "text": "Конденсация", "isCorrect": false },
+            { "text": "Плавление", "isCorrect": false },
+            { "text": "Кристаллизация", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая планета Солнечной системы имеет самый короткий год?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Меркурий", "isCorrect": true },
+            { "text": "Венера", "isCorrect": false },
+            { "text": "Марс", "isCorrect": false },
+            { "text": "Юпитер", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что изучает генетика?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Наследственность и изменчивость", "isCorrect": true },
+            { "text": "Движение небесных тел", "isCorrect": false },
+            { "text": "Строение минералов", "isCorrect": false },
+            { "text": "Поведение рынков", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Литература",
+      "questions": [
+        {
+          "text": "Какой герой русской литературы говорит: «А судьи кто?»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Чацкий", "isCorrect": true },
+            { "text": "Онегин", "isCorrect": false },
+            { "text": "Печорин", "isCorrect": false },
+            { "text": "Базаров", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком произведении появляется город Глупов?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«История одного города»", "isCorrect": true },
+            { "text": "«Мёртвые души»", "isCorrect": false },
+            { "text": "«Горе от ума»", "isCorrect": false },
+            { "text": "«Обломов»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто из персонажей романа «Преступление и наказание» совершает убийство старухи-процентщицы?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Родион Раскольников", "isCorrect": true },
+            { "text": "Дмитрий Разумихин", "isCorrect": false },
+            { "text": "Аркадий Свидригайлов", "isCorrect": false },
+            { "text": "Пётр Лужин", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется роман Булгакова, где Воланд приезжает в Москву?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Мастер и Маргарита»", "isCorrect": true },
+            { "text": "«Белая гвардия»", "isCorrect": false },
+            { "text": "«Собачье сердце»", "isCorrect": false },
+            { "text": "«Театральный роман»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой роман начинается строкой о том, что все счастливые семьи похожи друг на друга?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Анна Каренина»", "isCorrect": true },
+            { "text": "«Война и мир»", "isCorrect": false },
+            { "text": "«Отцы и дети»", "isCorrect": false },
+            { "text": "«Идиот»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто написал роман «Сто лет одиночества»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Габриэль Гарсиа Маркес", "isCorrect": true },
+            { "text": "Хулио Кортасар", "isCorrect": false },
+            { "text": "Марио Варгас Льоса", "isCorrect": false },
+            { "text": "Хорхе Луис Борхес", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто является автором «Божественной комедии»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Данте Алигьери", "isCorrect": true },
+            { "text": "Франческо Петрарка", "isCorrect": false },
+            { "text": "Джованни Боккаччо", "isCorrect": false },
+            { "text": "Торквато Тассо", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как зовут капитана из романа Жюля Верна «Двадцать тысяч лье под водой»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Немо", "isCorrect": true },
+            { "text": "Ахав", "isCorrect": false },
+            { "text": "Грант", "isCorrect": false },
+            { "text": "Флинт", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой писатель создал детектива Эркюля Пуаро?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Агата Кристи", "isCorrect": true },
+            { "text": "Артур Конан Дойл", "isCorrect": false },
+            { "text": "Жорж Сименон", "isCorrect": false },
+            { "text": "Рэймонд Чандлер", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой жанр обозначает произведение, высмеивающее общественные недостатки?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Сатира", "isCorrect": true },
+            { "text": "Элегия", "isCorrect": false },
+            { "text": "Ода", "isCorrect": false },
+            { "text": "Пастораль", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто написал пьесу «Вишнёвый сад»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Антон Чехов", "isCorrect": true },
+            { "text": "Александр Островский", "isCorrect": false },
+            { "text": "Максим Горький", "isCorrect": false },
+            { "text": "Леонид Андреев", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой роман-антиутопия написал Евгений Замятин?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Мы»", "isCorrect": true },
+            { "text": "«1984»", "isCorrect": false },
+            { "text": "«О дивный новый мир»", "isCorrect": false },
+            { "text": "«451 градус по Фаренгейту»", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Кино",
+      "questions": [
+        {
+          "text": "Кто снял фильм «Сталкер» по мотивам повести братьев Стругацких?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Андрей Тарковский", "isCorrect": true },
+            { "text": "Эльдар Рязанов", "isCorrect": false },
+            { "text": "Алексей Герман", "isCorrect": false },
+            { "text": "Сергей Бондарчук", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой фильм Кристофера Нолана посвящён эвакуации союзных войск из французского порта в 1940 году?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Дюнкерк»", "isCorrect": true },
+            { "text": "«Престиж»", "isCorrect": false },
+            { "text": "«Интерстеллар»", "isCorrect": false },
+            { "text": "«Довод»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как зовут археолога и искателя приключений из серии фильмов Стивена Спилберга?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Индиана Джонс", "isCorrect": true },
+            { "text": "Рик О’Коннелл", "isCorrect": false },
+            { "text": "Алан Грант", "isCorrect": false },
+            { "text": "Натан Дрейк", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой фильм получил первый в истории премии «Оскар» приз за лучший полнометражный анимационный фильм?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Шрек»", "isCorrect": true },
+            { "text": "«Корпорация монстров»", "isCorrect": false },
+            { "text": "«История игрушек»", "isCorrect": false },
+            { "text": "«Унесённые призраками»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой режиссёр снял трилогию «Властелин колец»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Питер Джексон", "isCorrect": true },
+            { "text": "Джеймс Кэмерон", "isCorrect": false },
+            { "text": "Ридли Скотт", "isCorrect": false },
+            { "text": "Джордж Лукас", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком фильме звучит фраза «I’ll be back»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Терминатор»", "isCorrect": true },
+            { "text": "«Хищник»", "isCorrect": false },
+            { "text": "«Робокоп»", "isCorrect": false },
+            { "text": "«Бегущий по лезвию»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется вымышленная страна из фильма «Чёрная пантера»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Ваканда", "isCorrect": true },
+            { "text": "Латверия", "isCorrect": false },
+            { "text": "Соковия", "isCorrect": false },
+            { "text": "Геноша", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто сыграл Форреста Гампа в одноимённом фильме?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Том Хэнкс", "isCorrect": true },
+            { "text": "Кевин Костнер", "isCorrect": false },
+            { "text": "Робин Уильямс", "isCorrect": false },
+            { "text": "Джон Траволта", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется город, в котором разворачивается большая часть действия фильма «Назад в будущее»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Хилл-Вэлли", "isCorrect": true },
+            { "text": "Спрингфилд", "isCorrect": false },
+            { "text": "Сайлент-Хилл", "isCorrect": false },
+            { "text": "Готэм", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой японский режиссёр снял фильм «Семь самураев»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Акира Куросава", "isCorrect": true },
+            { "text": "Хаяо Миядзаки", "isCorrect": false },
+            { "text": "Ясудзиро Одзу", "isCorrect": false },
+            { "text": "Такэси Китано", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой фильм Милоша Формана рассказывает о соперничестве Моцарта и Сальери?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Амадей»", "isCorrect": true },
+            { "text": "«Блеск»", "isCorrect": false },
+            { "text": "«Одержимость»", "isCorrect": false },
+            { "text": "«Пианист»", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой фильм Pixar начинается с пожилого героя, улетающего на доме с воздушными шарами?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "«Вверх»", "isCorrect": true },
+            { "text": "«ВАЛЛ-И»", "isCorrect": false },
+            { "text": "«Душа»", "isCorrect": false },
+            { "text": "«Головоломка»", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Музыка",
+      "questions": [
+        {
+          "text": "Какой композитор написал цикл концертов «Времена года»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Антонио Вивальди", "isCorrect": true },
+            { "text": "Иоганн Себастьян Бах", "isCorrect": false },
+            { "text": "Вольфганг Амадей Моцарт", "isCorrect": false },
+            { "text": "Людвиг ван Бетховен", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой инструмент считается основным в классическом струнном квартете наряду с альтом и виолончелью?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Скрипка", "isCorrect": true },
+            { "text": "Флейта", "isCorrect": false },
+            { "text": "Кларнет", "isCorrect": false },
+            { "text": "Контрабас", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой музыкальный термин означает постепенное усиление громкости?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Крещендо", "isCorrect": true },
+            { "text": "Диминуэндо", "isCorrect": false },
+            { "text": "Легато", "isCorrect": false },
+            { "text": "Стаккато", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой британский коллектив выпустил альбом «Abbey Road»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "The Beatles", "isCorrect": true },
+            { "text": "The Rolling Stones", "isCorrect": false },
+            { "text": "Queen", "isCorrect": false },
+            { "text": "Pink Floyd", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется самый низкий мужской певческий голос?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Бас", "isCorrect": true },
+            { "text": "Тенор", "isCorrect": false },
+            { "text": "Баритон", "isCorrect": false },
+            { "text": "Контратенор", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто написал оперу «Евгений Онегин»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Пётр Чайковский", "isCorrect": true },
+            { "text": "Модест Мусоргский", "isCorrect": false },
+            { "text": "Николай Римский-Корсаков", "isCorrect": false },
+            { "text": "Сергей Рахманинов", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой инструмент имеет клавиатуру, педали и струны внутри корпуса?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Фортепиано", "isCorrect": true },
+            { "text": "Аккордеон", "isCorrect": false },
+            { "text": "Клавесин", "isCorrect": false },
+            { "text": "Орган", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой стиль музыки возник в афроамериканской среде Нового Орлеана в начале XX века?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Джаз", "isCorrect": true },
+            { "text": "Регги", "isCorrect": false },
+            { "text": "Техно", "isCorrect": false },
+            { "text": "Гранж", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто из композиторов потерял слух, но продолжал сочинять музыку?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Людвиг ван Бетховен", "isCorrect": true },
+            { "text": "Фредерик Шопен", "isCorrect": false },
+            { "text": "Франц Шуберт", "isCorrect": false },
+            { "text": "Иоганнес Брамс", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется короткая повторяющаяся музыкальная фраза, часто в джазе и роке?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Рифф", "isCorrect": true },
+            { "text": "Кода", "isCorrect": false },
+            { "text": "Ария", "isCorrect": false },
+            { "text": "Речитатив", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой город считается родиной группы ABBA?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Стокгольм", "isCorrect": true },
+            { "text": "Осло", "isCorrect": false },
+            { "text": "Копенгаген", "isCorrect": false },
+            { "text": "Хельсинки", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется запись музыки на бумаге с помощью нотных знаков?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Нотная запись", "isCorrect": true },
+            { "text": "Аранжировка", "isCorrect": false },
+            { "text": "Импровизация", "isCorrect": false },
+            { "text": "Модуляция", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Спорт",
+      "questions": [
+        {
+          "text": "В каком виде спорта разыгрывают Кубок Стэнли?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Хоккей с шайбой", "isCorrect": true },
+            { "text": "Баскетбол", "isCorrect": false },
+            { "text": "Бейсбол", "isCorrect": false },
+            { "text": "Американский футбол", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Сколько игроков одной команды одновременно находится на площадке в классическом баскетболе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "5", "isCorrect": true },
+            { "text": "6", "isCorrect": false },
+            { "text": "7", "isCorrect": false },
+            { "text": "11", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как в теннисе называют счёт 40:40 в гейме?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Ровно", "isCorrect": true },
+            { "text": "Тай-брейк", "isCorrect": false },
+            { "text": "Сетбол", "isCorrect": false },
+            { "text": "Матчбол", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком виде спорта используют термины «эндшпиль», «гамбит» и «рокировка»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Шахматы", "isCorrect": true },
+            { "text": "Фехтование", "isCorrect": false },
+            { "text": "Кёрлинг", "isCorrect": false },
+            { "text": "Снукер", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой турнир по велоспорту проходит во Франции и считается самым престижным в мире?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Tour de France", "isCorrect": true },
+            { "text": "Giro d’Italia", "isCorrect": false },
+            { "text": "Vuelta a España", "isCorrect": false },
+            { "text": "Paris-Roubaix", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой снаряд в лёгкой атлетике метают после разбега и поворота корпуса, держа его за ручку и трос?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Молот", "isCorrect": true },
+            { "text": "Диск", "isCorrect": false },
+            { "text": "Копьё", "isCorrect": false },
+            { "text": "Ядро", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется стартовый прыжок пловца в бассейн?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Стартовый нырок", "isCorrect": true },
+            { "text": "Буллит", "isCorrect": false },
+            { "text": "Фальстарт", "isCorrect": false },
+            { "text": "Разножка", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая страна традиционно ассоциируется с сумо?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Япония", "isCorrect": true },
+            { "text": "Китай", "isCorrect": false },
+            { "text": "Корея", "isCorrect": false },
+            { "text": "Монголия", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется игрок, защищающий ворота в футболе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Вратарь", "isCorrect": true },
+            { "text": "Форвард", "isCorrect": false },
+            { "text": "Либеро", "isCorrect": false },
+            { "text": "Плеймейкер", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком виде спорта спортсмены выполняют упражнения на брусьях, кольцах и перекладине?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Спортивная гимнастика", "isCorrect": true },
+            { "text": "Акробатический рок-н-ролл", "isCorrect": false },
+            { "text": "Прыжки в воду", "isCorrect": false },
+            { "text": "Тяжёлая атлетика", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какое покрытие традиционно используется на Уимблдонском теннисном турнире?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Трава", "isCorrect": true },
+            { "text": "Грунт", "isCorrect": false },
+            { "text": "Хард", "isCorrect": false },
+            { "text": "Ковёр", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что означает термин «нокаут» в боксе?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Боец не может продолжить бой после отсчёта", "isCorrect": true },
+            { "text": "Боец получает предупреждение", "isCorrect": false },
+            { "text": "Раунд завершается досрочно по времени", "isCorrect": false },
+            { "text": "Судьи фиксируют ничью", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Искусство",
+      "questions": [
+        {
+          "text": "Кто написал картину «Звёздная ночь»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Винсент ван Гог", "isCorrect": true },
+            { "text": "Клод Моне", "isCorrect": false },
+            { "text": "Поль Гоген", "isCorrect": false },
+            { "text": "Эдвард Мунк", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой художник известен серией картин с кувшинками?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Клод Моне", "isCorrect": true },
+            { "text": "Эдуард Мане", "isCorrect": false },
+            { "text": "Огюст Ренуар", "isCorrect": false },
+            { "text": "Анри Матисс", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "В каком музее находится «Мона Лиза»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Лувр", "isCorrect": true },
+            { "text": "Прадо", "isCorrect": false },
+            { "text": "Эрмитаж", "isCorrect": false },
+            { "text": "Уффици", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется техника создания изображения из маленьких кусочков камня, стекла или керамики?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Мозаика", "isCorrect": true },
+            { "text": "Фреска", "isCorrect": false },
+            { "text": "Офорт", "isCorrect": false },
+            { "text": "Гобелен", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто создал скульптуру «Давид» эпохи Возрождения?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Микеланджело", "isCorrect": true },
+            { "text": "Донателло", "isCorrect": false },
+            { "text": "Бернини", "isCorrect": false },
+            { "text": "Рафаэль", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой стиль в искусстве связан с намеренным искажением форм и яркой передачей эмоций?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Экспрессионизм", "isCorrect": true },
+            { "text": "Классицизм", "isCorrect": false },
+            { "text": "Реализм", "isCorrect": false },
+            { "text": "Академизм", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Кто написал картину «Чёрный квадрат»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Казимир Малевич", "isCorrect": true },
+            { "text": "Василий Кандинский", "isCorrect": false },
+            { "text": "Марк Шагал", "isCorrect": false },
+            { "text": "Александр Родченко", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется настенная живопись по сырой штукатурке?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Фреска", "isCorrect": true },
+            { "text": "Коллаж", "isCorrect": false },
+            { "text": "Акватинта", "isCorrect": false },
+            { "text": "Инсталляция", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой испанский художник написал «Гернику»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Пабло Пикассо", "isCorrect": true },
+            { "text": "Сальвадор Дали", "isCorrect": false },
+            { "text": "Хуан Миро", "isCorrect": false },
+            { "text": "Франсиско Гойя", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется жанр изображения неодушевлённых предметов?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Натюрморт", "isCorrect": true },
+            { "text": "Пейзаж", "isCorrect": false },
+            { "text": "Портрет", "isCorrect": false },
+            { "text": "Марина", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой музей Санкт-Петербурга входит в крупнейшие художественные музеи мира?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Эрмитаж", "isCorrect": true },
+            { "text": "Третьяковская галерея", "isCorrect": false },
+            { "text": "Пушкинский музей", "isCorrect": false },
+            { "text": "Русский музей в Михайловском замке", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется направление, к которому относят часы, «текущие» на картине Дали «Постоянство памяти»?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Сюрреализм", "isCorrect": true },
+            { "text": "Импрессионизм", "isCorrect": false },
+            { "text": "Барокко", "isCorrect": false },
+            { "text": "Рококо", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Технологии",
+      "questions": [
+        {
+          "text": "Как расшифровывается HTTP в контексте веба?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "HyperText Transfer Protocol", "isCorrect": true },
+            { "text": "High Transfer Text Process", "isCorrect": false },
+            { "text": "Host Terminal Transport Protocol", "isCorrect": false },
+            { "text": "Hyperlink Table Transfer Package", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой формат данных чаще всего используют REST API для обмена структурированными объектами?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "JSON", "isCorrect": true },
+            { "text": "MP3", "isCorrect": false },
+            { "text": "PNG", "isCorrect": false },
+            { "text": "EXE", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что такое Docker-контейнер?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Изолированная среда запуска приложения", "isCorrect": true },
+            { "text": "Физический сервер для хранения файлов", "isCorrect": false },
+            { "text": "Тип SQL-запроса", "isCorrect": false },
+            { "text": "Алгоритм шифрования паролей", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какая база данных относится к реляционным?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "PostgreSQL", "isCorrect": true },
+            { "text": "Redis", "isCorrect": false },
+            { "text": "MongoDB", "isCorrect": false },
+            { "text": "Elasticsearch", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется механизм Entity Framework Core для изменения схемы базы данных по шагам?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Миграции", "isCorrect": true },
+            { "text": "Коммиты", "isCorrect": false },
+            { "text": "Снапшоты Docker", "isCorrect": false },
+            { "text": "Пайплайны", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой протокол обычно используется браузером для защищённого соединения с сайтом?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "HTTPS", "isCorrect": true },
+            { "text": "FTP", "isCorrect": false },
+            { "text": "SMTP", "isCorrect": false },
+            { "text": "Telnet", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что означает принцип DRY в программировании?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Не повторяйся", "isCorrect": true },
+            { "text": "Всегда пиши меньше классов", "isCorrect": false },
+            { "text": "Удаляй комментарии перед релизом", "isCorrect": false },
+            { "text": "Не используй базы данных", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой инструмент обычно используют для контроля версий исходного кода?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Git", "isCorrect": true },
+            { "text": "Postman", "isCorrect": false },
+            { "text": "Swagger", "isCorrect": false },
+            { "text": "RabbitMQ", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что такое API в разработке ПО?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Интерфейс взаимодействия программ", "isCorrect": true },
+            { "text": "Формат изображения", "isCorrect": false },
+            { "text": "Тип оперативной памяти", "isCorrect": false },
+            { "text": "Метод сжатия видео", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Как называется очередь сообщений, которую часто используют для асинхронного обмена между сервисами?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "RabbitMQ", "isCorrect": true },
+            { "text": "Swagger", "isCorrect": false },
+            { "text": "NuGet", "isCorrect": false },
+            { "text": "Kestrel", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Что означает SQL?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "Structured Query Language", "isCorrect": true },
+            { "text": "Simple Queue Library", "isCorrect": false },
+            { "text": "System Quality Level", "isCorrect": false },
+            { "text": "Server Query Loader", "isCorrect": false }
+          ]
+        },
+        {
+          "text": "Какой код ответа HTTP обычно означает успешное создание ресурса?",
+          "source": "CURATED_2026",
+          "options": [
+            { "text": "201 Created", "isCorrect": true },
+            { "text": "204 No Content", "isCorrect": false },
+            { "text": "400 Bad Request", "isCorrect": false },
+            { "text": "409 Conflict", "isCorrect": false }
+          ]
+        }
+      ]
+    }
+  ]
+}
