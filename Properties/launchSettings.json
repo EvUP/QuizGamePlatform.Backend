@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "testBdControllers": {
+    "QuizGamePlatform.Backend": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

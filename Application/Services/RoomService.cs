@@ -1,8 +1,8 @@
-using testBdControllers.Application.Abstractions;
-using testBdControllers.Application.Contracts.Room;
-using testBdControllers.Core.Abstractions;
+using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Core.Abstractions;
 
-namespace testBdControllers.Application.Services
+namespace QuizGamePlatform.Backend.Application.Services
 {
     public class RoomService(IRoomRepository repository, ILogger<RoomService> logger) : IRoomService
     {

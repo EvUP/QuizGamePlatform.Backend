@@ -1,7 +1,7 @@
-using testBdControllers.Application.Contracts.Room;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.Core.Abstractions
+namespace QuizGamePlatform.Backend.Core.Abstractions
 {
     public interface IRoomRepository
     {

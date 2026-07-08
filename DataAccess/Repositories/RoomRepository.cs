@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.Application.Contracts.Room;
-using testBdControllers.Application.Enums;
-using testBdControllers.Core.Abstractions;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Application.Enums;
+using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.DataAccess.Repositories
+namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class RoomRepository(ApplicationDbContext context) : IRoomRepository
     {

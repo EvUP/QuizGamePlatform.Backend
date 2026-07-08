@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.DataAccess.Seed
+namespace QuizGamePlatform.Backend.DataAccess.Seed
 {
     /// <summary>
     /// Разовое наполнение банка вопросов из quiz_seed.json

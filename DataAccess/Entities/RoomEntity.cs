@@ -1,7 +1,7 @@
 
-using testBdControllers.Application.Enums;
+using QuizGamePlatform.Backend.Application.Enums;
 
-namespace testBdControllers.DataAccess.Entities
+namespace QuizGamePlatform.Backend.DataAccess.Entities
 {
     public class RoomEntity
     {

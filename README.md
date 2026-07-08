@@ -1,4 +1,4 @@
-# testBdControllers
+# QuizGamePlatform.Backend
 
 Учебный скелет ASP.NET Core (.NET 8) + EF Core + PostgreSQL. Слои: `Api` / `Application` / `Core` / `DataAccess`.
 

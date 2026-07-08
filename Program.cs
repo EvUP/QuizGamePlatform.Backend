@@ -1,6 +1,6 @@
-using testBdControllers.Api.Handlers;
-using testBdControllers.Application.Extensions;
-using testBdControllers.DataAccess.HealthChecks;
+using QuizGamePlatform.Backend.Api.Handlers;
+using QuizGamePlatform.Backend.Application.Extensions;
+using QuizGamePlatform.Backend.DataAccess.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 

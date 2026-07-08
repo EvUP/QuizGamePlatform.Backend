@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using testBdControllers.DataAccess;
+using QuizGamePlatform.Backend.DataAccess;
 
 #nullable disable
 
-namespace testBdControllers.Migrations
+namespace QuizGamePlatform.Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260617173249_InitialCreate")]
@@ -24,7 +24,7 @@ namespace testBdControllers.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.UserEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");

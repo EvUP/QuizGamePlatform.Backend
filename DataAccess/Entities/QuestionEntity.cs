@@ -1,4 +1,4 @@
-namespace testBdControllers.DataAccess.Entities
+namespace QuizGamePlatform.Backend.DataAccess.Entities
 {
     public class QuestionEntity
     {

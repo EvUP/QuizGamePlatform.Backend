@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace testBdControllers.DataAccess.HealthChecks
+namespace QuizGamePlatform.Backend.DataAccess.HealthChecks
 {
     public class DatabaseHealthCheck(ApplicationDbContext dbContext) : IHealthCheck
     {

@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using testBdControllers.DataAccess;
+using QuizGamePlatform.Backend.DataAccess;
 
 #nullable disable
 
-namespace testBdControllers.Migrations
+namespace QuizGamePlatform.Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260707190143_DeleteTestUserEntity")]
@@ -25,7 +25,7 @@ namespace testBdControllers.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.AnswerOptionEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.AnswerOptionEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53,7 +53,7 @@ namespace testBdControllers.Migrations
                     b.ToTable("AnswerOptions");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.CategoryEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.CategoryEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -72,7 +72,7 @@ namespace testBdControllers.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.PlayerEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -88,7 +88,7 @@ namespace testBdControllers.Migrations
                     b.ToTable("Players");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.QuestionEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -113,7 +113,7 @@ namespace testBdControllers.Migrations
                     b.ToTable("Questions");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.RoomEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -137,7 +137,7 @@ namespace testBdControllers.Migrations
                     b.ToTable("Rooms");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.RoomPlayerEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomPlayerEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -176,9 +176,9 @@ namespace testBdControllers.Migrations
                     b.ToTable("RoomParticipations");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.AnswerOptionEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.AnswerOptionEntity", b =>
                 {
-                    b.HasOne("testBdControllers.DataAccess.Entities.QuestionEntity", "Question")
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", "Question")
                         .WithMany("AnswerOptions")
                         .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -187,9 +187,9 @@ namespace testBdControllers.Migrations
                     b.Navigation("Question");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.QuestionEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", b =>
                 {
-                    b.HasOne("testBdControllers.DataAccess.Entities.CategoryEntity", "Category")
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.CategoryEntity", "Category")
                         .WithMany("Questions")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -198,15 +198,15 @@ namespace testBdControllers.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.RoomPlayerEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomPlayerEntity", b =>
                 {
-                    b.HasOne("testBdControllers.DataAccess.Entities.PlayerEntity", "Player")
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", "Player")
                         .WithMany("RoomParticipations")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("testBdControllers.DataAccess.Entities.RoomEntity", "Room")
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", "Room")
                         .WithMany("Players")
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -217,22 +217,22 @@ namespace testBdControllers.Migrations
                     b.Navigation("Room");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.CategoryEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.CategoryEntity", b =>
                 {
                     b.Navigation("Questions");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.PlayerEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", b =>
                 {
                     b.Navigation("RoomParticipations");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.QuestionEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", b =>
                 {
                     b.Navigation("AnswerOptions");
                 });
 
-            modelBuilder.Entity("testBdControllers.DataAccess.Entities.RoomEntity", b =>
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", b =>
                 {
                     b.Navigation("Players");
                 });

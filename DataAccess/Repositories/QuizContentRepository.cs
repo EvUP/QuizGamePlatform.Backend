@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.Core.Abstractions;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.DataAccess.Repositories
+namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class QuizContentRepository(ApplicationDbContext context) : IQuizContentRepository
     {

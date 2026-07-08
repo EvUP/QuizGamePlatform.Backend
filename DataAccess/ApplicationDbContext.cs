@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.DataAccess
+namespace QuizGamePlatform.Backend.DataAccess
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {

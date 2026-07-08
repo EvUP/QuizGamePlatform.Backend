@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testBdControllers", "testBdControllers.csproj", "{A93CBA5B-4CC9-4F78-BA55-41771F704DB3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.Backend", "QuizGamePlatform.Backend.csproj", "{A93CBA5B-4CC9-4F78-BA55-41771F704DB3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testBdControllers.Tests", "testBdControllers.Tests\testBdControllers.Tests.csproj", "{CF18E632-B7C2-407A-9D3E-BDEACF06713F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.Backend.Tests", "QuizGamePlatform.Backend.Tests\QuizGamePlatform.Backend.Tests.csproj", "{CF18E632-B7C2-407A-9D3E-BDEACF06713F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
