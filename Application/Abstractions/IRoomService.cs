@@ -1,7 +1,7 @@
-using testBdControllers.Application.Contracts;
-using testBdControllers.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Application.Contracts;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
 
-namespace testBdControllers.Application.Abstractions
+namespace QuizGamePlatform.Backend.Application.Abstractions
 {
     public interface IRoomService
     {

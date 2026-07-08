@@ -1,4 +1,4 @@
-namespace testBdControllers.Application.Contracts
+namespace QuizGamePlatform.Backend.Application.Contracts
 {
     public class CategoryDto
     {

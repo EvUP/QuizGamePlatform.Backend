@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace testBdControllers.Migrations
+namespace QuizGamePlatform.Backend.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

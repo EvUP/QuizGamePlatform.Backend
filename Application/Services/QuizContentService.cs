@@ -1,8 +1,8 @@
-using testBdControllers.Application.Abstractions;
-using testBdControllers.Application.Contracts;
-using testBdControllers.Core.Abstractions;
+using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Contracts;
+using QuizGamePlatform.Backend.Core.Abstractions;
 
-namespace testBdControllers.Application.Services
+namespace QuizGamePlatform.Backend.Application.Services
 {
     public class QuizContentService(IQuizContentRepository repository) : IQuizContentService
     {

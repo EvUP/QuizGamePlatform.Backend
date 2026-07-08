@@ -1,10 +1,10 @@
 
-using testBdControllers.Application.Abstractions;
-using testBdControllers.Application.Services;
-using testBdControllers.Core.Abstractions;
-using testBdControllers.DataAccess.Repositories;
+using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Services;
+using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.DataAccess.Repositories;
 
-namespace testBdControllers.Application.Extensions
+namespace QuizGamePlatform.Backend.Application.Extensions
 {
     public static class CollectionExtensions
     {

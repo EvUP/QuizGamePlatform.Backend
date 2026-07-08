@@ -1,6 +1,6 @@
-using testBdControllers.Application.Contracts;
+using QuizGamePlatform.Backend.Application.Contracts;
 
-namespace testBdControllers.Application.Abstractions
+namespace QuizGamePlatform.Backend.Application.Abstractions
 {
     public interface IQuizContentService
     {

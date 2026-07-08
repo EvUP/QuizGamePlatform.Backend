@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace testBdControllers.Api.Controllers
+namespace QuizGamePlatform.Backend.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

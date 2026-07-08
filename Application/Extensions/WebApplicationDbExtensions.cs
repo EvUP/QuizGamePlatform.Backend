@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using testBdControllers.DataAccess.Seed;
-using testBdControllers.DataAccess;
+using QuizGamePlatform.Backend.DataAccess.Seed;
+using QuizGamePlatform.Backend.DataAccess;
 
-namespace testBdControllers.Application.Extensions
+namespace QuizGamePlatform.Backend.Application.Extensions
 {
     public static class WebApplicationDbExtensions
     {

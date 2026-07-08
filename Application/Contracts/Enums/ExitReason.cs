@@ -1,4 +1,4 @@
-namespace testBdControllers.Application.Enums
+namespace QuizGamePlatform.Backend.Application.Enums
 {
     public enum ExitReason
     {

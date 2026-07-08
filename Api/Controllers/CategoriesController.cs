@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using testBdControllers.Application.Abstractions;
-using testBdControllers.Application.Contracts;
+using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Contracts;
 
-namespace testBdControllers.Api.Controllers
+namespace QuizGamePlatform.Backend.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

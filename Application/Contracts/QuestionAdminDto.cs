@@ -1,4 +1,4 @@
-namespace testBdControllers.Application.Contracts
+namespace QuizGamePlatform.Backend.Application.Contracts
 {
     // Полный вид вопроса с пометкой правильного ответа (IsCorrect).
 

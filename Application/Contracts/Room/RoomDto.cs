@@ -1,6 +1,6 @@
-using testBdControllers.Application.Enums;
+using QuizGamePlatform.Backend.Application.Enums;
 
-namespace testBdControllers.Application.Contracts.Room
+namespace QuizGamePlatform.Backend.Application.Contracts.Room
 {
     public record CreateRoomResponse(
         Guid Id,

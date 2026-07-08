@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace testBdControllers.Migrations
+namespace QuizGamePlatform.Backend.Migrations
 {
     /// <inheritdoc />
     public partial class FixRoomPlayerIndexes_Clean : Migration

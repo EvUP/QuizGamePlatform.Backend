@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.DataAccess.Configuration
+namespace QuizGamePlatform.Backend.DataAccess.Configuration
 {
     public class AnswerOptionConfiguration : IEntityTypeConfiguration<AnswerOptionEntity>
     {

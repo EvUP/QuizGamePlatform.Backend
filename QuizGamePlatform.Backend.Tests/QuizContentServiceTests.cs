@@ -1,9 +1,9 @@
 using Moq;
-using testBdControllers.Application.Services;
-using testBdControllers.Core.Abstractions;
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.Application.Services;
+using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.Tests
+namespace QuizGamePlatform.Backend.Tests
 {
     public class QuizContentServiceTests
     {

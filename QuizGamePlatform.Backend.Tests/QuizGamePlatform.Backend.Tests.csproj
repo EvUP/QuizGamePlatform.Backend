@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\testBdControllers.csproj" />
+    <ProjectReference Include="..\QuizGamePlatform.Backend.csproj" />
   </ItemGroup>
 
 </Project>

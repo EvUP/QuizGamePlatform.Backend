@@ -1,6 +1,6 @@
-using testBdControllers.DataAccess.Entities;
+using QuizGamePlatform.Backend.DataAccess.Entities;
 
-namespace testBdControllers.Core.Abstractions
+namespace QuizGamePlatform.Backend.Core.Abstractions
 {
     public interface IQuizContentRepository
     {
