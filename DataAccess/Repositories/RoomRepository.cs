@@ -8,10 +8,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class RoomRepository(ApplicationDbContext context) : IRoomRepository
     {
-        public async Task<RoomEntity> CreateRoom(CancellationToken ct)
+        public async Task<RoomEntity> CreateRoomAsync(CancellationToken ct)
         {
             var room = new RoomEntity
             {
+                Id = Guid.NewGuid(),
                 RoomCode = Guid.NewGuid(),
                 Status = RoomStatus.Waiting,
                 CreatedAt = DateTime.UtcNow
@@ -23,9 +24,31 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
             return room;
         }
 
-        public async Task<RoomEntity> GetRoomById(Guid Id, CancellationToken ct)
+        public async Task<RoomEntity?> GetRoomByIdAsync(Guid Id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var currentRoom = await context.Rooms.FirstOrDefaultAsync(r => r.Id == Id, ct);
+
+            return currentRoom;
+        }
+
+        public async Task<List<RoomEntity>> GetAllExistingRoomsAsync(CancellationToken ct)
+        {
+            return await context.Rooms.ToListAsync(ct);
+        }
+
+        public async Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct)
+        {
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+            if (room is not null)
+            {
+                context.Rooms.Remove(room);
+                await context.SaveChangesAsync(ct);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }
