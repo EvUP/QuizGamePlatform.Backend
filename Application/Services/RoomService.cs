@@ -1,5 +1,6 @@
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Abstractions;
 
 namespace QuizGamePlatform.Backend.Application.Services
@@ -14,12 +15,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             logger.LogInformation("Room with id: {RoomId} successfully created", newRoom.Id);
 
-            return new CreateRoomResponse(
-                Id: newRoom.Id,
-                RoomCode: newRoom.RoomCode,
-                Status: newRoom.Status,
-                CreatedAt: newRoom.CreatedAt
-            );
+            return newRoom.ToCreateRoomResponse();
         }
 
         public async Task<bool> DeleteExistingRoomByIdAsync(Guid id, CancellationToken ct)
@@ -46,12 +42,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 logger.LogInformation("The list of rooms is empty");
             }
 
-            return rooms.Select(r => new CreateRoomResponse(
-                Id: r.Id,
-                RoomCode: r.RoomCode,
-                Status: r.Status,
-                CreatedAt: r.CreatedAt
-            )).ToList();
+            return rooms.Select(r => r.ToCreateRoomResponse()).ToList();
         }
 
         public async Task<CreateRoomResponse?> GetRoomByIdAsync(Guid id, CancellationToken ct)
@@ -67,12 +58,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            return new CreateRoomResponse(
-               Id: room.Id,
-               RoomCode: room.RoomCode,
-               Status: room.Status,
-               CreatedAt: room.CreatedAt
-           );
+            return room.ToCreateRoomResponse();
         }
     }
 }
