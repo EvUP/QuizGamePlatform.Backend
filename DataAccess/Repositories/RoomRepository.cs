@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Core.Abstractions;
 using QuizGamePlatform.Backend.DataAccess.Entities;
@@ -8,12 +7,12 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class RoomRepository(ApplicationDbContext context) : IRoomRepository
     {
-        public async Task<RoomEntity> CreateRoomAsync(CancellationToken ct)
+        public async Task<RoomEntity> CreateRoomAsync(string roomCode,CancellationToken ct)
         {
             var room = new RoomEntity
             {
                 Id = Guid.NewGuid(),
-                RoomCode = Guid.NewGuid(),
+                RoomCode = roomCode,
                 Status = RoomStatus.Waiting,
                 CreatedAt = DateTime.UtcNow
             };

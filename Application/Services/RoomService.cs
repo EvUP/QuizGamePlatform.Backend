@@ -5,13 +5,17 @@ using QuizGamePlatform.Backend.Core.Abstractions;
 
 namespace QuizGamePlatform.Backend.Application.Services
 {
-    public class RoomService(IRoomRepository repository, ILogger<RoomService> logger) : IRoomService
+    public class RoomService(
+        IRoomRepository repository, 
+        IRoomHelper roomHelper,
+        ILogger<RoomService> logger) : IRoomService
     {
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
             logger.LogInformation("Creating new Room");
-
-            var newRoom = await repository.CreateRoomAsync(ct);
+            
+            var roomCode = roomHelper.GenerateRoomCode();
+            var newRoom = await repository.CreateRoomAsync(roomCode,ct);
 
             logger.LogInformation("Room with id: {RoomId} successfully created", newRoom.Id);
 
@@ -20,7 +24,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task<bool> DeleteExistingRoomByIdAsync(Guid id, CancellationToken ct)
         {
-
             bool isDeletedRoom = await repository.DeleteExistingRoom(id, ct);
 
             if (isDeletedRoom)
