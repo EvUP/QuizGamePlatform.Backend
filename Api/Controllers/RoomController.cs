@@ -58,6 +58,15 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         [HttpPost("join")]
         public async Task<IActionResult> JoinToRoom([FromBody] JoinToRoomRequest roomRequest, CancellationToken ct)
         {
+            if (string.IsNullOrWhiteSpace(roomRequest.Username))
+            {
+                return BadRequest(new CommonErrorResponse
+               (
+                   Message: $"Username is empty",
+                   Method: HttpContext.GetMethodWithPath()
+               ));
+            }
+
             var roomPlayer = await roomService.JoinToRoomByRoomCodeAsync(roomRequest.Username, roomRequest.RoomCode, ct);
 
             if (roomPlayer is null)

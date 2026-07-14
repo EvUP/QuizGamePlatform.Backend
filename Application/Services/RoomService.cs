@@ -84,13 +84,16 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var player = await playerRepository.GetOrCreatePlayerAsync(username, ct);
 
-            var exists = await context.RoomParticipations
-                .AnyAsync(rp => rp.PlayerId == player.Id && rp.RoomId == room.Id && rp.IsActive, ct);
-
-            if (exists)
+            if (player is null)
             {
-                var roomPlayer = await context.RoomParticipations.FirstOrDefaultAsync(rp => rp.PlayerId == player.Id && rp.RoomId == room.Id && rp.IsActive, ct);
+                return null;
+            }
 
+            var roomPlayer = await context.RoomParticipations
+                .FirstOrDefaultAsync(rp => rp.PlayerId == player.Id && rp.RoomId == room.Id && rp.IsActive, ct);
+
+            if (roomPlayer != null)
+            {
                 return roomPlayer.ToJoinRoomResponse();
             }
 
@@ -111,8 +114,8 @@ namespace QuizGamePlatform.Backend.Application.Services
             await context.RoomParticipations.AddAsync(link, ct);
             await context.SaveChangesAsync(ct);
 
-            logger.LogInformation("New Room Created");
-            
+            logger.LogInformation("Player {username} joined room {roomCode}", username, roomCode);
+
             return link.ToJoinRoomResponse();
         }
     }
