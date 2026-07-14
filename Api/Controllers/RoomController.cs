@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Extensions;
 
 namespace QuizGamePlatform.Backend.Api.Controllers
@@ -51,6 +53,23 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpPost("join")]
+        public async Task<IActionResult> JoinToRoom([FromBody] JoinToRoomRequest roomRequest, CancellationToken ct)
+        {
+            var roomPlayer = await roomService.JoinToRoomByRoomCodeAsync(roomRequest.Username, roomRequest.RoomCode, ct);
+
+            if (roomPlayer is null)
+            {
+                return BadRequest(new CommonErrorResponse
+                (
+                    Message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
+                    Method: HttpContext.GetMethodWithPath()
+                ));
+            }
+
+            return Ok(roomPlayer);
         }
     }
 }

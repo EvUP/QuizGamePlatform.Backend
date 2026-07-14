@@ -14,5 +14,19 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                 CreatedAt: room.CreatedAt
             );
         }
+
+        public static JoinToRoomResponse ToJoinRoomResponse(this RoomPlayerEntity playerEntity)
+        {
+            return new JoinToRoomResponse(
+            RoomPlayerLinkId: playerEntity.Id,
+            RoomId: playerEntity.RoomId,
+            RoomCode: playerEntity.Room.RoomCode,
+            RoomStatus: playerEntity.Room.Status,
+            PlayerId: playerEntity.PlayerId,
+            PlayerName: playerEntity.Player.UserName,
+            JoinedAt: playerEntity.JoinedAt,
+            IsActive: playerEntity.IsActive
+        );
+        }
     }
 }
