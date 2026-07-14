@@ -6,7 +6,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class PlayerRepository(ApplicationDbContext context) : IPlayerRepository
     {
-        public async Task<PlayerEntity?> GetOrCreatePlayerAsync(string username, CancellationToken ct)
+        public async Task<PlayerEntity> GetOrCreatePlayerAsync(string username, CancellationToken ct)
         {
             var player = await context.Players.FirstOrDefaultAsync(p => p.UserName == username, ct);
 

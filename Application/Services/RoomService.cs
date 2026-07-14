@@ -84,11 +84,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var player = await playerRepository.GetOrCreatePlayerAsync(username, ct);
 
-            if (player is null)
-            {
-                return null;
-            }
-
             var roomPlayer = await context.RoomParticipations
                 .FirstOrDefaultAsync(rp => rp.PlayerId == player.Id && rp.RoomId == room.Id && rp.IsActive, ct);
 

@@ -8,6 +8,6 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// <summary>
         /// Создать игрока
         /// </summary>
-        Task<PlayerEntity?> GetOrCreatePlayerAsync(string username, CancellationToken ct);
+        Task<PlayerEntity> GetOrCreatePlayerAsync(string username, CancellationToken ct);
     };
 }
