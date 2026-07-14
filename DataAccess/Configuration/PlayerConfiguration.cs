@@ -10,6 +10,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
         {
             builder.HasKey(p => p.Id);
             builder.Property(p => p.UserName).HasMaxLength(50).IsRequired();
+            builder.HasIndex(p => p.UserName).IsUnique();
 
             builder.HasMany(p => p.RoomParticipations)
                 .WithOne(rp => rp.Player)
