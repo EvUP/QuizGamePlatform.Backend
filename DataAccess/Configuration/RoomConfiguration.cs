@@ -11,7 +11,6 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.HasKey(r => r.Id);
 
             builder.Property(r => r.RoomCode)
-                .HasMaxLength(20)
                 .IsRequired();
 
             builder.Property(r => r.Status)

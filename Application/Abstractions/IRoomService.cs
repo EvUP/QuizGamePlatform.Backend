@@ -1,4 +1,3 @@
-using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 
 namespace QuizGamePlatform.Backend.Application.Abstractions

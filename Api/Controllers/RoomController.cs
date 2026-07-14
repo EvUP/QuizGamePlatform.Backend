@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Contracts;
+using QuizGamePlatform.Backend.Core.Extensions;
 
 namespace QuizGamePlatform.Backend.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class RoomsController(IRoomService roomService) : ControllerBase
+    public class RoomController(IRoomService roomService) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> CreateRoom(CancellationToken ct)
@@ -22,7 +24,9 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             if (room is null)
             {
-                return NotFound();
+                return NotFound(new CommonErrorResponse(
+                    message: $"Room with {id} is not found",
+                    method: HttpContext.GetMethodWithPath()));
             }
 
             return Ok(room);
@@ -41,7 +45,9 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             if (!isDeletedRoom)
             {
-                return NotFound(new { message = "Room not found" });
+                return NotFound(new CommonErrorResponse(
+                    message: $"Room with {id} is not found",
+                    method: HttpContext.GetMethodWithPath()));
             }
 
             return NoContent();

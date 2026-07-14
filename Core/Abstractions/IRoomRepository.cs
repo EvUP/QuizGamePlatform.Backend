@@ -1,4 +1,3 @@
-using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
 namespace QuizGamePlatform.Backend.Core.Abstractions
@@ -8,7 +7,7 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// <summary>
         /// Создать комнату
         /// </summary>
-        Task<RoomEntity> CreateRoomAsync(CancellationToken ct);
+        Task<RoomEntity> CreateRoomAsync(string roomCode, CancellationToken ct);
         /// <summary>
         /// Найти комнату по ID
         /// </summary>

@@ -2,6 +2,7 @@
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.Core.Helpers;
 using QuizGamePlatform.Backend.DataAccess.Repositories;
 
 namespace QuizGamePlatform.Backend.Application.Extensions
@@ -12,8 +13,13 @@ namespace QuizGamePlatform.Backend.Application.Extensions
         {
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+            builder.Services.AddSingleton<IRoomHelper, RoomHelper>();
+
             builder.Services.AddScoped<IQuizContentService, QuizContentService>();
             builder.Services.AddScoped<IQuizContentRepository, QuizContentRepository>();
+
+            builder.Services.AddScoped<IPlayerService, PlayerService>();
+            builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
 
             return builder;
         }

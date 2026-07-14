@@ -4,7 +4,7 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
 {
     public record CreateRoomResponse(
         Guid Id,
-        Guid RoomCode,
+        string RoomCode,
         RoomStatus Status,
         DateTime CreatedAt);
 }

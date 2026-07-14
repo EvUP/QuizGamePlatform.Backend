@@ -6,7 +6,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
     public class RoomEntity
     {
         public Guid Id { get; set; }
-        public Guid RoomCode { get; set; }
+        public string RoomCode { get; set; } = string.Empty;
         public RoomStatus Status { get; set; } = RoomStatus.Waiting;
         public DateTime CreatedAt { get; set; }
         public ICollection<RoomPlayerEntity> Players { get; set; } = new List<RoomPlayerEntity>();
