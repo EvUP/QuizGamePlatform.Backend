@@ -9,20 +9,6 @@ namespace QuizGamePlatform.Backend.Application.Services
         IPlayerRepository repository,
         ILogger<PlayerService> logger) : IPlayerService
     {
-        public async Task<CreatePlayerResponse?> CreatePlayer(CreatePlayerRequest playerRequest, CancellationToken ct)
-        {
-            var player = await repository.CreatePlayerAsync(playerRequest.Username, ct);
-
-            if (player is null)
-            {
-                logger.LogInformation("Player with username:{username} alreadyExist", playerRequest.Username);
-
-                return null;
-            }
-
-            logger.LogInformation("Player with Id:{id} was created", player.Id);
-
-            return player.ToCreatePlayerResponse();
-        }
+      
     }
 }

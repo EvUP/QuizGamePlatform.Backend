@@ -5,6 +5,6 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
 {
     public interface IPlayerService
     {
-        Task<CreatePlayerResponse?> CreatePlayer(CreatePlayerRequest playerRequest, CancellationToken ct);
+
     }
 }

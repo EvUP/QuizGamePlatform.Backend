@@ -15,10 +15,17 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// <summary>
         /// Найти все существующие комнаты
         /// </summary>
+        /// 
+        Task<RoomEntity?> GetRoomByRoomCodeAsync(string roomCode, CancellationToken ct);
         Task<List<RoomEntity>> GetAllExistingRoomsAsync(CancellationToken ct);
         /// <summary>
         /// Удалить существующую комнату по Id
         /// </summary>
         Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct);
+
+        /// <summary>
+        /// Найти участника в комнате
+        /// </summary>
+        Task<RoomPlayerEntity?> GetRoomParticipation(Guid roomId, Guid playerId, CancellationToken ct);
     };
 }
