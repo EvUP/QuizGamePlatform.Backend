@@ -10,7 +10,7 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
 
     public record JoinToRoomRequest(string Username, string RoomCode);
 
-    public record JoinToRoomResponse(
+    public record RoomResponse(
     Guid RoomPlayerLinkId,   // Это Id самой связи (RoomPlayerEntity.Id)
     Guid RoomId,             // ID комнаты
     string RoomCode,          // Код комнаты (удобно для UI)
@@ -19,4 +19,17 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     string PlayerName,         // Имя игрока (UserName)
     DateTime JoinedAt,        // Время присоединения
     bool IsActive);           // Активен ли игрок в комнате
+
+    public record LeaveRoomResponse(
+        Guid RoomId,
+        Guid PlayerId,
+        DateTime FinishedAt,
+        ExitReason ExitReason
+    );
+
+    public record LeaveRoomRequest(
+        Guid RoomId,
+        Guid PlayerId,
+        ExitReason ExitReason
+    );
 }

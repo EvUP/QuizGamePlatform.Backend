@@ -42,6 +42,23 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 
             return true;
         }
+
+        public async Task<RoomPlayerEntity?> GetRoomParticipation(Guid roomId, Guid playerId, CancellationToken ct)
+        {
+            var participation = await context.RoomParticipations
+                    .FirstOrDefaultAsync(
+                    rp => rp.PlayerId == playerId
+                    && rp.RoomId == roomId
+                    && rp.IsActive,
+            ct);
+
+            if (participation is null)
+            {
+                return null;
+            }
+
+            return participation;
+        }
     }
 
 }

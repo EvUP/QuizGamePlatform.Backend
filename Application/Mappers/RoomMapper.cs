@@ -1,4 +1,5 @@
 using QuizGamePlatform.Backend.Application.Contracts.Room;
+using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
 namespace QuizGamePlatform.Backend.Application.Mappers
@@ -15,9 +16,9 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             );
         }
 
-        public static JoinToRoomResponse ToJoinRoomResponse(this RoomPlayerEntity playerEntity)
+        public static RoomResponse ToJoinRoomResponse(this RoomPlayerEntity playerEntity)
         {
-            return new JoinToRoomResponse(
+            return new RoomResponse(
             RoomPlayerLinkId: playerEntity.Id,
             RoomId: playerEntity.RoomId,
             RoomCode: playerEntity.Room.RoomCode,
@@ -27,6 +28,16 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             JoinedAt: playerEntity.JoinedAt,
             IsActive: playerEntity.IsActive
         );
+        }
+
+        public static LeaveRoomResponse ToLeaveRoomResponse(this RoomPlayerEntity roomPlayerEntity)
+        {
+            return new LeaveRoomResponse(
+            RoomId: roomPlayerEntity.RoomId,
+            PlayerId: roomPlayerEntity.PlayerId,
+            FinishedAt: roomPlayerEntity.FinishedAt ?? DateTime.UtcNow,
+            ExitReason: roomPlayerEntity.ExitReason ?? ExitReason.Other
+            );
         }
     }
 }

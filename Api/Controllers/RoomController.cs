@@ -71,7 +71,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             if (roomPlayer is null)
             {
-                return BadRequest(new CommonErrorResponse
+                return NotFound(new CommonErrorResponse
                 (
                     Message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
                     Method: HttpContext.GetMethodWithPath()
@@ -79,6 +79,29 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             }
 
             return Ok(roomPlayer);
+        }
+
+        [HttpPost("leave")]
+        public async Task<IActionResult> LeaveRoom([FromBody] LeaveRoomRequest roomRequest, CancellationToken ct)
+        {
+            var roomPlayer = await roomService.LeaveRoom(roomRequest.RoomId, roomRequest.PlayerId, roomRequest.ExitReason, ct);
+
+            if (roomPlayer is null)
+            {
+                return NotFound(new CommonErrorResponse
+               (
+                   Message: $"Комната с игроком {roomRequest.PlayerId} не найдена или игрок уже покинул комнату {roomRequest.RoomId}",
+                   Method: HttpContext.GetMethodWithPath()
+               ));
+            }
+
+            return Ok(roomPlayer);
+        }
+
+        [HttpGet("participations/{roomId}")]
+        public async Task<IActionResult> GetRoomParticipationsById(Guid roomId, CancellationToken ct)
+        {
+            return Ok(await roomService.GetRoomParticipationsById(roomId, ct));
         }
     }
 }
