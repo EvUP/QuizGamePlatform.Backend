@@ -19,5 +19,9 @@ namespace QuizGamePlatform.Backend.DataAccess
         public DbSet<CategoryEntity> Categories { get; set; } = null!;
         public DbSet<QuestionEntity> Questions { get; set; } = null!;
         public DbSet<AnswerOptionEntity> AnswerOptions { get; set; } = null!;
+
+        public DbSet<MatchEntity> Matches { get; set; } = null!;
+        public DbSet<MatchQuestionEntity> MatchQuestions { get; set; } = null!;
+        public DbSet<PlayerAnswerEntity> PlayerAnswers { get; set; } = null!;
     }
 }

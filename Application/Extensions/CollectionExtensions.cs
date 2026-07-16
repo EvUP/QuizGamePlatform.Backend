@@ -23,6 +23,9 @@ namespace QuizGamePlatform.Backend.Application.Extensions
 
             builder.Services.AddScoped<IRoomParticipationRepository, RoomPatricipationRepository>();
 
+            builder.Services.AddScoped<IMatchService, MatchService>();
+            builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+
             return builder;
         }
     }
