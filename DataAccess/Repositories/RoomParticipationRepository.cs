@@ -30,7 +30,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public async Task<RoomPlayerEntity?> GetRoomPlayerById(Guid roomId, Guid playerId, CancellationToken ct)
         {
             return await context.RoomParticipations
-                 .FirstOrDefaultAsync(rp => rp.PlayerId == playerId && rp.RoomId == roomId && rp.IsActive, ct);
+                 .FirstOrDefaultAsync(rp => rp.PlayerId == playerId && rp.RoomId == roomId, ct);
         }
 
         public async Task<List<RoomPlayerEntity>> GetParticipationsByRoomId(Guid roomId, CancellationToken ct)
