@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Core.Abstractions;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
@@ -23,6 +24,14 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .Include(mq => mq.Question)
                     .ThenInclude(q => q.AnswerOptions)
                 .FirstOrDefaultAsync(mq => mq.MatchId == matchId && mq.Order == order, ct);
+        }
+
+        public async Task<List<Guid>> GetExpiredActiveMatchIdsAsync(DateTime nowUtc, CancellationToken ct)
+        {
+            return await context.Matches
+                .Where(m => m.Status == MatchStatus.QuestionActive && m.QuestionEndsAt <= nowUtc)
+                .Select(m => m.Id)
+                .ToListAsync(ct);
         }
 
         public async Task AddAnswerAsync(PlayerAnswerEntity answer, CancellationToken ct)

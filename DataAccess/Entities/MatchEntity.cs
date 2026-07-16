@@ -13,6 +13,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public int CurrentQuestionIndex { get; set; }
 
         public DateTime StartedAt { get; set; }
+        public DateTime QuestionEndsAt { get; set; }
         public DateTime? FinishedAt { get; set; }
 
         public ICollection<MatchQuestionEntity> Questions { get; set; } = new List<MatchQuestionEntity>();

@@ -16,6 +16,17 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(m => m.StartedAt)
                 .HasDefaultValueSql("NOW()");
 
+            builder.Property(m => m.QuestionEndsAt)
+                .HasDefaultValueSql("NOW()");
+
+            // под опрос таймера
+            builder.HasIndex(m => new { m.Status, m.QuestionEndsAt });
+
+            // одна незавершённая партия на комнату
+            builder.HasIndex(m => m.RoomId)
+                .IsUnique()
+                .HasFilter("\"Status\" <> 'Finished'");
+
             builder.HasOne(m => m.Room)
                 .WithMany()
                 .HasForeignKey(m => m.RoomId)

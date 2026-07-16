@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts;
+using QuizGamePlatform.Backend.Core.Extensions;
 
 namespace QuizGamePlatform.Backend.Api.Controllers
 {
@@ -22,7 +23,9 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             var questions = await quizContentService.GetQuestionsByCategoryAsync(categoryId, ct);
 
             if (questions is null)
-                return NotFound(new { message = $"Category {categoryId} not found." });
+                return NotFound(new CommonErrorResponse(
+                    message: $"Category {categoryId} not found",
+                    method: HttpContext.GetMethodWithPath()));
 
             return Ok(questions);
         }

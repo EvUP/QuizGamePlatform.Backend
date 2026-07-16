@@ -9,5 +9,6 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
         Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct);
         Task<MatchStateResponse?> CloseQuestionAsync(Guid matchId, CancellationToken ct);
         Task<MatchStateResponse?> NextQuestionAsync(Guid matchId, CancellationToken ct);
+        Task AdvanceExpiredMatchesAsync(CancellationToken ct);
     }
 }
