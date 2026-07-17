@@ -62,8 +62,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return BadRequest(new CommonErrorResponse
                (
-                   Message: $"Username is empty",
-                   Method: HttpContext.GetMethodWithPath()
+                   message: $"Username is empty",
+                   method: HttpContext.GetMethodWithPath()
                ));
             }
 
@@ -73,8 +73,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return NotFound(new CommonErrorResponse
                 (
-                    Message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
-                    Method: HttpContext.GetMethodWithPath()
+                    message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
+                    method: HttpContext.GetMethodWithPath()
                 ));
             }
 
@@ -90,8 +90,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return NotFound(new CommonErrorResponse
                (
-                   Message: $"Комната с игроком {roomRequest.PlayerId} не найдена или игрок уже покинул комнату {roomRequest.RoomId}",
-                   Method: HttpContext.GetMethodWithPath()
+                   message: $"Комната с игроком {roomRequest.PlayerId} не найдена или игрок уже покинул комнату {roomRequest.RoomId}",
+                   method: HttpContext.GetMethodWithPath()
                ));
             }
 

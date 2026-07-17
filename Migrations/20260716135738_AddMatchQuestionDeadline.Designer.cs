@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuizGamePlatform.Backend.DataAccess;
@@ -11,9 +12,11 @@ using QuizGamePlatform.Backend.DataAccess;
 namespace QuizGamePlatform.Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716135738_AddMatchQuestionDeadline")]
+    partial class AddMatchQuestionDeadline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,11 +103,7 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoomId")
-                        .IsUnique()
-                        .HasFilter("\"Status\" <> 'Finished'");
-
-                    b.HasIndex("Status", "QuestionEndsAt");
+                    b.HasIndex("RoomId");
 
                     b.ToTable("Matches");
                 });
