@@ -30,6 +30,20 @@ namespace QuizGamePlatform.Backend.Application.Mappers
         );
         }
 
+        public static RoomParticipationResponse ToRoomParticipationResponse(this RoomPlayerEntity playerEntity)
+        {
+            return new RoomParticipationResponse(
+            RoomId: playerEntity.RoomId,
+            FinishedAt: playerEntity.FinishedAt,
+            ExitReason: playerEntity.ExitReason,
+            PlayerId: playerEntity.PlayerId,
+            PlayerName: playerEntity.Player.UserName,
+            JoinedAt: playerEntity.JoinedAt,
+            IsActive: playerEntity.IsActive,
+            Score: playerEntity.Score
+        );
+        }
+
         public static LeaveRoomResponse ToLeaveRoomResponse(this RoomPlayerEntity roomPlayerEntity)
         {
             return new LeaveRoomResponse(

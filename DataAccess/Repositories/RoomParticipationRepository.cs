@@ -36,11 +36,19 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public async Task<List<RoomPlayerEntity>> GetParticipationsByRoomId(Guid roomId, CancellationToken ct)
         {
             return await context.RoomParticipations
-        .Include(rp => rp.Room)
-        .Include(rp => rp.Player)        
-        .Where(rp => rp.RoomId == roomId)
-        .ToListAsync(ct);
+                .Include(rp => rp.Room)
+                .Include(rp => rp.Player)
+                .Where(rp => rp.RoomId == roomId)
+                .ToListAsync(ct);
         }
-    }
+
+        public async Task<List<RoomPlayerEntity>> GetAllExistingParticipations(CancellationToken ct)
+        {
+            return await context.RoomParticipations
+               .Include(rp => rp.Room)
+               .Include(rp => rp.Player)
+               .ToListAsync(ct);
+        }
+    };
 
 }
