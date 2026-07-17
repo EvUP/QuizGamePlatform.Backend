@@ -20,6 +20,19 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     DateTime JoinedAt,        // Время присоединения
     bool IsActive);           // Активен ли игрок в комнате
 
+    public record RoomParticipationResponse(
+    Guid RoomId,
+
+    Guid PlayerId,
+    string PlayerName,
+
+    DateTime JoinedAt,
+    DateTime? FinishedAt,
+    bool IsActive,
+    ExitReason? ExitReason,
+    int Score
+    );
+
     public record LeaveRoomResponse(
         Guid RoomId,
         Guid PlayerId,

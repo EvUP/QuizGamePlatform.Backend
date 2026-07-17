@@ -12,6 +12,7 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
         Task<RoomResponse?> JoinToRoomByRoomCodeAsync(
         string username, string roomCode, CancellationToken ct);
         Task<LeaveRoomResponse?> LeaveRoom(Guid roomId, Guid playerId, ExitReason exitReason, CancellationToken ct);
-        Task<List<RoomResponse>> GetRoomParticipationsById(Guid roomId, CancellationToken ct);
-    }
+        Task<List<RoomParticipationResponse>> GetRoomParticipationsById(Guid roomId, CancellationToken ct);
+        Task<List<RoomParticipationResponse>> GetAllExistingParticipation(CancellationToken ct);
+    };
 }

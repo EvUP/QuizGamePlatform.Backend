@@ -35,7 +35,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public async Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct)
         {
             var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
-            if (room is null) return false;
+
+            if (room is null)
+            {
+                return false;
+            }
 
             context.Rooms.Remove(room);
             await context.SaveChangesAsync(ct);

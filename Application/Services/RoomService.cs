@@ -141,11 +141,18 @@ namespace QuizGamePlatform.Backend.Application.Services
             return roomPlayer.ToLeaveRoomResponse();
         }
 
-        public async Task<List<RoomResponse>> GetRoomParticipationsById(Guid roomId, CancellationToken ct)
+        public async Task<List<RoomParticipationResponse>> GetRoomParticipationsById(Guid roomId, CancellationToken ct)
         {
             var roomParticipations = await roomParticipationRepository.GetParticipationsByRoomId(roomId, ct);
 
-            return roomParticipations.Select(rp => rp.ToJoinRoomResponse()).ToList();
+            return roomParticipations.Select(rp => rp.ToRoomParticipationResponse()).ToList();
         }
-    }
+
+        public async Task<List<RoomParticipationResponse>> GetAllExistingParticipation(CancellationToken ct)
+        {
+            var allParticipations = await roomParticipationRepository.GetAllExistingParticipations(ct);
+
+            return allParticipations.Select(rp => rp.ToRoomParticipationResponse()).ToList();
+        }
+    };
 }

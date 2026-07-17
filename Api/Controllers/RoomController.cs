@@ -103,5 +103,11 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         {
             return Ok(await roomService.GetRoomParticipationsById(roomId, ct));
         }
+
+        [HttpGet("participations/all")]
+        public async Task<IActionResult> GetAllParticipations(CancellationToken ct)
+        {
+            return Ok(await roomService.GetAllExistingParticipation(ct));
+        }
     }
 }

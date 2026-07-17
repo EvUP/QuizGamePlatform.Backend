@@ -143,7 +143,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
                 if (match is null || match.Status != MatchStatus.QuestionActive)
                 {
-                    return (MatchStateResponse?)null;
+                    return null;
                 }
 
                 match.Status = MatchStatus.QuestionClosed;
@@ -164,7 +164,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
                 if (match is null || match.Status != MatchStatus.QuestionClosed)
                 {
-                    return (MatchStateResponse?)null;
+                    return null;
                 }
 
                 await AdvanceMatchAsync(match, ct);
