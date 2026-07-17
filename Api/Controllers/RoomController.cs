@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
-using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Extensions;
 
 namespace QuizGamePlatform.Backend.Api.Controllers
@@ -78,6 +77,16 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 ));
             }
 
+            //TODO Поле будет назначаться после ожидания в 30сек 
+            if (roomPlayer.FinishedAt.HasValue)
+            {
+                return BadRequest(new CommonErrorResponse
+                (
+                    message: $"Reconnecting timeout for {roomPlayer.PlayerName} has been expired",
+                    method: HttpContext.GetMethodWithPath()
+                ));
+            }
+
             return Ok(roomPlayer);
         }
 
@@ -94,6 +103,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                    method: HttpContext.GetMethodWithPath()
                ));
             }
+
 
             return Ok(roomPlayer);
         }

@@ -16,7 +16,8 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     string RoomCode,          // Код комнаты (удобно для UI)
     RoomStatus RoomStatus,   // Текущий статус комнаты
     Guid PlayerId,            // ID игрока
-    string PlayerName,         // Имя игрока (UserName)
+    string PlayerName,    
+    DateTime? FinishedAt,     
     DateTime JoinedAt,        // Время присоединения
     bool IsActive);           // Активен ли игрок в комнате
 

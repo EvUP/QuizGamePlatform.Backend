@@ -90,15 +90,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             if (roomPlayer != null)
             {
-                if (!roomPlayer.IsActive)
-                {
-                    roomPlayer.IsActive = true;
-                    roomPlayer.FinishedAt = null;
-                    roomPlayer.ExitReason = null;
-
-                    await context.SaveChangesAsync(ct);
-                }
-
                 return roomPlayer.ToJoinRoomResponse();
             }
 
