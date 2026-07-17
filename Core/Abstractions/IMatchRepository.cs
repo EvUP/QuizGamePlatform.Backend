@@ -17,9 +17,17 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<MatchQuestionEntity?> GetMatchQuestionAsync(Guid matchId, int order, CancellationToken ct);
         /// <summary>
-        /// Id матчей с истёкшим вопросом
+        /// Id матчей с истёкшим вопросом (активным или закрытым)
         /// </summary>
-        Task<List<Guid>> GetExpiredActiveMatchIdsAsync(DateTime nowUtc, CancellationToken ct);
+        Task<List<Guid>> GetExpiredMatchIdsAsync(DateTime nowUtc, CancellationToken ct);
+        /// <summary>
+        /// Принадлежит ли вариант ответа этому вопросу
+        /// </summary>
+        Task<bool> OptionBelongsToQuestionAsync(Guid questionId, Guid optionId, CancellationToken ct);
+        /// <summary>
+        /// Кол-во правильных ответов у каждого игрока в матче
+        /// </summary>
+        Task<Dictionary<Guid, int>> GetCorrectAnswerCountsAsync(Guid matchId, CancellationToken ct);
         /// <summary>
         /// Добавить ответ игрока (без сохранения)
         /// </summary>
