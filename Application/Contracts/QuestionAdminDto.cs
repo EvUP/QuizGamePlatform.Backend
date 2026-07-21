@@ -1,6 +1,5 @@
 namespace QuizGamePlatform.Backend.Application.Contracts
 {
-    // Полный вид вопроса с пометкой правильного ответа (IsCorrect).
 
     public class QuestionAdminDto
     {
@@ -15,6 +14,5 @@ namespace QuizGamePlatform.Backend.Application.Contracts
         public Guid Id { get; set; }
         public string Text { get; set; } = string.Empty;
         public int Position { get; set; }
-        public bool IsCorrect { get; set; }
     }
 }

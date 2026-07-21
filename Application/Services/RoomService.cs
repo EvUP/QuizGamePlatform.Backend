@@ -18,6 +18,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         ApplicationDbContext context,
         ILogger<RoomService> logger) : IRoomService
     {
+        private const int ReconnectWindowSeconds = 40;
+
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
             logger.LogInformation("Creating new Room");
@@ -32,6 +34,13 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task<bool> DeleteExistingRoomByIdAsync(Guid id, CancellationToken ct)
         {
+            var room = await roomRepository.GetRoomByIdAsync(id, ct);
+
+            if (room is null || room.Status == RoomStatus.InProgress)
+            {
+                return false;
+            }
+
             bool isDeletedRoom = await roomRepository.DeleteExistingRoom(id, ct);
 
             if (isDeletedRoom)
@@ -77,9 +86,9 @@ namespace QuizGamePlatform.Backend.Application.Services
         {
             var room = await roomRepository.GetRoomByRoomCodeAsync(roomCode, ct);
 
-            if (room == null || room.Status != RoomStatus.Waiting)
+            if (room == null || room.Status == RoomStatus.Finished)
             {
-                logger.LogInformation("Room with roomcode {roomcode} is not found", roomCode);
+                logger.LogInformation("Room with roomcode {roomcode} is not found or finished", roomCode);
 
                 return null;
             }
@@ -90,16 +99,13 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             if (roomPlayer != null)
             {
-                if (!roomPlayer.IsActive)
-                {
-                    roomPlayer.IsActive = true;
-                    roomPlayer.FinishedAt = null;
-                    roomPlayer.ExitReason = null;
+                return await RejoinAsync(roomPlayer, room, ct);
+            }
 
-                    await context.SaveChangesAsync(ct);
-                }
-
-                return roomPlayer.ToJoinRoomResponse();
+            // новый игрок заходит только до старта матча
+            if (room.Status != RoomStatus.Waiting)
+            {
+                return null;
             }
 
             var link = await roomParticipationRepository.CreateRoomPlayer(player, room, ct);
@@ -108,6 +114,29 @@ namespace QuizGamePlatform.Backend.Application.Services
             await context.SaveChangesAsync(ct);
 
             return link.ToJoinRoomResponse();
+        }
+
+        private async Task<RoomResponse?> RejoinAsync(RoomPlayerEntity roomPlayer, RoomEntity room, CancellationToken ct)
+        {
+            if (roomPlayer.IsActive)
+            {
+                return roomPlayer.ToJoinRoomResponse();
+            }
+
+            if (room.Status == RoomStatus.InProgress && !CanReconnect(roomPlayer))
+            {
+                logger.LogInformation("Player {PlayerId} missed reconnect window in room {RoomCode}", roomPlayer.PlayerId, room.RoomCode);
+
+                return null;
+            }
+
+            roomPlayer.IsActive = true;
+            roomPlayer.FinishedAt = null;
+            roomPlayer.ExitReason = null;
+
+            await context.SaveChangesAsync(ct);
+
+            return roomPlayer.ToJoinRoomResponse();
         }
 
         public async Task<LeaveRoomResponse?> LeaveRoom(Guid roomId, Guid playerId, ExitReason exitReason, CancellationToken ct)
@@ -154,5 +183,10 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             return allParticipations.Select(rp => rp.ToRoomParticipationResponse()).ToList();
         }
+
+        // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
+        private static bool CanReconnect(RoomPlayerEntity roomPlayer)
+            => roomPlayer.FinishedAt is { } finishedAt
+                && DateTime.UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
     };
 }

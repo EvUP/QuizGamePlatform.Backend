@@ -67,6 +67,15 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                ));
             }
 
+            if (roomRequest.Username.Length > 25)
+            {
+                return BadRequest(new CommonErrorResponse
+               (
+                   message: "Ник слишком длинный (максимум 25 символов)",
+                   method: HttpContext.GetMethodWithPath()
+               ));
+            }
+
             var roomPlayer = await roomService.JoinToRoomByRoomCodeAsync(roomRequest.Username, roomRequest.RoomCode, ct);
 
             if (roomPlayer is null)

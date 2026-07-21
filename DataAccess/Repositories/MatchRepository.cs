@@ -26,12 +26,30 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .FirstOrDefaultAsync(mq => mq.MatchId == matchId && mq.Order == order, ct);
         }
 
-        public async Task<List<Guid>> GetExpiredActiveMatchIdsAsync(DateTime nowUtc, CancellationToken ct)
+        public async Task<List<Guid>> GetExpiredMatchIdsAsync(DateTime nowUtc, CancellationToken ct)
         {
             return await context.Matches
-                .Where(m => m.Status == MatchStatus.QuestionActive && m.QuestionEndsAt <= nowUtc)
+                .Where(m => (m.Status == MatchStatus.QuestionActive || m.Status == MatchStatus.QuestionClosed)
+                    && m.QuestionEndsAt <= nowUtc)
                 .Select(m => m.Id)
                 .ToListAsync(ct);
+        }
+
+        public async Task<bool> OptionBelongsToQuestionAsync(Guid questionId, Guid optionId, CancellationToken ct)
+        {
+            return await context.AnswerOptions
+                .AnyAsync(o => o.Id == optionId && o.QuestionId == questionId, ct);
+        }
+
+        public async Task<Dictionary<Guid, int>> GetCorrectAnswerCountsAsync(Guid matchId, CancellationToken ct)
+        {
+            return await context.PlayerAnswers
+                .Where(a => a.MatchQuestion.MatchId == matchId
+                    && a.SelectedOption.IsCorrect
+                    && a.SelectedOption.QuestionId == a.MatchQuestion.QuestionId)
+                .GroupBy(a => a.PlayerId)
+                .Select(g => new { PlayerId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.PlayerId, x => x.Count, ct);
         }
 
         public async Task AddAnswerAsync(PlayerAnswerEntity answer, CancellationToken ct)

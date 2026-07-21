@@ -16,7 +16,6 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             return Ok(categories);
         }
 
-        // TODO в дальнейшем исправьить или убрать вообще поле IsCorrect чтобы оно не передавалось в игровое API, а только в админское. Сейчас оно передается везде.
         [HttpGet("{categoryId}/questions")]
         public async Task<ActionResult<List<QuestionAdminDto>>> GetQuestions(Guid categoryId, CancellationToken ct)
         {

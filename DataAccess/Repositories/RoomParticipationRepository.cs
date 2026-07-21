@@ -33,12 +33,20 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                  .FirstOrDefaultAsync(rp => rp.PlayerId == playerId && rp.RoomId == roomId, ct);
         }
 
+        public async Task<int> CountActivePlayers(Guid roomId, CancellationToken ct)
+        {
+            return await context.RoomParticipations
+                .CountAsync(rp => rp.RoomId == roomId && rp.IsActive, ct);
+        }
+
         public async Task<List<RoomPlayerEntity>> GetParticipationsByRoomId(Guid roomId, CancellationToken ct)
         {
             return await context.RoomParticipations
                 .Include(rp => rp.Room)
                 .Include(rp => rp.Player)
                 .Where(rp => rp.RoomId == roomId)
+                .OrderByDescending(rp => rp.Score)
+                .ThenBy(rp => rp.JoinedAt)
                 .ToListAsync(ct);
         }
 

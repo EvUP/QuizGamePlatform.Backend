@@ -11,6 +11,7 @@ namespace QuizGamePlatform.Backend.Application.Services
     public class MatchService(
         IMatchRepository matchRepository,
         IRoomRepository roomRepository,
+        IRoomParticipationRepository roomParticipationRepository,
         IQuizContentRepository quizContentRepository,
         IMatchLockProvider matchLocks,
         ILogger<MatchService> logger) : IMatchService
@@ -24,6 +25,15 @@ namespace QuizGamePlatform.Backend.Application.Services
             if (room is null || room.Status != RoomStatus.Waiting)
             {
                 logger.LogInformation("Cannot start match: room {RoomId} not found or not waiting", request.RoomId);
+
+                return null;
+            }
+
+            var activePlayers = await roomParticipationRepository.CountActivePlayers(request.RoomId, ct);
+
+            if (activePlayers < 1)
+            {
+                logger.LogInformation("Cannot start match: room {RoomId} has no active players", request.RoomId);
 
                 return null;
             }
@@ -110,6 +120,11 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 return false;
             }
+            
+            if (!await matchRepository.OptionBelongsToQuestionAsync(currentQuestion.QuestionId, request.SelectedOptionId, ct))
+            {
+                return false;
+            }
 
             var answer = new PlayerAnswerEntity
             {
@@ -147,6 +162,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 }
 
                 match.Status = MatchStatus.QuestionClosed;
+                match.QuestionEndsAt = DateTime.UtcNow.AddSeconds(QuestionDurationSeconds);
 
                 await matchRepository.SaveChangesAsync(ct);
 
@@ -179,7 +195,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task AdvanceExpiredMatchesAsync(CancellationToken ct)
         {
-            var expiredIds = await matchRepository.GetExpiredActiveMatchIdsAsync(DateTime.UtcNow, ct);
+            var expiredIds = await matchRepository.GetExpiredMatchIdsAsync(DateTime.UtcNow, ct);
 
             foreach (var matchId in expiredIds)
             {
@@ -192,7 +208,9 @@ namespace QuizGamePlatform.Backend.Application.Services
         {
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
-            if (match is null || match.Status != MatchStatus.QuestionActive || DateTime.UtcNow <= match.QuestionEndsAt)
+            var isRunning = match?.Status is MatchStatus.QuestionActive or MatchStatus.QuestionClosed;
+
+            if (match is null || !isRunning || DateTime.UtcNow <= match.QuestionEndsAt)
             {
                 return false;
             }
@@ -220,11 +238,27 @@ namespace QuizGamePlatform.Backend.Application.Services
             match.Status = MatchStatus.Finished;
             match.FinishedAt = DateTime.UtcNow;
 
+            await ApplyFinalScoresAsync(match, ct);
+
             var room = await roomRepository.GetRoomByIdAsync(match.RoomId, ct);
 
             if (room is not null)
             {
                 room.Status = RoomStatus.Finished;
+            }
+        }
+
+        private async Task ApplyFinalScoresAsync(MatchEntity match, CancellationToken ct)
+        {
+            var correctCounts = await matchRepository.GetCorrectAnswerCountsAsync(match.Id, ct);
+
+            var participants = await roomParticipationRepository.GetParticipationsByRoomId(match.RoomId, ct);
+
+            foreach (var participant in participants)
+            {
+                participant.Score = participant.IsActive
+                    ? correctCounts.GetValueOrDefault(participant.PlayerId)
+                    : 0;
             }
         }
 

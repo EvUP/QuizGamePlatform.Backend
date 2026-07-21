@@ -34,8 +34,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                         {
                             Id = o.Id,
                             Text = o.Text,
-                            Position = o.Position,
-                            IsCorrect = o.IsCorrect
+                            Position = o.Position
                         })
                         .ToList()
                 })
