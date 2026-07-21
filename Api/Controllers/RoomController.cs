@@ -72,17 +72,17 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return NotFound(new CommonErrorResponse
                 (
-                    message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
+                    message: $"Room {roomRequest.RoomCode} hasn't found or already busy",
                     method: HttpContext.GetMethodWithPath()
                 ));
             }
 
             //TODO Поле будет назначаться после ожидания в 30сек 
-            if (roomPlayer.FinishedAt.HasValue)
+            if (roomPlayer.FinishedAt.HasValue
+            && roomPlayer.FinishedAt < DateTime.UtcNow)
             {
-                return BadRequest(new CommonErrorResponse
-                (
-                    message: $"Reconnecting timeout for {roomPlayer.PlayerName} has been expired",
+                return BadRequest(new CommonErrorResponse(
+                    message: $"{roomPlayer.PlayerName} has been left room",
                     method: HttpContext.GetMethodWithPath()
                 ));
             }
@@ -103,7 +103,6 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                    method: HttpContext.GetMethodWithPath()
                ));
             }
-
 
             return Ok(roomPlayer);
         }

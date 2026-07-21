@@ -121,6 +121,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             roomPlayer.FinishedAt = DateTime.UtcNow;
             roomPlayer.IsActive = false;
+            //TODO НЕОБХОДИМО ПОНИМАТЬ ТИП ПОКИДАНИЯ КОМНАТЫ
             roomPlayer.ExitReason = exitReason;
 
             logger.LogInformation(
