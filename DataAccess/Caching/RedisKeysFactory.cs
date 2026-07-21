@@ -4,5 +4,6 @@ namespace QuizGamePlatform.Backend.DataAccess.Caching
     {
         public const string CategoriesListKey = "categories:list";
         public static string QuestionsByCategory(Guid categoryId) => $"questions:category:{categoryId}";
+        public const string AllRooms = "rooms:all";
     }
 }

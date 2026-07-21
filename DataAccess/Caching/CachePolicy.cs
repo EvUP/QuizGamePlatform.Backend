@@ -12,4 +12,7 @@ public static class CachePolicy
 
     public static DistributedCacheEntryOptions MatchTimers =>
         new DistributedCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(2));
+
+    public static DistributedCacheEntryOptions Rooms =>
+       new DistributedCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(30));
 }
