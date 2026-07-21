@@ -5,6 +5,7 @@ using QuizGamePlatform.Backend.DataAccess.HealthChecks;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplicationDbContext(builder.Configuration);
+builder.Services.AddRedisCache(builder.Configuration);
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
