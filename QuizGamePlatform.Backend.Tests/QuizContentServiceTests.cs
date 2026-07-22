@@ -9,12 +9,12 @@ namespace QuizGamePlatform.Backend.Tests
     public class QuizContentServiceTests
     {
         private readonly Mock<IQuizContentRepository> _repository = new();
-        private readonly Mock<IDistributedCache> _cache;
+        private readonly Mock<IDistributedCache> _cache = new();
         private readonly QuizContentService _sut;
 
         public QuizContentServiceTests()
         {
-            _sut = new QuizContentService(_repository.Object, _cache!.Object);
+            _sut = new QuizContentService(_repository.Object, _cache.Object);
         }
 
         [Fact]

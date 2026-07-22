@@ -22,9 +22,12 @@ namespace QuizGamePlatform.Backend.Application.Services
         ApplicationDbContext context,
 
         IDistributedCache cache,
-        ILogger<RoomService> logger) : IRoomService
+        ILogger<RoomService> logger,
+        TimeProvider timeProvider) : IRoomService
     {
         private const int ReconnectWindowSeconds = 40;
+
+        private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
@@ -183,7 +186,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            roomPlayer.FinishedAt = DateTime.UtcNow;
+            roomPlayer.FinishedAt = UtcNow;
             roomPlayer.IsActive = false;
             //TODO НЕОБХОДИМО ПОНИМАТЬ ТИП ПОКИДАНИЯ КОМНАТЫ
             roomPlayer.ExitReason = exitReason;
@@ -212,8 +215,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         }
 
         // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
-        private static bool CanReconnect(RoomPlayerEntity roomPlayer)
+        private bool CanReconnect(RoomPlayerEntity roomPlayer)
             => roomPlayer.FinishedAt is { } finishedAt
-                && DateTime.UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
+                && UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
     };
 }
