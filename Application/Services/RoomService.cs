@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using QuizGamePlatform.Backend.Application.Abstractions;
@@ -7,9 +6,7 @@ using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Abstractions;
 using QuizGamePlatform.Backend.DataAccess;
-using QuizGamePlatform.Backend.DataAccess.Caching;
 using QuizGamePlatform.Backend.DataAccess.Entities;
-using StackExchange.Redis;
 
 namespace QuizGamePlatform.Backend.Application.Services
 {
@@ -20,15 +17,12 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         IRoomHelper roomHelper,
         ApplicationDbContext context,
-
-        IDistributedCache cache,
         ILogger<RoomService> logger) : IRoomService
     {
         private const int ReconnectWindowSeconds = 40;
 
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
-            //todo сделать добавление в redis комнаты
             logger.LogInformation("Creating new Room");
 
             var roomCode = roomHelper.GenerateRoomCode();
@@ -60,19 +54,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task<List<CreateRoomResponse>> GetAllExistingRoomsAsync(CancellationToken ct)
         {
-            var json = await cache.GetStringAsync(RedisKeysFactory.AllRooms, ct);
-
-            if (!string.IsNullOrEmpty(json))
-            {
-                var roomCached = JsonSerializer.Deserialize<List<RoomEntity>>(json);
-
-                if (roomCached is not null)
-                {
-                    logger.LogDebug("Rooms retrieved from cache.");
-
-                    return roomCached.Select(r => r.ToCreateRoomResponse()).ToList();
-                }
-            }
             logger.LogInformation("Getting all existing rooms...");
 
             var rooms = await roomRepository.GetAllExistingRoomsAsync(ct);
@@ -81,12 +62,6 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("The list of rooms is empty");
             }
-
-            await cache.SetStringAsync(
-                RedisKeysFactory.AllRooms,
-                JsonSerializer.Serialize(rooms),
-                CachePolicy.Rooms,
-                ct);
 
             return rooms.Select(r => r.ToCreateRoomResponse()).ToList();
         }
