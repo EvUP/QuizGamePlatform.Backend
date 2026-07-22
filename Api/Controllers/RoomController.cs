@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
-using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Extensions;
 
 namespace QuizGamePlatform.Backend.Api.Controllers
@@ -82,7 +81,17 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return NotFound(new CommonErrorResponse
                 (
-                    message: $"Комната {roomRequest.RoomCode} не найдена или уже занята",
+                    message: $"Room {roomRequest.RoomCode} hasn't found or already busy",
+                    method: HttpContext.GetMethodWithPath()
+                ));
+            }
+
+            //TODO Поле будет назначаться после ожидания в 30сек 
+            if (roomPlayer.FinishedAt.HasValue
+            && roomPlayer.FinishedAt < DateTime.UtcNow)
+            {
+                return BadRequest(new CommonErrorResponse(
+                    message: $"{roomPlayer.PlayerName} has been left room",
                     method: HttpContext.GetMethodWithPath()
                 ));
             }

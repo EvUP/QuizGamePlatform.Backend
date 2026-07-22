@@ -21,6 +21,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             return new RoomResponse(
             RoomPlayerLinkId: playerEntity.Id,
             RoomId: playerEntity.RoomId,
+            FinishedAt: playerEntity.FinishedAt,
             RoomCode: playerEntity.Room.RoomCode,
             RoomStatus: playerEntity.Room.Status,
             PlayerId: playerEntity.PlayerId,

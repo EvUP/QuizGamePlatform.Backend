@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Moq;
 using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.Core.Abstractions;
@@ -8,11 +9,12 @@ namespace QuizGamePlatform.Backend.Tests
     public class QuizContentServiceTests
     {
         private readonly Mock<IQuizContentRepository> _repository = new();
+        private readonly Mock<IDistributedCache> _cache = new();
         private readonly QuizContentService _sut;
 
         public QuizContentServiceTests()
         {
-            _sut = new QuizContentService(_repository.Object);
+            _sut = new QuizContentService(_repository.Object, _cache.Object);
         }
 
         [Fact]

@@ -1,11 +1,15 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Abstractions;
 using QuizGamePlatform.Backend.DataAccess;
+using QuizGamePlatform.Backend.DataAccess.Caching;
 using QuizGamePlatform.Backend.DataAccess.Entities;
+using StackExchange.Redis;
 
 namespace QuizGamePlatform.Backend.Application.Services
 {
@@ -16,12 +20,18 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         IRoomHelper roomHelper,
         ApplicationDbContext context,
-        ILogger<RoomService> logger) : IRoomService
+
+        IDistributedCache cache,
+        ILogger<RoomService> logger,
+        TimeProvider timeProvider) : IRoomService
     {
         private const int ReconnectWindowSeconds = 40;
 
+        private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
+            //todo сделать добавление в redis комнаты
             logger.LogInformation("Creating new Room");
 
             var roomCode = roomHelper.GenerateRoomCode();
@@ -53,6 +63,19 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task<List<CreateRoomResponse>> GetAllExistingRoomsAsync(CancellationToken ct)
         {
+            var json = await cache.GetStringAsync(RedisKeysFactory.AllRooms, ct);
+
+            if (!string.IsNullOrEmpty(json))
+            {
+                var roomCached = JsonSerializer.Deserialize<List<RoomEntity>>(json);
+
+                if (roomCached is not null)
+                {
+                    logger.LogDebug("Rooms retrieved from cache.");
+
+                    return roomCached.Select(r => r.ToCreateRoomResponse()).ToList();
+                }
+            }
             logger.LogInformation("Getting all existing rooms...");
 
             var rooms = await roomRepository.GetAllExistingRoomsAsync(ct);
@@ -61,6 +84,12 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("The list of rooms is empty");
             }
+
+            await cache.SetStringAsync(
+                RedisKeysFactory.AllRooms,
+                JsonSerializer.Serialize(rooms),
+                CachePolicy.Rooms,
+                ct);
 
             return rooms.Select(r => r.ToCreateRoomResponse()).ToList();
         }
@@ -157,8 +186,9 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            roomPlayer.FinishedAt = DateTime.UtcNow;
+            roomPlayer.FinishedAt = UtcNow;
             roomPlayer.IsActive = false;
+            //TODO НЕОБХОДИМО ПОНИМАТЬ ТИП ПОКИДАНИЯ КОМНАТЫ
             roomPlayer.ExitReason = exitReason;
 
             logger.LogInformation(
@@ -185,8 +215,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         }
 
         // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
-        private static bool CanReconnect(RoomPlayerEntity roomPlayer)
+        private bool CanReconnect(RoomPlayerEntity roomPlayer)
             => roomPlayer.FinishedAt is { } finishedAt
-                && DateTime.UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
+                && UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
     };
 }

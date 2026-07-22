@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: postgres_db
+    restart: always
     ports:
       - '5450:5432'
     environment:
@@ -15,6 +16,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   pgdata:
+  redisdata:

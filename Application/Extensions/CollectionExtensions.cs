@@ -12,6 +12,8 @@ namespace QuizGamePlatform.Backend.Application.Extensions
     {
         public static WebApplicationBuilder AddAppServices(this WebApplicationBuilder builder)
         {
+            builder.Services.AddSingleton(TimeProvider.System);
+
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();
             builder.Services.AddSingleton<IRoomHelper, RoomHelper>();
