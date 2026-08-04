@@ -192,7 +192,7 @@ namespace QuizGamePlatform.Backend.Application.Services
         }
 
         // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
-        private static bool CanReconnect(RoomPlayerEntity roomPlayer)
+        private bool CanReconnect(RoomPlayerEntity roomPlayer)
             => roomPlayer.FinishedAt is { } finishedAt
                 && DateTime.UtcNow - finishedAt <= TimeSpan.FromSeconds(RoomHelper.ReconnectWindowSeconds);
     };

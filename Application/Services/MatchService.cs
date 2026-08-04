@@ -15,7 +15,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         IRoomParticipationRepository roomParticipationRepository,
         IQuizContentRepository quizContentRepository,
         IMatchLockProvider matchLocks,
-        ILogger<MatchService> logger) : IMatchService
+        ILogger<MatchService> logger,
+        TimeProvider timeProvider) : IMatchService
     {
         public async Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
         {
