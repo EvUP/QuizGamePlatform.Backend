@@ -1,3 +1,4 @@
+using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.DataAccess.Entities
@@ -8,6 +9,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
 
         public Guid RoomId { get; set; }
         public RoomEntity Room { get; set; } = null!;
+        public RoomMode RoomMode { get; set; }
 
         public MatchStatus Status { get; set; } = MatchStatus.QuestionActive;
         public int CurrentQuestionIndex { get; set; }

@@ -13,6 +13,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(m => m.Status)
                 .HasConversion<string>();
 
+            builder.Property(m => m.RoomMode)
+                .HasConversion<string>()
+                .IsRequired();
+
             builder.Property(m => m.StartedAt)
                 .HasDefaultValueSql("NOW()");
 

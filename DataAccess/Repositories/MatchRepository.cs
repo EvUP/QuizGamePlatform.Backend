@@ -57,5 +57,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 
         public async Task SaveChangesAsync(CancellationToken ct)
             => await context.SaveChangesAsync(ct);
+
+        public async Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct)
+        {
+            return await context.Matches.FirstOrDefaultAsync(match => match.RoomId == roomId, ct);
+        }
     }
 }

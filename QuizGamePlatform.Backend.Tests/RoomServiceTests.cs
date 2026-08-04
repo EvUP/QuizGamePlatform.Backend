@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -17,7 +16,6 @@ namespace QuizGamePlatform.Backend.Tests
         private readonly Mock<IRoomParticipationRepository> _participationRepo = new();
         private readonly Mock<IPlayerRepository> _playerRepo = new();
         private readonly Mock<IRoomHelper> _roomHelper = new();
-        private readonly Mock<IDistributedCache> _cache = new();
         private readonly FakeTimeProvider _time = new();
         private readonly RoomService _sut;
 
@@ -34,7 +32,6 @@ namespace QuizGamePlatform.Backend.Tests
                 _playerRepo.Object,
                 _roomHelper.Object,
                 context.Object,
-                _cache.Object,
                 Mock.Of<ILogger<RoomService>>(),
                 _time);
         }
@@ -115,6 +112,23 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
 
             Assert.Null(result);
+        }
+
+        [Theory]
+        [InlineData(5, false)]
+        [InlineData(3, true)]
+        public async Task Join_NewPlayer_RespectsActiveLimit(int activeCount, bool shouldJoin)
+        {
+            var (room, player) = Setup(RoomStatus.Waiting);
+            _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((RoomPlayerEntity?)null);
+            _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(activeCount);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(player, room, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Participant(room, player, isActive: true));
+
+            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+
+            Assert.Equal(shouldJoin, result is not null);
         }
 
         // реконнект

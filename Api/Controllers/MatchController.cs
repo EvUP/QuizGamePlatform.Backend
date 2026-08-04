@@ -18,7 +18,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (match is null)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: "Не удалось начать матч",
+                    message: "Не удалось начать матч.",
                     method: HttpContext.GetMethodWithPath()));
             }
 

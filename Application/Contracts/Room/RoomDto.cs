@@ -1,3 +1,4 @@
+using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.Application.Contracts.Room
@@ -16,8 +17,8 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     string RoomCode,          // Код комнаты (удобно для UI)
     RoomStatus RoomStatus,   // Текущий статус комнаты
     Guid PlayerId,            // ID игрока
-    string PlayerName,    
-    DateTime? FinishedAt,     
+    string PlayerName,
+    DateTime? FinishedAt,
     DateTime JoinedAt,        // Время присоединения
     bool IsActive);           // Активен ли игрок в комнате
 

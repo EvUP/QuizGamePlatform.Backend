@@ -4,6 +4,7 @@ using QuizGamePlatform.Backend.Application.Contracts.Match;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.Core.Helpers;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
 namespace QuizGamePlatform.Backend.Application.Services
@@ -17,8 +18,6 @@ namespace QuizGamePlatform.Backend.Application.Services
         ILogger<MatchService> logger,
         TimeProvider timeProvider) : IMatchService
     {
-        private const int QuestionDurationSeconds = 30;
-
         private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
         public async Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
@@ -36,7 +35,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             if (activePlayers < 2)
             {
-                logger.LogInformation("Cannot start match: room {RoomId} has no active players", request.RoomId);
+                logger.LogInformation("Cannot start match: room {RoomId} has too few players ({Count})", request.RoomId, activePlayers);
 
                 return null;
             }
@@ -58,8 +57,9 @@ namespace QuizGamePlatform.Backend.Application.Services
                 RoomId = room.Id,
                 Status = MatchStatus.QuestionActive,
                 CurrentQuestionIndex = 0,
+                RoomMode = request.RoomMode,
                 StartedAt = UtcNow,
-                QuestionEndsAt = UtcNow.AddSeconds(QuestionDurationSeconds),
+                QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(request.RoomMode)),
                 Questions = selected
                     .Select((question, index) => new MatchQuestionEntity
                     {
@@ -107,7 +107,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             return currentQuestion.ToCurrentQuestionResponse(match);
         }
-
         public async Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct)
         {
             var match = await matchRepository.GetMatchAsync(matchId, ct);
@@ -123,7 +122,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 return false;
             }
-            
+
             if (!await matchRepository.OptionBelongsToQuestionAsync(currentQuestion.QuestionId, request.SelectedOptionId, ct))
             {
                 return false;
@@ -165,7 +164,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 }
 
                 match.Status = MatchStatus.QuestionClosed;
-                match.QuestionEndsAt = UtcNow.AddSeconds(QuestionDurationSeconds);
+                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
 
                 await matchRepository.SaveChangesAsync(ct);
 
@@ -233,7 +232,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 match.CurrentQuestionIndex++;
                 match.Status = MatchStatus.QuestionActive;
-                match.QuestionEndsAt = UtcNow.AddSeconds(QuestionDurationSeconds);
+                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
 
                 return;
             }

@@ -3,6 +3,7 @@ using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Mappers;
 using QuizGamePlatform.Backend.Core.Abstractions;
+using QuizGamePlatform.Backend.Core.Helpers;
 using QuizGamePlatform.Backend.DataAccess;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
@@ -15,10 +16,9 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         IRoomHelper roomHelper,
         ApplicationDbContext context,
-        ILogger<RoomService> logger) : IRoomService
+        ILogger<RoomService> logger,
+        TimeProvider timeProvider) : IRoomService
     {
-        private const int ReconnectWindowSeconds = 40;
-
         private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
@@ -109,6 +109,16 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
+            // лимит считаем по активным, после лива слот не держат
+            var activePlayers = await roomParticipationRepository.CountActivePlayers(room.Id, ct);
+
+            if (activePlayers >= MatchHelper.MaxMatchPlayer)
+            {
+                logger.LogInformation("Room with roomcode {roomcode} is full", roomCode);
+
+                return null;
+            }
+
             var link = await roomParticipationRepository.CreateRoomPlayer(player, room, ct);
 
             logger.LogInformation("Player {username} joined room {roomCode}", username, roomCode);
@@ -160,7 +170,6 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             roomPlayer.FinishedAt = UtcNow;
             roomPlayer.IsActive = false;
-            //TODO НЕОБХОДИМО ПОНИМАТЬ ТИП ПОКИДАНИЯ КОМНАТЫ
             roomPlayer.ExitReason = exitReason;
 
             logger.LogInformation(
@@ -189,6 +198,6 @@ namespace QuizGamePlatform.Backend.Application.Services
         // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
         private bool CanReconnect(RoomPlayerEntity roomPlayer)
             => roomPlayer.FinishedAt is { } finishedAt
-                && UtcNow - finishedAt <= TimeSpan.FromSeconds(ReconnectWindowSeconds);
+                && UtcNow - finishedAt <= TimeSpan.FromSeconds(RoomHelper.ReconnectWindowSeconds);
     };
 }
