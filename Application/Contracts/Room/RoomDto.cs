@@ -3,11 +3,6 @@ using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.Application.Contracts.Room
 {
-    public record CreateRoomRequest(
-        int PlayerCount,
-        RoomMode RoomMode
-    );
-
     public record CreateRoomResponse(
         Guid Id,
         string RoomCode,
