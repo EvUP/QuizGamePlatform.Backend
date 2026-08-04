@@ -16,8 +16,11 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         IRoomHelper roomHelper,
         ApplicationDbContext context,
-        ILogger<RoomService> logger) : IRoomService
+        ILogger<RoomService> logger,
+        TimeProvider timeProvider) : IRoomService
     {
+        private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+
         public async Task<CreateRoomResponse> CreateRoomAsync(CancellationToken ct)
         {
             logger.LogInformation("Creating new Room");
@@ -91,15 +94,6 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            var roomPlayers = await roomParticipationRepository.GetParticipationsByRoomId(room.Id, ct);
-
-            if (roomPlayers.Count >= MatchHelper.MaxMatchPlayer)
-            {
-                logger.LogInformation("Room with roomcode {roomcode} has busy", roomCode);
-
-                return null;
-            }
-
             var player = await playerRepository.GetOrCreatePlayerAsync(username, ct);
 
             var roomPlayer = await roomParticipationRepository.GetRoomPlayerById(room.Id, player.Id, ct);
@@ -112,6 +106,16 @@ namespace QuizGamePlatform.Backend.Application.Services
             // новый игрок заходит только до старта матча
             if (room.Status != RoomStatus.Waiting)
             {
+                return null;
+            }
+
+            // лимит считаем по активным, после лива слот не держат
+            var activePlayers = await roomParticipationRepository.CountActivePlayers(room.Id, ct);
+
+            if (activePlayers >= MatchHelper.MaxMatchPlayer)
+            {
+                logger.LogInformation("Room with roomcode {roomcode} is full", roomCode);
+
                 return null;
             }
 
@@ -164,7 +168,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            roomPlayer.FinishedAt = DateTime.UtcNow;
+            roomPlayer.FinishedAt = UtcNow;
             roomPlayer.IsActive = false;
             roomPlayer.ExitReason = exitReason;
 
@@ -194,6 +198,6 @@ namespace QuizGamePlatform.Backend.Application.Services
         // после выхода игрок может вернуться в матч только пока не истек тайминг реконнекта
         private bool CanReconnect(RoomPlayerEntity roomPlayer)
             => roomPlayer.FinishedAt is { } finishedAt
-                && DateTime.UtcNow - finishedAt <= TimeSpan.FromSeconds(RoomHelper.ReconnectWindowSeconds);
+                && UtcNow - finishedAt <= TimeSpan.FromSeconds(RoomHelper.ReconnectWindowSeconds);
     };
 }

@@ -18,6 +18,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         ILogger<MatchService> logger,
         TimeProvider timeProvider) : IMatchService
     {
+        private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+
         public async Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
         {
             var room = await roomRepository.GetRoomByIdAsync(request.RoomId, ct);
@@ -31,9 +33,9 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var activePlayers = await roomParticipationRepository.CountActivePlayers(request.RoomId, ct);
 
-            if (activePlayers < 2  && activePlayers >= MatchHelper.MaxMatchPlayer)
+            if (activePlayers < 2)
             {
-                logger.LogInformation("Cannot start match: room {RoomId}", request.RoomId);
+                logger.LogInformation("Cannot start match: room {RoomId} has too few players ({Count})", request.RoomId, activePlayers);
 
                 return null;
             }
@@ -55,8 +57,9 @@ namespace QuizGamePlatform.Backend.Application.Services
                 RoomId = room.Id,
                 Status = MatchStatus.QuestionActive,
                 CurrentQuestionIndex = 0,
-                StartedAt = DateTime.UtcNow,
-                QuestionEndsAt = DateTime.UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(request.RoomMode)),
+                RoomMode = request.RoomMode,
+                StartedAt = UtcNow,
+                QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(request.RoomMode)),
                 Questions = selected
                     .Select((question, index) => new MatchQuestionEntity
                     {
@@ -108,7 +111,7 @@ namespace QuizGamePlatform.Backend.Application.Services
         {
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
-            if (match is null || match.Status != MatchStatus.QuestionActive || DateTime.UtcNow > match.QuestionEndsAt)
+            if (match is null || match.Status != MatchStatus.QuestionActive || UtcNow > match.QuestionEndsAt)
             {
                 return false;
             }
@@ -131,7 +134,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 MatchQuestionId = currentQuestion.Id,
                 PlayerId = request.PlayerId,
                 SelectedOptionId = request.SelectedOptionId,
-                AnsweredAt = DateTime.UtcNow
+                AnsweredAt = UtcNow
             };
 
             try
@@ -161,7 +164,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 }
 
                 match.Status = MatchStatus.QuestionClosed;
-                match.QuestionEndsAt = DateTime.UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
+                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
 
                 await matchRepository.SaveChangesAsync(ct);
 
@@ -194,7 +197,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task AdvanceExpiredMatchesAsync(CancellationToken ct)
         {
-            var expiredIds = await matchRepository.GetExpiredMatchIdsAsync(DateTime.UtcNow, ct);
+            var expiredIds = await matchRepository.GetExpiredMatchIdsAsync(UtcNow, ct);
 
             foreach (var matchId in expiredIds)
             {
@@ -209,7 +212,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var isRunning = match?.Status is MatchStatus.QuestionActive or MatchStatus.QuestionClosed;
 
-            if (match is null || !isRunning || DateTime.UtcNow <= match.QuestionEndsAt)
+            if (match is null || !isRunning || UtcNow <= match.QuestionEndsAt)
             {
                 return false;
             }
@@ -229,13 +232,13 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 match.CurrentQuestionIndex++;
                 match.Status = MatchStatus.QuestionActive;
-                match.QuestionEndsAt = DateTime.UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
+                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
 
                 return;
             }
 
             match.Status = MatchStatus.Finished;
-            match.FinishedAt = DateTime.UtcNow;
+            match.FinishedAt = UtcNow;
 
             await ApplyFinalScoresAsync(match, ct);
 

@@ -15,7 +15,7 @@ namespace QuizGamePlatform.Backend.Migrations
                 table: "Matches",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "Simple");
         }
 
         /// <inheritdoc />
