@@ -1,8 +1,13 @@
+using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.Application.Contracts.Match
 {
-    public record StartMatchRequest(Guid RoomId, Guid CategoryId, int QuestionCount);
+    public record StartMatchRequest(
+    Guid RoomId,
+    Guid CategoryId,
+    int QuestionCount,
+    RoomMode RoomMode);
 
     public record SubmitAnswerRequest(Guid PlayerId, Guid SelectedOptionId);
 

@@ -13,8 +13,13 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<MatchEntity?> GetMatchAsync(Guid matchId, CancellationToken ct);
         /// <summary>
+        /// Найти матч по комнате
+        /// </summary>
+        Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct);
+        /// <summary>
         /// Найти вопрос матча по порядковому номеру (с вариантами ответа)
         /// </summary>
+        /// 
         Task<MatchQuestionEntity?> GetMatchQuestionAsync(Guid matchId, int order, CancellationToken ct);
         /// <summary>
         /// Id матчей с истёкшим вопросом (активным или закрытым)

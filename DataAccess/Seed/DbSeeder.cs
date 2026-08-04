@@ -20,6 +20,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Seed
                 return;
 
             var path = Path.Combine(contentRootPath, "Seed", "quiz_seed.json");
+
             if (!File.Exists(path))
                 return;
 
