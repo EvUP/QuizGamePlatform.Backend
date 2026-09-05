@@ -34,6 +34,22 @@ services:
       retries: 5
       start_period: 10s
 
+  keycloak:
+    image: keycloak/keycloak:latest
+    container_name: keycloak_server
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/diplomDB
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: secret
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
 volumes:
   pgdata:
   redisdata:
