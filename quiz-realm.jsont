@@ -1,0 +1,125 @@
+{
+  "id": "DiplomRealm",
+  "realm": "DiplomRealm",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "game_admin",
+        "description": "Администратор игры - полный доступ"
+      },
+      {
+        "name": "game_moderator",
+        "description": "Модератор игры - проверка вопросов"
+      },
+      {
+        "name": "game_player",
+        "description": "Обычный игрок - участие в викторинах"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "quiz-backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "https://localhost:53506/swagger/oauth2-redirect.html",
+        "http://localhost:53506/swagger/oauth2-redirect.html",
+        "https://localhost:53506/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://localhost:53506/swagger/index.html"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "quiz-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin_user",
+      "enabled": true,
+      "email": "admin@game.local",
+      "firstName": "Иван",
+      "lastName": "Админов",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "game_admin"
+      ]
+    },
+    {
+      "username": "moderator_user",
+      "enabled": true,
+      "email": "moderator@game.local",
+      "firstName": "Сергей",
+      "lastName": "Модераторов",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "game_moderator"
+      ]
+    },
+    {
+      "username": "player_user",
+      "enabled": true,
+      "email": "player@game.local",
+      "firstName": "Алексей",
+      "lastName": "Игроков",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "game_player"
+      ]
+    }
+  ]
+}
