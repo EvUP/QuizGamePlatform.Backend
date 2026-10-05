@@ -35,6 +35,11 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     int Score
     );
 
+    public record JoinToRoomResponse(
+        RoomResponse Room,
+        string? GuestAccessToken,
+        DateTime? GuestTokenExpiresAtUtc);
+
     public record LeaveRoomResponse(
         Guid RoomId,
         Guid PlayerId,

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
+using QuizGamePlatform.Backend.Application.Auth;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace QuizGamePlatform.Backend.Api.Swagger
@@ -9,26 +10,38 @@ namespace QuizGamePlatform.Backend.Api.Swagger
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             var metadata = context.ApiDescription.ActionDescriptor.EndpointMetadata;
-            if (metadata.OfType<IAllowAnonymous>().Any()
-                || !metadata.OfType<IAuthorizeData>().Any())
+
+            var optional = metadata.OfType<OptionalAuthorizationAttribute>().Any();
+            var required = !metadata.OfType<IAllowAnonymous>().Any()
+                && metadata.OfType<IAuthorizeData>().Any();
+
+            if (!required && !optional)
             {
                 return;
             }
 
-            operation.Security.Add(new OpenApiSecurityRequirement
+            if (optional && !required)
             {
+                operation.Security.Add(new OpenApiSecurityRequirement());
+            }
+
+            foreach (var schemeId in new[] { "Keycloak", AuthenticationSchemes.Guest })
+            {
+                operation.Security.Add(new OpenApiSecurityRequirement
                 {
-                    new OpenApiSecurityScheme
                     {
-                        Reference = new OpenApiReference
+                        new OpenApiSecurityScheme
                         {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Keycloak",
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = schemeId,
+                            },
                         },
+                        Array.Empty<string>()
                     },
-                    Array.Empty<string>()
-                },
-            });
+                });
+            }
         }
     }
 }

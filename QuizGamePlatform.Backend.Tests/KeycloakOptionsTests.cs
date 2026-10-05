@@ -20,7 +20,7 @@ public class KeycloakOptionsTests
     {
         var builder = Host.CreateApplicationBuilder();
         builder.Logging.ClearProviders();
-        builder.Services.AddKeycloakAuthentication(KeycloakTestConfiguration.Create(key, value));
+        builder.Services.AddApiAuthentication(KeycloakTestConfiguration.Create(key, value));
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -37,10 +37,30 @@ public class KeycloakOptionsTests
         builder.Logging.ClearProviders();
         var configuration = KeycloakTestConfiguration.Create("Authority", authority);
         configuration["Keycloak:ClockSkewSeconds"] = skew;
-        builder.Services.AddKeycloakAuthentication(configuration);
+        builder.Services.AddApiAuthentication(configuration);
         using var host = builder.Build();
 
         await host.StartAsync();
         await host.StopAsync();
+    }
+
+    [Theory]
+    [InlineData("Issuer", "")]
+    [InlineData("Audience", " ")]
+    [InlineData("SigningKey", "too-short")]
+    [InlineData("LifetimeMinutes", "0")]
+    [InlineData("ClockSkewSeconds", "-1")]
+    public async Task InvalidGuestConfiguration_FailsOnHostStart(string key, string value)
+    {
+        var configuration = KeycloakTestConfiguration.Create();
+        configuration[$"GuestJwt:{key}"] = value;
+        var builder = Host.CreateApplicationBuilder();
+        builder.Logging.ClearProviders();
+        builder.Services.AddApiAuthentication(configuration);
+        using var host = builder.Build();
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
+
+        Assert.Contains(key, exception.Message);
     }
 }

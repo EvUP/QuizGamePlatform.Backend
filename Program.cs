@@ -18,8 +18,8 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddKeycloakAuthentication(builder.Configuration);
-builder.Services.AddSwaggerWithKeycloak();
+builder.Services.AddApiAuthentication(builder.Configuration);
+builder.Services.AddApiSwagger();
 
 builder.AddAppServices();
 

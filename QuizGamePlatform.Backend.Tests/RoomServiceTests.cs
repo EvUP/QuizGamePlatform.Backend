@@ -1,7 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Security.Claims;
+using QuizGamePlatform.Backend.Api.Controllers;
+using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Auth;
+using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.Core.Abstractions;
@@ -21,7 +28,7 @@ namespace QuizGamePlatform.Backend.Tests
 
         public RoomServiceTests()
         {
-            // мокаем контекст, нужен только SaveChanges
+            // Сохранение без БД.
             var options = new DbContextOptionsBuilder<ApplicationDbContext>().Options;
             var context = new Mock<ApplicationDbContext>(options);
             context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -37,6 +44,14 @@ namespace QuizGamePlatform.Backend.Tests
         }
 
         private DateTime Now => _time.GetUtcNow().UtcDateTime;
+
+        private RoomController CreateController(
+            DefaultHttpContext httpContext,
+            Mock<IGuestTokenService> tokens) =>
+            new(_sut, new CurrentUserContext(new HttpContextAccessor { HttpContext = httpContext }), tokens.Object)
+            {
+                ControllerContext = new ControllerContext { HttpContext = httpContext },
+            };
 
         private static RoomPlayerEntity Participant(RoomEntity room, PlayerEntity player, bool isActive, DateTime? finishedAt = null)
             => new()
@@ -69,7 +84,7 @@ namespace QuizGamePlatform.Backend.Tests
             _roomRepo.Setup(r => r.GetRoomByRoomCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((RoomEntity?)null);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", null, CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -80,7 +95,7 @@ namespace QuizGamePlatform.Backend.Tests
             _roomRepo.Setup(r => r.GetRoomByRoomCodeAsync("CODE", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Finished });
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", null, CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -95,7 +110,7 @@ namespace QuizGamePlatform.Backend.Tests
             var link = Participant(room, player, isActive: true);
             _participationRepo.Setup(r => r.CreateRoomPlayer(player, room, It.IsAny<CancellationToken>())).ReturnsAsync(link);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", null, CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.Equal(player.Id, result!.PlayerId);
@@ -109,7 +124,7 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((RoomPlayerEntity?)null);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", null, CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -126,12 +141,110 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.CreateRoomPlayer(player, room, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Participant(room, player, isActive: true));
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", null, CancellationToken.None);
 
             Assert.Equal(shouldJoin, result is not null);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Join_NewParticipant_IssuesTokenOnlyToGuest(bool registered)
+        {
+            var (room, player) = Setup(RoomStatus.Waiting);
+            var link = Participant(room, player, isActive: true);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(player, room, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(link);
+            var httpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[] { new Claim("sub", "registered-subject") }, registered ? "Bearer" : null)),
+            };
+            var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
+            if (!registered)
+            {
+                tokens.Setup(t => t.Issue(link.Id, room.Id, "bob"))
+                    .Returns(new GuestTokenResult("guest-token", Now.AddHours(4)));
+            }
+            var controller = CreateController(httpContext, tokens);
+
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
+
+            var response = Assert.IsType<JoinToRoomResponse>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.Equal(link.Id, response.Room.RoomPlayerLinkId);
+            Assert.Equal(registered ? null : "guest-token", response.GuestAccessToken);
+            Assert.Equal(registered ? (DateTime?)null : Now.AddHours(4), response.GuestTokenExpiresAtUtc);
+        }
+
         // реконнект
+
+        [Fact]
+        public async Task Join_InvalidProvidedToken_ReturnsUnauthorized()
+        {
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers.Authorization = "Bearer expired-token";
+            var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
+            var controller = CreateController(httpContext, tokens);
+
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
+
+            Assert.IsType<UnauthorizedObjectResult>(result);
+            _roomRepo.Verify(
+                r => r.GetRoomByRoomCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(AuthenticationSchemes.Guest)]
+        [InlineData("Bearer")]
+        public async Task Join_AnotherParticipantsNickname_ReturnsConflictWithoutIssuingToken(string? authenticationType)
+        {
+            var (room, player) = Setup(RoomStatus.Waiting);
+            var existing = Participant(room, player, isActive: false, finishedAt: Now.AddSeconds(-20));
+            _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(existing);
+            var httpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[] { new Claim("sub", Guid.NewGuid().ToString()) }, authenticationType)),
+            };
+            var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
+            var controller = CreateController(httpContext, tokens);
+
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
+
+            Assert.IsType<ConflictObjectResult>(result);
+            Assert.False(existing.IsActive);
+            Assert.Equal(Now.AddSeconds(-20), existing.FinishedAt);
+            tokens.Verify(t => t.Issue(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Join_OwnParticipation_ReconnectsAndIssuesTokenForSameParticipation()
+        {
+            var (room, player) = Setup(RoomStatus.Waiting);
+            var existing = Participant(room, player, isActive: false, finishedAt: Now.AddSeconds(-20));
+            _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(existing);
+            var httpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[] { new Claim("sub", existing.Id.ToString()) }, AuthenticationSchemes.Guest)),
+            };
+            var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
+            tokens.Setup(t => t.Issue(existing.Id, room.Id, "bob"))
+                .Returns(new GuestTokenResult("guest-token", Now.AddHours(4)));
+            var controller = CreateController(httpContext, tokens);
+
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
+
+            var response = Assert.IsType<JoinToRoomResponse>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.Equal(existing.Id, response.Room.RoomPlayerLinkId);
+            Assert.Equal("guest-token", response.GuestAccessToken);
+            Assert.True(existing.IsActive);
+            Assert.Null(existing.FinishedAt);
+        }
 
         [Fact]
         public async Task Rejoin_AlreadyActive_ReturnsResponse()
@@ -141,7 +254,7 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(existing);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", existing.Id, CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.True(result!.IsActive);
@@ -155,7 +268,7 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(left);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", left.Id, CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.True(left.IsActive);
@@ -170,7 +283,7 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(left);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", left.Id, CancellationToken.None);
 
             Assert.Null(result);
             Assert.False(left.IsActive);
@@ -184,7 +297,7 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.GetRoomPlayerById(room.Id, player.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(left);
 
-            var result = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", left.Id, CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.True(left.IsActive);

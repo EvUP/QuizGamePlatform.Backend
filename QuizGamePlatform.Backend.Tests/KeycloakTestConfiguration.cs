@@ -4,9 +4,12 @@ namespace QuizGamePlatform.Backend.Tests;
 
 internal static class KeycloakTestConfiguration
 {
-    // Test issuer identifier; JWT metadata and keys are supplied in memory.
+    // Тестовый издатель, без сетевых обращений
     public const string Issuer = "https://auth.example.test/realms/quizgame";
     public const string Audience = "quiz-backend";
+    public const string GuestIssuer = "quiz-api";
+    public const string GuestAudience = "quiz-guest";
+    public const string GuestSigningKey = "test-guest-signing-key-at-least-32-characters";
 
     public static IConfiguration Create(string? key = null, string? value = null)
     {
@@ -17,6 +20,11 @@ internal static class KeycloakTestConfiguration
             ["Keycloak:ClientId"] = "swagger-client",
             ["Keycloak:RequireHttpsMetadata"] = "false",
             ["Keycloak:ClockSkewSeconds"] = "30",
+            ["GuestJwt:Issuer"] = GuestIssuer,
+            ["GuestJwt:Audience"] = GuestAudience,
+            ["GuestJwt:SigningKey"] = GuestSigningKey,
+            ["GuestJwt:LifetimeMinutes"] = "240",
+            ["GuestJwt:ClockSkewSeconds"] = "30",
         };
         if (key is not null)
         {

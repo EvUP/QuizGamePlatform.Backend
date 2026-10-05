@@ -82,8 +82,11 @@ namespace QuizGamePlatform.Backend.Application.Services
             return room.ToCreateRoomResponse();
         }
 
-        public async Task<RoomResponse?> JoinToRoomByRoomCodeAsync(
-        string username, string roomCode, CancellationToken ct)
+        public async Task<(RoomResponse? Room, bool NicknameTaken)> JoinToRoomByRoomCodeAsync(
+            string username,
+            string roomCode,
+            Guid? guestParticipationId,
+            CancellationToken ct)
         {
             var room = await roomRepository.GetRoomByRoomCodeAsync(roomCode, ct);
 
@@ -91,7 +94,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Room with roomcode {roomcode} is not found or finished", roomCode);
 
-                return null;
+                return (null, false);
             }
 
             var player = await playerRepository.GetOrCreatePlayerAsync(username, ct);
@@ -100,13 +103,20 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             if (roomPlayer != null)
             {
-                return await RejoinAsync(roomPlayer, room, ct);
+                // Владение участием подтверждает только гостевой токен. Исключений быть не должно:
+                // у зарегистрированного участие пока не связано с аккаунтом, доказать принадлежность нечем.
+                if (roomPlayer.Id != guestParticipationId)
+                {
+                    return (null, true);
+                }
+
+                return (await RejoinAsync(roomPlayer, room, ct), false);
             }
 
             // новый игрок заходит только до старта матча
             if (room.Status != RoomStatus.Waiting)
             {
-                return null;
+                return (null, false);
             }
 
             // лимит считаем по активным, после лива слот не держат
@@ -116,7 +126,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Room with roomcode {roomcode} is full", roomCode);
 
-                return null;
+                return (null, false);
             }
 
             var link = await roomParticipationRepository.CreateRoomPlayer(player, room, ct);
@@ -124,7 +134,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             logger.LogInformation("Player {username} joined room {roomCode}", username, roomCode);
             await context.SaveChangesAsync(ct);
 
-            return link.ToJoinRoomResponse();
+            return (link.ToJoinRoomResponse(), false);
         }
 
         private async Task<RoomResponse?> RejoinAsync(RoomPlayerEntity roomPlayer, RoomEntity room, CancellationToken ct)

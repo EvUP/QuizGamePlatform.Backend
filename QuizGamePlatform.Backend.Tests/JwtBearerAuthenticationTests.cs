@@ -27,8 +27,8 @@ public class JwtBearerAuthenticationTests : IDisposable
         _key = new RsaSecurityKey(_rsa) { KeyId = "test-key" };
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddKeycloakAuthentication(KeycloakTestConfiguration.Create());
-        // Keep the real Bearer handler; only replace discovery and signing keys.
+        services.AddApiAuthentication(KeycloakTestConfiguration.Create());
+        // Настоящий JwtBearer, тестовые метаданные и ключи.
         services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
             options.Configuration = new OpenIdConnectConfiguration

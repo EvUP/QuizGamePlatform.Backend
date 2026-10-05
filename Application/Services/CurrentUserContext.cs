@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Auth;
 using System.Security.Claims;
 
 namespace QuizGamePlatform.Backend.Application.Services
@@ -9,22 +11,33 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
 
-        public string? KeycloakSubject => GetClaim("sub");
+        private string? Scheme => User?.Identity?.AuthenticationType;
 
-        public string? DisplayName => GetClaim("preferred_username");
+        public bool IsGuest => IsAuthenticated && Scheme == AuthenticationSchemes.Guest;
 
-        public string? Email => GetClaim("email");
+        public bool IsRegistered =>
+            IsAuthenticated && Scheme == JwtBearerDefaults.AuthenticationScheme;
+
+        public string? KeycloakSubject => IsRegistered ? GetClaim("sub") : null;
+
+        public string? DisplayName => IsRegistered ? GetClaim("preferred_username") : null;
+
+        public string? Email => IsRegistered ? GetClaim("email") : null;
+
+        public Guid? RoomPlayerLinkId => IsGuest ? GetGuidClaim("sub") : null;
+
+        public Guid? RoomId => IsGuest ? GetGuidClaim(GuestTokenService.RoomIdClaim) : null;
+
+        public string? Nickname => IsGuest ? GetClaim(GuestTokenService.NicknameClaim) : null;
 
         private string? GetClaim(string claimType)
         {
-            if (!IsAuthenticated)
-            {
-                return null;
-            }
-
             var value = User?.FindFirstValue(claimType);
 
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }
+
+        private Guid? GetGuidClaim(string claimType) =>
+            Guid.TryParse(GetClaim(claimType), out var value) ? value : null;
     }
 }

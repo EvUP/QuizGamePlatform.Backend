@@ -16,6 +16,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
 
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+            builder.Services.AddSingleton<IGuestTokenService, GuestTokenService>();
 
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();

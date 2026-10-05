@@ -10,11 +10,26 @@ namespace QuizGamePlatform.Backend.Api.Controllers
     [Route("api/[controller]")]
     public class AuthController(ICurrentUserContext currentUser) : ControllerBase
     {
-        /// <summary>Возвращает данные текущего пользователя.</summary>
+        /// <summary>Текущий пользователь</summary>
         [HttpGet("me")]
         [Authorize]
         public ActionResult<CurrentUserResponse> GetCurrentUser()
         {
+            if (currentUser.IsGuest)
+            {
+                if (currentUser.RoomPlayerLinkId is not { } roomPlayerLinkId)
+                {
+                    return Unauthorized(new CommonErrorResponse(
+                        message: "В гостевом токене нет клейма sub",
+                        method: HttpContext.GetMethodWithPath()));
+                }
+
+                return Ok(CurrentUserResponse.Guest(
+                    roomPlayerLinkId,
+                    currentUser.RoomId,
+                    currentUser.Nickname));
+            }
+
             var subject = currentUser.KeycloakSubject;
             if (subject is null)
             {
@@ -23,7 +38,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                     method: HttpContext.GetMethodWithPath()));
             }
 
-            return Ok(new CurrentUserResponse(
+            return Ok(CurrentUserResponse.Registered(
                 subject,
                 currentUser.DisplayName,
                 currentUser.Email));

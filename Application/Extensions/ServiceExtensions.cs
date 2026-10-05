@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuizGamePlatform.Backend.Api.Swagger;
+using QuizGamePlatform.Backend.Application.Auth;
 using QuizGamePlatform.Backend.Application.Options;
+using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.DataAccess;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Text;
 
 namespace QuizGamePlatform.Backend.Application.Extensions
 {
@@ -55,8 +59,8 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             return services;
         }
 
-        /// <summary>Настраивает проверку JWT от Keycloak.</summary>
-        public static IServiceCollection AddKeycloakAuthentication(
+        /// <summary>Проверка JWT Keycloak и гостей</summary>
+        public static IServiceCollection AddApiAuthentication(
             this IServiceCollection services,
             IConfiguration configuration)
         {
@@ -68,9 +72,56 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                     "Keycloak:Authority must be an absolute HTTP or HTTPS URI.")
                 .ValidateOnStart();
 
+            services.AddOptions<GuestJwtOptions>()
+                .Bind(configuration.GetSection(GuestJwtOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
             services
-                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer();
+                .AddAuthentication(AuthenticationSchemes.Selector)
+                .AddPolicyScheme(AuthenticationSchemes.Selector, AuthenticationSchemes.Selector, _ => { })
+                .AddJwtBearer()
+                .AddJwtBearer(AuthenticationSchemes.Guest);
+
+            services.AddOptions<PolicySchemeOptions>(AuthenticationSchemes.Selector)
+                .Configure<IOptions<GuestJwtOptions>>((options, guestOptions) =>
+                {
+                    var guestIssuer = guestOptions.Value.Issuer;
+
+                    options.ForwardDefaultSelector = context =>
+                        GuestTokenReader.IsGuestToken(
+                            context.Request.Headers.Authorization.ToString(), guestIssuer)
+                            ? AuthenticationSchemes.Guest
+                            : JwtBearerDefaults.AuthenticationScheme;
+                });
+
+            services.AddOptions<JwtBearerOptions>(AuthenticationSchemes.Guest)
+                .Configure<IOptions<GuestJwtOptions>>((options, guestOptions) =>
+                {
+                    var guest = guestOptions.Value;
+                    options.MapInboundClaims = false;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = guest.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = guest.Audience,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(guest.SigningKey)),
+
+                        // Только HS256.
+                        ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+
+                        ClockSkew = TimeSpan.FromSeconds(guest.ClockSkewSeconds),
+                        NameClaimType = GuestTokenService.NicknameClaim,
+
+                        // Для различения типов пользователей.
+                        AuthenticationType = AuthenticationSchemes.Guest,
+                    };
+                });
 
             services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
                 .Configure<IOptions<KeycloakOptions>>((options, keycloakOptions) =>
@@ -80,7 +131,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                     options.Audience = keycloak.Audience;
                     options.RequireHttpsMetadata = keycloak.RequireHttpsMetadata;
 
-                    // Сохраняем исходные имена клеймов, включая sub.
+                    // Сохраняем имена полей токена, включая sub
                     options.MapInboundClaims = false;
 
                     options.TokenValidationParameters = new TokenValidationParameters
@@ -91,8 +142,12 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
 
+                        // Только RS256
+                        ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+
                         ClockSkew = TimeSpan.FromSeconds(keycloak.ClockSkewSeconds),
                         NameClaimType = "preferred_username",
+                        AuthenticationType = JwtBearerDefaults.AuthenticationScheme,
                     };
                 });
 
@@ -101,7 +156,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             return services;
         }
 
-        public static IServiceCollection AddSwaggerWithKeycloak(
+        public static IServiceCollection AddApiSwagger(
             this IServiceCollection services)
         {
             services.AddSwaggerGen();
@@ -127,6 +182,14 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                                 },
                             },
                         },
+                    });
+
+                    options.AddSecurityDefinition(AuthenticationSchemes.Guest, new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer",
+                        BearerFormat = "JWT",
+                        Description = "Гостевой токен, выданный при входе в комнату.",
                     });
 
                     options.OperationFilter<AuthorizeOperationFilter>();

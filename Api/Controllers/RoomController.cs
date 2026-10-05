@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuizGamePlatform.Backend.Api.Swagger;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
@@ -8,7 +9,10 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class RoomController(IRoomService roomService) : ControllerBase
+    public class RoomController(
+        IRoomService roomService,
+        ICurrentUserContext currentUser,
+        IGuestTokenService guestTokenService) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> CreateRoom(CancellationToken ct)
@@ -55,8 +59,16 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         }
 
         [HttpPost("join")]
+        [OptionalAuthorization]
         public async Task<IActionResult> JoinToRoom([FromBody] JoinToRoomRequest roomRequest, CancellationToken ct)
         {
+            if (Request.Headers.Authorization.Count > 0 && !currentUser.IsAuthenticated)
+            {
+                return Unauthorized(new CommonErrorResponse(
+                    message: "Токен недействителен или истёк",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
             if (string.IsNullOrWhiteSpace(roomRequest.Username))
             {
                 return BadRequest(new CommonErrorResponse
@@ -75,7 +87,26 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                ));
             }
 
-            var roomPlayer = await roomService.JoinToRoomByRoomCodeAsync(roomRequest.Username, roomRequest.RoomCode, ct);
+            var (roomPlayer, nicknameTaken) = await roomService.JoinToRoomByRoomCodeAsync(
+                roomRequest.Username,
+                roomRequest.RoomCode,
+                currentUser.RoomPlayerLinkId,
+                ct);
+
+            if (nicknameTaken)
+            {
+                // Участие есть, но подтвердить владение нечем: у гостя это делает токен,
+                // а аккаунт с участием пока не связан.
+                var message = currentUser.IsRegistered
+                    ? $"Участие с ником {roomRequest.Username} в этой комнате уже существует. "
+                      + "Повторный вход под аккаунтом будет доступен после привязки участия к аккаунту"
+                    : $"Ник {roomRequest.Username} в этой комнате уже занят. "
+                      + "Чтобы вернуться в своё участие, войдите с гостевым токеном, выданным при первом входе";
+
+                return Conflict(new CommonErrorResponse(
+                    message: message,
+                    method: HttpContext.GetMethodWithPath()));
+            }
 
             if (roomPlayer is null)
             {
@@ -86,17 +117,20 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 ));
             }
 
-            //TODO Поле будет назначаться после ожидания в 30сек 
-            if (roomPlayer.FinishedAt.HasValue
-            && roomPlayer.FinishedAt < DateTime.UtcNow)
+            if (currentUser.IsRegistered)
             {
-                return BadRequest(new CommonErrorResponse(
-                    message: $"{roomPlayer.PlayerName} has been left room",
-                    method: HttpContext.GetMethodWithPath()
-                ));
+                return Ok(new JoinToRoomResponse(roomPlayer, null, null));
             }
 
-            return Ok(roomPlayer);
+            var guestToken = guestTokenService.Issue(
+                roomPlayer.RoomPlayerLinkId,
+                roomPlayer.RoomId,
+                roomPlayer.PlayerName);
+
+            return Ok(new JoinToRoomResponse(
+                roomPlayer,
+                guestToken.AccessToken,
+                guestToken.ExpiresAtUtc));
         }
 
         [HttpPost("leave")]
