@@ -4,6 +4,8 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
 {
     public interface IMatchService
     {
+        Task<bool> IsRoomHostAsync(Guid roomId, CancellationToken ct);
+        Task<bool> IsMatchHostAsync(Guid matchId, CancellationToken ct);
         Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct);
         Task<CurrentQuestionResponse?> GetCurrentQuestionAsync(Guid matchId, CancellationToken ct);
         Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct);

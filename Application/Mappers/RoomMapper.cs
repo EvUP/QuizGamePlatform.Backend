@@ -24,23 +24,21 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             FinishedAt: playerEntity.FinishedAt,
             RoomCode: playerEntity.Room.RoomCode,
             RoomStatus: playerEntity.Room.Status,
-            PlayerId: playerEntity.PlayerId,
-            PlayerName: playerEntity.Player.UserName,
+            PlayerName: playerEntity.Nickname,
             JoinedAt: playerEntity.JoinedAt,
             IsActive: playerEntity.IsActive
         );
         }
 
-        public static RoomParticipationResponse ToRoomParticipationResponse(this RoomPlayerEntity playerEntity)
+        public static RoomParticipationResponse ToRoomParticipationResponse(this RoomPlayerEntity playerEntity, Guid? hostUserId)
         {
             return new RoomParticipationResponse(
-            RoomId: playerEntity.RoomId,
-            FinishedAt: playerEntity.FinishedAt,
-            ExitReason: playerEntity.ExitReason,
-            PlayerId: playerEntity.PlayerId,
-            PlayerName: playerEntity.Player.UserName,
-            JoinedAt: playerEntity.JoinedAt,
+            RoomPlayerLinkId: playerEntity.Id,
+            PlayerName: playerEntity.Nickname,
+            IsGuest: playerEntity.UserId is null,
+            IsHost: playerEntity.UserId is not null && playerEntity.UserId == hostUserId,
             IsActive: playerEntity.IsActive,
+            ExitReason: playerEntity.ExitReason,
             Score: playerEntity.Score
         );
         }
@@ -49,7 +47,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
         {
             return new LeaveRoomResponse(
             RoomId: roomPlayerEntity.RoomId,
-            PlayerId: roomPlayerEntity.PlayerId,
+            RoomPlayerLinkId: roomPlayerEntity.Id,
             FinishedAt: roomPlayerEntity.FinishedAt ?? DateTime.UtcNow,
             ExitReason: roomPlayerEntity.ExitReason ?? ExitReason.Other
             );

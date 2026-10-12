@@ -6,7 +6,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
 {
     public static class PlayerMapper
     {
-        public static CreatePlayerResponse ToCreatePlayerResponse(this PlayerEntity player)
+        public static CreatePlayerResponse ToCreatePlayerResponse(this UserEntity player)
         {
             return new CreatePlayerResponse(
                 Id: player.Id,

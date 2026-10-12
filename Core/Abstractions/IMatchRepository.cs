@@ -30,13 +30,21 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<bool> OptionBelongsToQuestionAsync(Guid questionId, Guid optionId, CancellationToken ct);
         /// <summary>
-        /// Кол-во правильных ответов у каждого игрока в матче
+        /// Кол-во правильных ответов у каждого участника в матче
         /// </summary>
         Task<Dictionary<Guid, int>> GetCorrectAnswerCountsAsync(Guid matchId, CancellationToken ct);
         /// <summary>
         /// Добавить ответ игрока (без сохранения)
         /// </summary>
         Task AddAnswerAsync(PlayerAnswerEntity answer, CancellationToken ct);
+        /// <summary>
+        /// Владелец ли пользователь комнаты этого матча и сейчас в ней
+        /// </summary>
+        Task<bool> IsHost(Guid matchId, string keycloakSubject, CancellationToken ct);
+        /// <summary>
+        /// Сколько активных участников ответили на вопрос матча
+        /// </summary>
+        Task<int> CountActiveAnswers(Guid matchQuestionId, CancellationToken ct);
         /// <summary>
         /// Сохранить изменения
         /// </summary>

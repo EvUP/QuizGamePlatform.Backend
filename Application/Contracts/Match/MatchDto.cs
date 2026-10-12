@@ -9,7 +9,8 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Match
     int QuestionCount,
     RoomMode RoomMode);
 
-    public record SubmitAnswerRequest(Guid PlayerId, Guid SelectedOptionId);
+    // участника определяем по токену
+    public record SubmitAnswerRequest(Guid SelectedOptionId);
 
     public record MatchStateResponse(
         Guid MatchId,
@@ -24,6 +25,7 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Match
         MatchStatus Status,
         int QuestionOrder,
         int TotalQuestions,
+        DateTime QuestionEndsAt,
         Guid QuestionId,
         string Text,
         List<AnswerOptionView> Options);

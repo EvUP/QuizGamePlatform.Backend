@@ -5,27 +5,28 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
     public interface IRoomRepository
     {
         /// <summary>
-        /// Создать комнату
+        /// Создать комнату (без сохранения)
         /// </summary>
-        Task<RoomEntity> CreateRoomAsync(string roomCode, CancellationToken ct);
+        Task<RoomEntity> CreateRoomAsync(string roomCode, UserEntity host, CancellationToken ct);
+        /// <summary>
+        /// Владелец ли пользователь комнаты и сейчас в ней
+        /// </summary>
+        Task<bool> IsHost(Guid roomId, string keycloakSubject, CancellationToken ct);
         /// <summary>
         /// Найти комнату по ID
         /// </summary>
         Task<RoomEntity?> GetRoomByIdAsync(Guid Id, CancellationToken ct);
         /// <summary>
-        /// Найти все существующие комнаты
+        /// Найти комнату по коду
         /// </summary>
-        /// 
         Task<RoomEntity?> GetRoomByRoomCodeAsync(string roomCode, CancellationToken ct);
-        Task<List<RoomEntity>> GetAllExistingRoomsAsync(CancellationToken ct);
+        /// <summary>
+        /// Комнаты, где у аккаунта есть участие
+        /// </summary>
+        Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct);
         /// <summary>
         /// Удалить существующую комнату по Id
         /// </summary>
         Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct);
-
-        /// <summary>
-        /// Найти участника в комнате
-        /// </summary>
-        Task<RoomPlayerEntity?> GetRoomParticipation(Guid roomId, Guid playerId, CancellationToken ct);
     };
 }

@@ -49,7 +49,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Seed
                     };
 
                     var position = 1;
-                    foreach (var seedOption in seedQuestion.Options)
+                    foreach (var seedOption in seedQuestion.Options.OrderBy(_ => Random.Shared.Next()))
                     {
                         question.AnswerOptions.Add(new AnswerOptionEntity
                         {

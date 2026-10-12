@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -292,6 +293,23 @@ public class GuestAuthenticationTests : IDisposable
         Assert.Null(sut.RoomPlayerLinkId);
         Assert.Null(sut.RoomId);
         Assert.NotNull(sut.KeycloakSubject);
+    }
+
+    [Fact]
+    public async Task RegisteredPolicy_AllowsOnlyKeycloakUser()
+    {
+        var guestToken = CreateTokenService(TimeProvider.System).Issue(Guid.NewGuid(), Guid.NewGuid(), "guest_one").AccessToken;
+        var guest = await AuthenticateWith(AuthenticationSchemes.Guest, guestToken);
+        var registered = await AuthenticateWith(JwtBearerDefaults.AuthenticationScheme, CreateKeycloakToken());
+        Assert.True(guest.Succeeded);
+        Assert.True(registered.Succeeded);
+
+        using var scope = _provider.CreateScope();
+        var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+
+        Assert.True((await authorization.AuthorizeAsync(registered.Principal!, AuthorizationPolicies.Registered)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(guest.Principal!, AuthorizationPolicies.Registered)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity()), AuthorizationPolicies.Registered)).Succeeded);
     }
 
     public void Dispose()

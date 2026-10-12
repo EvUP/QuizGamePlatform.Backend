@@ -25,7 +25,14 @@ namespace QuizGamePlatform.Backend.Api.Swagger
                 operation.Security.Add(new OpenApiSecurityRequirement());
             }
 
-            foreach (var schemeId in new[] { "Keycloak", AuthenticationSchemes.Guest })
+            var registeredOnly = metadata.OfType<IAuthorizeData>()
+                .Any(a => a.Policy == AuthorizationPolicies.Registered);
+
+            var schemeIds = registeredOnly
+                ? new[] { "Keycloak" }
+                : new[] { "Keycloak", AuthenticationSchemes.Guest };
+
+            foreach (var schemeId in schemeIds)
             {
                 operation.Security.Add(new OpenApiSecurityRequirement
                 {

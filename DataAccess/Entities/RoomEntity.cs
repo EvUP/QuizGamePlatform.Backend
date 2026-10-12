@@ -9,6 +9,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public string RoomCode { get; set; } = string.Empty;
         public RoomStatus Status { get; set; } = RoomStatus.Waiting;
         public DateTime CreatedAt { get; set; }
+
+        // у старых комнат владельца нет
+        public Guid? HostUserId { get; set; }
+        public UserEntity? HostUser { get; set; }
+
         public ICollection<RoomPlayerEntity> Players { get; set; } = new List<RoomPlayerEntity>();
     }
 }

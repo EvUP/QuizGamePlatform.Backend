@@ -12,8 +12,14 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(rp => rp.JoinedAt)
                 .HasDefaultValueSql("NOW()");
 
-            // Одна комната - один уникальный участник
-            builder.HasIndex(rp => new { rp.RoomId, rp.PlayerId })
+            builder.Property(rp => rp.Nickname).HasMaxLength(50).IsRequired();
+
+            // ник уникален в пределах комнаты
+            builder.HasIndex(rp => new { rp.RoomId, rp.Nickname })
+                .IsUnique();
+
+            // одно участие на аккаунт, null гостей не мешают
+            builder.HasIndex(rp => new { rp.RoomId, rp.UserId })
                 .IsUnique();
 
             builder.Property(rp => rp.ExitReason)
@@ -23,11 +29,6 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
                 .WithMany(r => r.Players)
                 .HasForeignKey(rp => rp.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasOne(rp => rp.Player)
-                .WithMany(p => p.RoomParticipations)
-                .HasForeignKey(rp => rp.PlayerId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

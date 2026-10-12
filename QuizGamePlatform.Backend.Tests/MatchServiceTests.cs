@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using QuizGamePlatform.Backend.Api.Controllers;
+using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Contracts.Match;
 using QuizGamePlatform.Backend.Application.Enums;
@@ -18,6 +22,7 @@ namespace QuizGamePlatform.Backend.Tests
         private readonly Mock<IRoomParticipationRepository> _participationRepo = new();
         private readonly Mock<IQuizContentRepository> _contentRepo = new();
         private readonly Mock<IMatchLockProvider> _locks = new();
+        private readonly Mock<ICurrentUserContext> _currentUser = new();
         private readonly FakeTimeProvider _time = new();
         private readonly MatchService _sut;
 
@@ -31,6 +36,7 @@ namespace QuizGamePlatform.Backend.Tests
                 _participationRepo.Object,
                 _contentRepo.Object,
                 _locks.Object,
+                _currentUser.Object,
                 Mock.Of<ILogger<MatchService>>(),
                 _time);
         }
@@ -56,6 +62,78 @@ namespace QuizGamePlatform.Backend.Tests
                 QuestionEndsAt = Now.AddSeconds(30),
                 Questions = questions
             };
+        }
+
+        // гость с токеном на участие в комнате матча
+        private RoomPlayerEntity ParticipantOf(MatchEntity match, bool isActive = true)
+        {
+            var participant = new RoomPlayerEntity { Id = Guid.NewGuid(), RoomId = match.RoomId, IsActive = isActive };
+            _currentUser.Setup(u => u.RoomPlayerLinkId).Returns(participant.Id);
+            _participationRepo.Setup(r => r.FindParticipant(match.RoomId, participant.Id, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(participant);
+
+            return participant;
+        }
+
+        // владелец комнаты
+
+        [Fact]
+        public async Task IsRoomHost_ChecksOwnerByTokenSubject()
+        {
+            var roomId = Guid.NewGuid();
+            _currentUser.Setup(u => u.KeycloakSubject).Returns("host-subject");
+            _roomRepo.Setup(r => r.IsHost(roomId, "host-subject", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+            Assert.True(await _sut.IsRoomHostAsync(roomId, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task IsMatchHost_WithoutAccount_ReturnsFalse()
+        {
+            var ok = await _sut.IsMatchHostAsync(Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(ok);
+            _matchRepo.Verify(r => r.IsHost(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Controller_NotHost_ForbidsMatchControl()
+        {
+            var service = new Mock<IMatchService>(); // не владелец
+            var controller = new MatchController(service.Object)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+            };
+            var matchId = Guid.NewGuid();
+
+            var results = new[]
+            {
+                await controller.StartMatch(new StartMatchRequest(Guid.NewGuid(), Guid.NewGuid(), 1, RoomMode.Simple), CancellationToken.None),
+                await controller.CloseQuestion(matchId, CancellationToken.None),
+                await controller.NextQuestion(matchId, CancellationToken.None),
+            };
+
+            Assert.All(results, r => Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(r).StatusCode));
+            service.Verify(s => s.StartMatchAsync(It.IsAny<StartMatchRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+            service.Verify(s => s.CloseQuestionAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+            service.Verify(s => s.NextQuestionAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(13)]
+        public async Task Controller_QuestionCountOutOfRange_BadRequest(int questionCount)
+        {
+            var service = new Mock<IMatchService>(MockBehavior.Strict);
+            var controller = new MatchController(service.Object)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+            };
+
+            var result = await controller.StartMatch(
+                new StartMatchRequest(Guid.NewGuid(), Guid.NewGuid(), questionCount, RoomMode.Simple), CancellationToken.None);
+
+            Assert.IsType<BadRequestObjectResult>(result);
         }
 
         // старт матча
@@ -164,6 +242,18 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Null(result);
         }
 
+        // текущий вопрос
+
+        [Fact]
+        public async Task CurrentQuestion_NotRoomParticipant_ReturnsNull()
+        {
+            var matchId = Guid.NewGuid();
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(RunningMatch(matchId));
+
+            Assert.Null(await _sut.GetCurrentQuestionAsync(matchId, CancellationToken.None));
+            _matchRepo.Verify(r => r.GetMatchQuestionAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
         // приём ответа
 
         [Fact]
@@ -172,7 +262,7 @@ namespace QuizGamePlatform.Backend.Tests
             _matchRepo.Setup(r => r.GetMatchAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((MatchEntity?)null);
 
-            var ok = await _sut.SubmitAnswerAsync(Guid.NewGuid(), new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(Guid.NewGuid(), new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
         }
@@ -184,7 +274,7 @@ namespace QuizGamePlatform.Backend.Tests
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(RunningMatch(matchId, status: MatchStatus.QuestionClosed));
 
-            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
         }
@@ -197,7 +287,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             _time.Advance(TimeSpan.FromSeconds(31)); // окно ответа истекло
 
-            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
             _matchRepo.Verify(r => r.AddAnswerAsync(It.IsAny<PlayerAnswerEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -207,42 +297,79 @@ namespace QuizGamePlatform.Backend.Tests
         public async Task SubmitAnswer_OptionNotBelongToCurrentQuestion_ReturnsFalse()
         {
             var matchId = Guid.NewGuid();
-            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(RunningMatch(matchId));
+            var match = RunningMatch(matchId);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            ParticipantOf(match);
             _matchRepo.Setup(r => r.OptionBelongsToQuestionAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
             _matchRepo.Verify(r => r.AddAnswerAsync(It.IsAny<PlayerAnswerEntity>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
-        public async Task SubmitAnswer_Valid_PersistsAnswer_ReturnsTrue()
+        public async Task SubmitAnswer_Valid_PersistsAnswerForTokenParticipant_ReturnsTrue()
+        {
+            var matchId = Guid.NewGuid();
+            var match = RunningMatch(matchId);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            var participant = ParticipantOf(match);
+            _matchRepo.Setup(r => r.OptionBelongsToQuestionAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
+
+            Assert.True(ok);
+            _matchRepo.Verify(r => r.AddAnswerAsync(
+                It.Is<PlayerAnswerEntity>(a => a.RoomPlayerId == participant.Id), It.IsAny<CancellationToken>()), Times.Once);
+            _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SubmitAnswer_NotRoomParticipant_ReturnsFalse()
         {
             var matchId = Guid.NewGuid();
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(RunningMatch(matchId));
             _matchRepo.Setup(r => r.OptionBelongsToQuestionAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
-            Assert.True(ok);
-            _matchRepo.Verify(r => r.AddAnswerAsync(It.IsAny<PlayerAnswerEntity>(), It.IsAny<CancellationToken>()), Times.Once);
-            _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            Assert.False(ok);
+            _matchRepo.Verify(r => r.AddAnswerAsync(It.IsAny<PlayerAnswerEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SubmitAnswer_LeftParticipant_ReturnsFalse()
+        {
+            var matchId = Guid.NewGuid();
+            var match = RunningMatch(matchId);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            ParticipantOf(match, isActive: false);
+            _matchRepo.Setup(r => r.OptionBelongsToQuestionAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
+
+            Assert.False(ok);
+            _matchRepo.Verify(r => r.AddAnswerAsync(It.IsAny<PlayerAnswerEntity>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
         public async Task SubmitAnswer_DuplicateAnswer_ReturnsFalse()
         {
             var matchId = Guid.NewGuid();
-            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(RunningMatch(matchId));
+            var match = RunningMatch(matchId);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            ParticipantOf(match);
             _matchRepo.Setup(r => r.OptionBelongsToQuestionAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
             _matchRepo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new DbUpdateException("one answer per question"));
 
-            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None);
+            var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
         }
@@ -262,11 +389,28 @@ namespace QuizGamePlatform.Backend.Tests
         }
 
         [Fact]
-        public async Task CloseQuestion_Active_MarksClosed_ExtendsDeadline()
+        public async Task CloseQuestion_NotAllAnswered_ReturnsNull()
         {
             var matchId = Guid.NewGuid();
             var match = RunningMatch(matchId);
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _participationRepo.Setup(r => r.CountActivePlayers(match.RoomId, It.IsAny<CancellationToken>())).ReturnsAsync(3);
+            _matchRepo.Setup(r => r.CountActiveAnswers(match.Questions.First().Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
+
+            var result = await _sut.CloseQuestionAsync(matchId, CancellationToken.None);
+
+            Assert.Null(result);
+            Assert.Equal(MatchStatus.QuestionActive, match.Status);
+        }
+
+        [Fact]
+        public async Task CloseQuestion_AllAnswered_MarksClosed_ExtendsDeadline()
+        {
+            var matchId = Guid.NewGuid();
+            var match = RunningMatch(matchId);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _participationRepo.Setup(r => r.CountActivePlayers(match.RoomId, It.IsAny<CancellationToken>())).ReturnsAsync(3);
+            _matchRepo.Setup(r => r.CountActiveAnswers(match.Questions.First().Id, It.IsAny<CancellationToken>())).ReturnsAsync(3);
 
             var result = await _sut.CloseQuestionAsync(matchId, CancellationToken.None);
 
@@ -319,8 +463,8 @@ namespace QuizGamePlatform.Backend.Tests
             var leftId = Guid.NewGuid();
             var participants = new List<RoomPlayerEntity>
             {
-                new() { PlayerId = activeId, IsActive = true },
-                new() { PlayerId = leftId, IsActive = false }
+                new() { Id = activeId, IsActive = true },
+                new() { Id = leftId, IsActive = false }
             };
             _participationRepo.Setup(r => r.GetParticipationsByRoomId(match.RoomId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(participants);

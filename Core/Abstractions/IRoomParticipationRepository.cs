@@ -1,14 +1,25 @@
+using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
 namespace QuizGamePlatform.Backend.Core.Abstractions
 {
     public interface IRoomParticipationRepository
     {
-        Task<RoomPlayerEntity?> GetRoomPlayerById(Guid roomId, Guid playerId, CancellationToken ct);
+        /// <summary>
+        /// Участие текущего пользователя в комнате: гостя по ID участия, зарегистрированного по sub
+        /// </summary>
+        Task<RoomPlayerEntity?> FindParticipant(Guid roomId, Guid? roomPlayerId, string? keycloakSubject, CancellationToken ct);
+        Task<bool> IsNicknameTaken(Guid roomId, string nickname, CancellationToken ct);
         Task<int> CountActivePlayers(Guid roomId, CancellationToken ct);
-        Task<RoomPlayerEntity> CreateRoomPlayer(PlayerEntity player, RoomEntity room, CancellationToken ct);
+        /// <summary>
+        /// Занятые места: активные участники и владелец, даже вышедший
+        /// </summary>
+        Task<int> CountTakenSlots(Guid roomId, CancellationToken ct);
+        Task<RoomPlayerEntity> CreateRoomPlayer(RoomEntity room, string nickname, UserEntity? user, CancellationToken ct);
         Task<List<RoomPlayerEntity>> GetParticipationsByRoomId(Guid roomId, CancellationToken ct);
-
-        Task<List<RoomPlayerEntity>> GetAllExistingParticipations(CancellationToken ct);
+        /// <summary>
+        /// Сумма очков аккаунтов по завершённым комнатам, гостей нет
+        /// </summary>
+        Task<List<GlobalLeaderboardEntry>> GetGlobalLeaderboard(CancellationToken ct);
     };
 }

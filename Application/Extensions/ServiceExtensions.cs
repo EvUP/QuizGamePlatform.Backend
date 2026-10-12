@@ -151,7 +151,11 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                     };
                 });
 
-            services.AddAuthorization();
+            services.AddAuthorization(options =>
+                options.AddPolicy(AuthorizationPolicies.Registered, policy => policy
+                    .RequireAuthenticatedUser()
+                    .RequireAssertion(context =>
+                        context.User.Identity?.AuthenticationType == JwtBearerDefaults.AuthenticationScheme)));
 
             return services;
         }

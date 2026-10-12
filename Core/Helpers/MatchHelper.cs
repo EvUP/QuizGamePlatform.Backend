@@ -5,6 +5,7 @@ namespace QuizGamePlatform.Backend.Core.Helpers;
 public static class MatchHelper
 {
     static public readonly int MaxMatchPlayer = 5;
+    static public readonly int MaxQuestionCount = 12;
     
     static public int GetQuestionDurationByRoomMode(RoomMode roomMode)
     {

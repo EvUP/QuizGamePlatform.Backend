@@ -26,7 +26,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             builder.Services.AddScoped<IQuizContentRepository, QuizContentRepository>();
 
             builder.Services.AddScoped<IPlayerService, PlayerService>();
-            builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             builder.Services.AddScoped<IRoomParticipationRepository, RoomPatricipationRepository>();
 
