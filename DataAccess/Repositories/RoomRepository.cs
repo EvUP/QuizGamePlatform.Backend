@@ -42,20 +42,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
 
-        public async Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct)
-        {
-            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
+        public void RemoveRoom(RoomEntity room)
+            => context.Rooms.Remove(room);
 
-            if (room is null)
-            {
-                return false;
-            }
-
-            context.Rooms.Remove(room);
-            await context.SaveChangesAsync(ct);
-
-            return true;
-        }
+        public void MarkChanged(RoomEntity room)
+            => context.Entry(room).State = EntityState.Modified;
     }
 
 }

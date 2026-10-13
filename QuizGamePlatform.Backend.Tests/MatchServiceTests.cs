@@ -484,15 +484,13 @@ namespace QuizGamePlatform.Backend.Tests
         // автопилот по таймеру
 
         [Fact]
-        public async Task AdvanceExpiredMatches_StillWithinDeadline_DoesNotAdvance()
+        public async Task AdvanceExpiredMatch_StillWithinDeadline_DoesNotAdvance()
         {
             var matchId = Guid.NewGuid();
             var match = RunningMatch(matchId); // дедлайн не истёк
-            _matchRepo.Setup(r => r.GetExpiredMatchIdsAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Guid> { matchId });
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
 
-            await _sut.AdvanceExpiredMatchesAsync(CancellationToken.None);
+            await _sut.AdvanceExpiredMatchAsync(matchId, CancellationToken.None);
 
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
             Assert.Equal(0, match.CurrentQuestionIndex);
@@ -500,21 +498,33 @@ namespace QuizGamePlatform.Backend.Tests
         }
 
         [Fact]
-        public async Task AdvanceExpiredMatches_PastDeadline_Advances()
+        public async Task AdvanceExpiredMatch_PastDeadline_Advances()
         {
             var matchId = Guid.NewGuid();
             var match = RunningMatch(matchId, index: 0, questionCount: 2);
-            _matchRepo.Setup(r => r.GetExpiredMatchIdsAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Guid> { matchId });
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
 
             _time.Advance(TimeSpan.FromSeconds(31)); // дедлайн вопроса истёк
 
-            await _sut.AdvanceExpiredMatchesAsync(CancellationToken.None);
+            await _sut.AdvanceExpiredMatchAsync(matchId, CancellationToken.None);
 
             Assert.Equal(1, match.CurrentQuestionIndex);
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task AdvanceExpiredMatch_ChangedByAnotherInstance_Skipped()
+        {
+            var matchId = Guid.NewGuid();
+            var match = RunningMatch(matchId, index: 0, questionCount: 2);
+            _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DbUpdateConcurrencyException());
+
+            _time.Advance(TimeSpan.FromSeconds(31));
+
+            Assert.False(await _sut.AdvanceExpiredMatchAsync(matchId, CancellationToken.None));
         }
     }
 }

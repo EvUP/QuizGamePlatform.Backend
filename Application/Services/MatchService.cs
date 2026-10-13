@@ -89,7 +89,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
             catch (DbUpdateException)
             {
-                logger.LogInformation("Cannot start match: room {RoomId} already has an active match", room.Id);
+                logger.LogInformation("Cannot start match: room {RoomId} changed concurrently or already has an active match", room.Id);
 
                 return null;
             }
@@ -223,15 +223,11 @@ namespace QuizGamePlatform.Backend.Application.Services
             }, ct);
         }
 
-        public async Task AdvanceExpiredMatchesAsync(CancellationToken ct)
-        {
-            var expiredIds = await matchRepository.GetExpiredMatchIdsAsync(UtcNow, ct);
+        public Task<List<Guid>> GetExpiredMatchIdsAsync(CancellationToken ct)
+            => matchRepository.GetExpiredMatchIdsAsync(UtcNow, ct);
 
-            foreach (var matchId in expiredIds)
-            {
-                await RunExclusiveAsync(matchId, () => AdvanceIfStillExpiredAsync(matchId, ct), ct);
-            }
-        }
+        public Task<bool> AdvanceExpiredMatchAsync(Guid matchId, CancellationToken ct)
+            => RunExclusiveAsync(matchId, () => AdvanceIfStillExpiredAsync(matchId, ct), ct);
 
         // под локом перепроверяем вдруг матч уже сдвинули руками
         private async Task<bool> AdvanceIfStillExpiredAsync(Guid matchId, CancellationToken ct)
@@ -306,6 +302,13 @@ namespace QuizGamePlatform.Backend.Application.Services
             try
             {
                 return await action();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // матч уже сдвинул другой инстанс
+                logger.LogInformation("Match {MatchId} was changed concurrently, skipped", matchId);
+
+                return default!;
             }
             finally
             {

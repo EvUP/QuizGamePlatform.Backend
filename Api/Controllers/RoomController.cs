@@ -108,14 +108,10 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             if (nicknameTaken)
             {
-                // ник чужой, своё участие токен не нашёл
-                var message = currentUser.IsRegistered
-                    ? $"Ваш логин {currentUser.DisplayName} в этой комнате уже занят гостем"
-                    : $"Ник {roomRequest.Username} занят. "
-                      + "Если это ваше участие, войдите с гостевым токеном, выданным при первом входе";
-
+                // ник занят только у гостя, своё участие токен не нашёл
                 return Conflict(new CommonErrorResponse(
-                    message: message,
+                    message: $"Ник {roomRequest.Username} занят. "
+                        + "Если это ваше участие, войдите с гостевым токеном, выданным при первом входе",
                     method: HttpContext.GetMethodWithPath()));
             }
 

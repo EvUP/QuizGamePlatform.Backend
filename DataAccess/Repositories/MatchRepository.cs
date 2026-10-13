@@ -45,8 +45,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         {
             return await context.PlayerAnswers
                 .Where(a => a.MatchQuestion.MatchId == matchId
-                    && a.SelectedOption.IsCorrect
-                    && a.SelectedOption.QuestionId == a.MatchQuestion.QuestionId)
+                    && a.SelectedOption.IsCorrect)
                 .GroupBy(a => a.RoomPlayerId)
                 .Select(g => new { RoomPlayerId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.RoomPlayerId, x => x.Count, ct);

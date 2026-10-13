@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
@@ -53,27 +54,29 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return false;
             }
 
-            bool isDeletedRoom = await roomRepository.DeleteExistingRoom(id, ct);
+            roomRepository.RemoveRoom(room);
 
-            if (isDeletedRoom)
+            if (!await TrySaveAsync(ct))
             {
-                logger.LogInformation("Room with {id} sucessfully deleted", id);
+                return false;
             }
 
-            return isDeletedRoom;
+            logger.LogInformation("Room with {id} sucessfully deleted", id);
+
+            return true;
         }
 
         public async Task<RoomStateResponse?> GetRoomStateAsync(Guid roomId, CancellationToken ct)
         {
+            var room = await roomRepository.GetRoomByIdAsync(roomId, ct);
             // комнату видят только её участники
-            var me = await FindMeAsync(roomId, ct);
+            var me = room is null ? null : await FindMeAsync(roomId, ct);
 
-            if (me is null)
+            if (room is null || me is null)
             {
                 return null;
             }
 
-            var room = (await roomRepository.GetRoomByIdAsync(roomId, ct))!;
             var players = await roomParticipationRepository.GetParticipationsByRoomId(roomId, ct);
             var match = await matchRepository.GetMatchByRoomId(roomId, ct);
 
@@ -125,9 +128,8 @@ namespace QuizGamePlatform.Backend.Application.Services
             var user = currentUser.KeycloakSubject is not null ? await GetOrCreateCurrentUserAsync(ct) : null;
             var name = user?.UserName ?? nickname!.Trim().ToLowerInvariant();
 
-            // логин аккаунта гостю не отдаём
-            if (await roomParticipationRepository.IsNicknameTaken(room.Id, name, ct)
-                || user is null && await userRepository.IsUserNameTaken(name, ct))
+            // логин аккаунта уникален сам, гость не берёт имя занятое в комнате
+            if (user is null && await roomParticipationRepository.IsNicknameTaken(room.Id, name, ct))
             {
                 return (null, true);
             }
@@ -140,9 +142,14 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
 
             var link = await roomParticipationRepository.CreateRoomPlayer(room, name, user, ct);
+            roomRepository.MarkChanged(room);
+
+            if (!await TrySaveAsync(ct))
+            {
+                return (null, false);
+            }
 
             logger.LogInformation("Player {name} joined room {roomCode}", name, roomCode);
-            await context.SaveChangesAsync(ct);
 
             return (link.ToJoinRoomResponse(), false);
         }
@@ -170,14 +177,21 @@ namespace QuizGamePlatform.Backend.Application.Services
             roomPlayer.IsActive = true;
             roomPlayer.FinishedAt = null;
             roomPlayer.ExitReason = null;
+            roomRepository.MarkChanged(room);
 
-            await context.SaveChangesAsync(ct);
-
-            return roomPlayer.ToJoinRoomResponse();
+            return await TrySaveAsync(ct) ? roomPlayer.ToJoinRoomResponse() : null;
         }
 
         public async Task<LeaveRoomResponse?> LeaveRoom(Guid roomId, ExitReason exitReason, CancellationToken ct)
         {
+            var room = await roomRepository.GetRoomByIdAsync(roomId, ct);
+
+            // после матча комната история, итоговые очки не меняются
+            if (room is null || room.Status == RoomStatus.Finished)
+            {
+                return null;
+            }
+
             var roomPlayer = await FindMeAsync(roomId, ct);
 
             if (roomPlayer == null)
@@ -197,18 +211,39 @@ namespace QuizGamePlatform.Backend.Application.Services
             roomPlayer.FinishedAt = UtcNow;
             roomPlayer.IsActive = false;
             roomPlayer.ExitReason = exitReason;
+            roomRepository.MarkChanged(room);
+
+            if (!await TrySaveAsync(ct))
+            {
+                return null;
+            }
 
             logger.LogInformation(
             "Participant {RoomPlayerId} left room {RoomId} due to {ExitReason}",
             roomPlayer.Id, roomId, exitReason);
-
-            await context.SaveChangesAsync(ct);
 
             return roomPlayer.ToLeaveRoomResponse();
         }
 
         public async Task<List<GlobalLeaderboardEntry>> GetGlobalLeaderboardAsync(CancellationToken ct)
             => await roomParticipationRepository.GetGlobalLeaderboard(ct);
+
+        // параллельный вход, выход, старт или удаление той же комнаты отклоняет база
+        private async Task<bool> TrySaveAsync(CancellationToken ct)
+        {
+            try
+            {
+                await context.SaveChangesAsync(ct);
+
+                return true;
+            }
+            catch (DbUpdateException ex)
+            {
+                logger.LogInformation(ex, "Room change rejected by a concurrent change");
+
+                return false;
+            }
+        }
 
         private Task<RoomPlayerEntity?> FindMeAsync(Guid roomId, CancellationToken ct)
             => roomParticipationRepository.FindParticipant(

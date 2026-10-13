@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Enums;
 
@@ -7,7 +8,7 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Match
     Guid RoomId,
     Guid CategoryId,
     int QuestionCount,
-    RoomMode RoomMode);
+    [EnumDataType(typeof(RoomMode))] RoomMode RoomMode);
 
     // участника определяем по токену
     public record SubmitAnswerRequest(Guid SelectedOptionId);

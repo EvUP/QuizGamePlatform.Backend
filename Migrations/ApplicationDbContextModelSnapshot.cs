@@ -102,6 +102,12 @@ namespace QuizGamePlatform.Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId")
@@ -217,6 +223,12 @@ namespace QuizGamePlatform.Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HostUserId");
@@ -246,8 +258,8 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.Property<string>("Nickname")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
@@ -263,7 +275,8 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.HasIndex("UserId");
 
                     b.HasIndex("RoomId", "Nickname")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"UserId\" IS NULL");
 
                     b.HasIndex("RoomId", "UserId")
                         .IsUnique();

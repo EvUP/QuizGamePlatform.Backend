@@ -23,6 +23,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(m => m.QuestionEndsAt)
                 .HasDefaultValueSql("NOW()");
 
+            // два инстанса не сдвинут один матч дважды, второе сохранение получит конфликт
+            builder.Property(m => m.Version)
+                .IsRowVersion();
+
             // под опрос таймера
             builder.HasIndex(m => new { m.Status, m.QuestionEndsAt });
 

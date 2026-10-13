@@ -18,6 +18,9 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public DateTime QuestionEndsAt { get; set; }
         public DateTime? FinishedAt { get; set; }
 
+        // системный xmin postgres, меняется при каждом обновлении строки
+        public uint Version { get; set; }
+
         public ICollection<MatchQuestionEntity> Questions { get; set; } = new List<MatchQuestionEntity>();
     }
 }

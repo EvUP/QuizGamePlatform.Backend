@@ -25,8 +25,12 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct);
         /// <summary>
-        /// Удалить существующую комнату по Id
+        /// Удалить комнату (без сохранения)
         /// </summary>
-        Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct);
+        void RemoveRoom(RoomEntity room);
+        /// <summary>
+        /// Состав комнаты меняется: при сохранении растёт её версия и параллельное изменение получит конфликт
+        /// </summary>
+        void MarkChanged(RoomEntity room);
     };
 }

@@ -26,8 +26,5 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
             // сохраняет RoomService
             return newUser;
         }
-
-        public async Task<bool> IsUserNameTaken(string userName, CancellationToken ct)
-            => await context.Users.AnyAsync(u => u.UserName == userName, ct);
     }
 }

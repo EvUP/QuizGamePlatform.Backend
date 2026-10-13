@@ -87,7 +87,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (match is null)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: "Закрыть вопрос досрочно можно, когда ответили все игроки",
+                    message: "Закрыть вопрос досрочно можно, пока он идёт и когда ответили все игроки",
                     method: HttpContext.GetMethodWithPath()));
             }
 

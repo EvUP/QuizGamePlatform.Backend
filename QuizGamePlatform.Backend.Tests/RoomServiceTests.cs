@@ -28,13 +28,14 @@ namespace QuizGamePlatform.Backend.Tests
         private readonly HttpContextAccessor _http = new() { HttpContext = new DefaultHttpContext() };
         private readonly CurrentUserContext _currentUser;
         private readonly RoomService _sut;
+        private readonly Mock<ApplicationDbContext> _context;
 
         public RoomServiceTests()
         {
             // Сохранение без БД.
             var options = new DbContextOptionsBuilder<ApplicationDbContext>().Options;
-            var context = new Mock<ApplicationDbContext>(options);
-            context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+            _context = new Mock<ApplicationDbContext>(options);
+            _context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
             // сервис и контроллер видят одного пользователя
             _currentUser = new CurrentUserContext(_http);
@@ -46,7 +47,7 @@ namespace QuizGamePlatform.Backend.Tests
                 _matchRepo.Object,
                 _currentUser,
                 _roomHelper.Object,
-                context.Object,
+                _context.Object,
                 Mock.Of<ILogger<RoomService>>(),
                 _time);
         }
@@ -142,7 +143,7 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await controller.DeleteExistingRoom(room.Id, CancellationToken.None);
 
             Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
-            _roomRepo.Verify(r => r.DeleteExistingRoom(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+            _roomRepo.Verify(r => r.RemoveRoom(It.IsAny<RoomEntity>()), Times.Never);
         }
 
         [Theory]
@@ -154,7 +155,6 @@ namespace QuizGamePlatform.Backend.Tests
             var room = Setup(status);
             AsRegistered("host");
             _roomRepo.Setup(r => r.IsHost(room.Id, "host", It.IsAny<CancellationToken>())).ReturnsAsync(true);
-            _roomRepo.Setup(r => r.DeleteExistingRoom(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(true);
             var controller = CreateController(new Mock<IGuestTokenService>());
 
             var result = await controller.DeleteExistingRoom(room.Id, CancellationToken.None);
@@ -162,12 +162,28 @@ namespace QuizGamePlatform.Backend.Tests
             if (deleted)
             {
                 Assert.IsType<NoContentResult>(result);
+                _roomRepo.Verify(r => r.RemoveRoom(room), Times.Once);
             }
             else
             {
                 Assert.IsType<ConflictObjectResult>(result);
-                _roomRepo.Verify(r => r.DeleteExistingRoom(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+                _roomRepo.Verify(r => r.RemoveRoom(It.IsAny<RoomEntity>()), Times.Never);
             }
+        }
+
+        // комнату успели запустить или изменить параллельно
+        [Fact]
+        public async Task DeleteRoom_ConcurrentChange_Conflict()
+        {
+            var room = Setup(RoomStatus.Waiting);
+            AsRegistered("host");
+            _roomRepo.Setup(r => r.IsHost(room.Id, "host", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new DbUpdateConcurrencyException());
+            var controller = CreateController(new Mock<IGuestTokenService>());
+
+            var result = await controller.DeleteExistingRoom(room.Id, CancellationToken.None);
+
+            Assert.IsType<ConflictObjectResult>(result);
         }
 
         // состояние комнаты
@@ -327,23 +343,16 @@ namespace QuizGamePlatform.Backend.Tests
                 Times.Never);
         }
 
-        // чужое имя не даёт участие
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task Join_NameTakenInRoom_ConflictWithoutIssuingToken(bool registered)
+        // чужое имя не даёт гостю участие
+        [Fact]
+        public async Task Join_GuestNameTakenInRoom_ConflictWithoutIssuingToken()
         {
             var room = Setup(RoomStatus.Waiting);
-            var name = registered ? "alice" : "bob";
-            if (registered)
-            {
-                AsRegistered();
-            }
-            _participationRepo.Setup(r => r.IsNicknameTaken(room.Id, name, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _participationRepo.Setup(r => r.IsNicknameTaken(room.Id, "bob", It.IsAny<CancellationToken>())).ReturnsAsync(true);
             var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
             var controller = CreateController(tokens);
 
-            var result = await controller.JoinToRoom(new(registered ? null : "bob", "CODE"), CancellationToken.None);
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
 
             Assert.IsType<ConflictObjectResult>(result);
             _participationRepo.Verify(
@@ -461,15 +470,38 @@ namespace QuizGamePlatform.Backend.Tests
         }
 
         [Fact]
-        public async Task Join_GuestCannotTakeAccountLogin()
+        public async Task Join_AccountEntersUnderLoginEvenIfGuestTookSameName()
         {
             var room = Setup(RoomStatus.Waiting);
-            _userRepo.Setup(r => r.IsUserNameTaken("alice", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            var user = AsRegistered();
+            _participationRepo.Setup(r => r.IsNicknameTaken(room.Id, "alice", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(room, "alice", user, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Participant(room, isActive: true));
 
-            var (result, nicknameTaken) = await _sut.JoinToRoomByRoomCodeAsync("Alice", "CODE", CancellationToken.None);
+            var (result, nicknameTaken) = await _sut.JoinToRoomByRoomCodeAsync(null, "CODE", CancellationToken.None);
 
-            Assert.Null(result);
-            Assert.True(nicknameTaken);
+            Assert.NotNull(result);
+            Assert.False(nicknameTaken);
+            _participationRepo.Verify(
+                r => r.IsNicknameTaken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        // параллельный вход занял последнее место или комнату удалили
+        [Fact]
+        public async Task Join_ConcurrentRoomChange_NotJoinedWithoutToken()
+        {
+            var room = Setup(RoomStatus.Waiting);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(room, "bob", null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Participant(room, isActive: true));
+            _context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new DbUpdateConcurrencyException());
+            var tokens = new Mock<IGuestTokenService>(MockBehavior.Strict);
+            var controller = CreateController(tokens);
+
+            var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
+
+            Assert.IsType<NotFoundObjectResult>(result);
+            _roomRepo.Verify(r => r.MarkChanged(room), Times.Once);
         }
 
         // выход из комнаты
@@ -487,7 +519,7 @@ namespace QuizGamePlatform.Backend.Tests
         [Fact]
         public async Task Leave_AlreadyInactive_ReturnsNull()
         {
-            var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.InProgress };
+            var room = Setup(RoomStatus.InProgress);
             var left = Participant(room, isActive: false, finishedAt: Now);
             AsGuest(left.Id);
             Mine(room, left);
@@ -500,7 +532,7 @@ namespace QuizGamePlatform.Backend.Tests
         [Fact]
         public async Task Leave_ActivePlayer_SetsFinishedAtNow_AndInactive()
         {
-            var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.InProgress };
+            var room = Setup(RoomStatus.InProgress);
             var active = Participant(room, isActive: true);
             AsGuest(active.Id);
             Mine(room, active);
@@ -512,6 +544,22 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.False(active.IsActive);
             Assert.Equal(Now, active.FinishedAt);
             Assert.Equal(ExitReason.Disconnected, active.ExitReason);
+            _roomRepo.Verify(r => r.MarkChanged(room), Times.Once);
+        }
+
+        // после матча очки и состав уже итоговые
+        [Fact]
+        public async Task Leave_FinishedRoom_ReturnsNullAndKeepsActive()
+        {
+            var room = Setup(RoomStatus.Finished);
+            var active = Participant(room, isActive: true);
+            AsGuest(active.Id);
+            Mine(room, active);
+
+            var result = await _sut.LeaveRoom(room.Id, ExitReason.Normal, CancellationToken.None);
+
+            Assert.Null(result);
+            Assert.True(active.IsActive);
         }
     }
 }

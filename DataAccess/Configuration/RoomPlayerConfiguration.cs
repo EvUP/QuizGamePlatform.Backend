@@ -12,11 +12,13 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(rp => rp.JoinedAt)
                 .HasDefaultValueSql("NOW()");
 
-            builder.Property(rp => rp.Nickname).HasMaxLength(50).IsRequired();
+            // вмещает логин аккаунта любой длины
+            builder.Property(rp => rp.Nickname).HasMaxLength(255).IsRequired();
 
-            // ник уникален в пределах комнаты
+            // ники гостей уникальны в комнате, аккаунт отличается логином
             builder.HasIndex(rp => new { rp.RoomId, rp.Nickname })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("\"UserId\" IS NULL");
 
             // одно участие на аккаунт, null гостей не мешают
             builder.HasIndex(rp => new { rp.RoomId, rp.UserId })
