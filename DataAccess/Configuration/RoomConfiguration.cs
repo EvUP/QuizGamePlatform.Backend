@@ -19,6 +19,15 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(r => r.CreatedAt)
                 .HasDefaultValueSql("NOW()");
 
+            // вход, старт и удаление одной комнаты не проходят одновременно, второе сохранение получит конфликт
+            builder.Property(r => r.Version)
+                .IsRowVersion();
+
+            builder.HasOne(r => r.HostUser)
+                .WithMany()
+                .HasForeignKey(r => r.HostUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(r => r.Players)
                 .WithOne(rp => rp.Room)
                 .HasForeignKey(rp => rp.RoomId)

@@ -9,8 +9,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public Guid RoomId { get; set; }
         public RoomEntity Room { get; set; } = null!;
 
-        public Guid PlayerId { get; set; }
-        public PlayerEntity Player { get; set; } = null!;
+        public string Nickname { get; set; } = string.Empty;
+
+        public Guid? UserId { get; set; }
+        public UserEntity? User { get; set; }
 
         public DateTime JoinedAt { get; set; }
         public DateTime? FinishedAt { get; set; }

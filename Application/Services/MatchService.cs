@@ -15,10 +15,19 @@ namespace QuizGamePlatform.Backend.Application.Services
         IRoomParticipationRepository roomParticipationRepository,
         IQuizContentRepository quizContentRepository,
         IMatchLockProvider matchLocks,
+        ICurrentUserContext currentUser,
         ILogger<MatchService> logger,
         TimeProvider timeProvider) : IMatchService
     {
         private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+
+        public async Task<bool> IsRoomHostAsync(Guid roomId, CancellationToken ct)
+            => currentUser.KeycloakSubject is { } subject
+                && await roomRepository.IsHost(roomId, subject, ct);
+
+        public async Task<bool> IsMatchHostAsync(Guid matchId, CancellationToken ct)
+            => currentUser.KeycloakSubject is { } subject
+                && await matchRepository.IsHost(matchId, subject, ct);
 
         public async Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
         {
@@ -42,7 +51,8 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var questions = await quizContentRepository.GetQuestionsByCategoryAsync(request.CategoryId, ct);
 
-            var selected = questions?.Take(request.QuestionCount).ToList() ?? [];
+            // порядок вопросов каждый раз новый
+            var selected = questions?.OrderBy(_ => Random.Shared.Next()).Take(request.QuestionCount).ToList() ?? [];
 
             if (selected.Count == 0)
             {
@@ -79,7 +89,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
             catch (DbUpdateException)
             {
-                logger.LogInformation("Cannot start match: room {RoomId} already has an active match", room.Id);
+                logger.LogInformation("Cannot start match: room {RoomId} changed concurrently or already has an active match", room.Id);
 
                 return null;
             }
@@ -93,7 +103,8 @@ namespace QuizGamePlatform.Backend.Application.Services
         {
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
-            if (match is null)
+            // вопрос видят только участники комнаты
+            if (match is null || await FindMeAsync(match.RoomId, ct) is null)
             {
                 return null;
             }
@@ -123,6 +134,14 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return false;
             }
 
+            // отвечает только активный участник этой комнаты
+            var participant = await FindMeAsync(match.RoomId, ct);
+
+            if (participant is null || !participant.IsActive)
+            {
+                return false;
+            }
+
             if (!await matchRepository.OptionBelongsToQuestionAsync(currentQuestion.QuestionId, request.SelectedOptionId, ct))
             {
                 return false;
@@ -132,7 +151,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 Id = Guid.NewGuid(),
                 MatchQuestionId = currentQuestion.Id,
-                PlayerId = request.PlayerId,
+                RoomPlayerId = participant.Id,
                 SelectedOptionId = request.SelectedOptionId,
                 AnsweredAt = UtcNow
             };
@@ -147,7 +166,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return false;
             }
 
-            logger.LogInformation("Player {PlayerId} answered question {Order} of match {MatchId}", request.PlayerId, currentQuestion.Order, matchId);
+            logger.LogInformation("Participant {RoomPlayerId} answered question {Order} of match {MatchId}", participant.Id, currentQuestion.Order, matchId);
 
             return true;
         }
@@ -159,6 +178,15 @@ namespace QuizGamePlatform.Backend.Application.Services
                 var match = await matchRepository.GetMatchAsync(matchId, ct);
 
                 if (match is null || match.Status != MatchStatus.QuestionActive)
+                {
+                    return null;
+                }
+
+                // досрочно только когда ответили все, иначе ждём таймер
+                var currentQuestion = match.Questions.First(q => q.Order == match.CurrentQuestionIndex);
+                var answered = await matchRepository.CountActiveAnswers(currentQuestion.Id, ct);
+
+                if (answered < await roomParticipationRepository.CountActivePlayers(match.RoomId, ct))
                 {
                     return null;
                 }
@@ -195,15 +223,11 @@ namespace QuizGamePlatform.Backend.Application.Services
             }, ct);
         }
 
-        public async Task AdvanceExpiredMatchesAsync(CancellationToken ct)
-        {
-            var expiredIds = await matchRepository.GetExpiredMatchIdsAsync(UtcNow, ct);
+        public Task<List<Guid>> GetExpiredMatchIdsAsync(CancellationToken ct)
+            => matchRepository.GetExpiredMatchIdsAsync(UtcNow, ct);
 
-            foreach (var matchId in expiredIds)
-            {
-                await RunExclusiveAsync(matchId, () => AdvanceIfStillExpiredAsync(matchId, ct), ct);
-            }
-        }
+        public Task<bool> AdvanceExpiredMatchAsync(Guid matchId, CancellationToken ct)
+            => RunExclusiveAsync(matchId, () => AdvanceIfStillExpiredAsync(matchId, ct), ct);
 
         // под локом перепроверяем вдруг матч уже сдвинули руками
         private async Task<bool> AdvanceIfStillExpiredAsync(Guid matchId, CancellationToken ct)
@@ -259,11 +283,15 @@ namespace QuizGamePlatform.Backend.Application.Services
             foreach (var participant in participants)
             {
                 participant.Score = participant.IsActive
-                    ? correctCounts.GetValueOrDefault(participant.PlayerId)
+                    ? correctCounts.GetValueOrDefault(participant.Id)
                     : 0;
             }
         }
 
+
+        private Task<RoomPlayerEntity?> FindMeAsync(Guid roomId, CancellationToken ct)
+            => roomParticipationRepository.FindParticipant(
+                roomId, currentUser.RoomPlayerLinkId, currentUser.KeycloakSubject, ct);
 
         private async Task<T> RunExclusiveAsync<T>(Guid matchId, Func<Task<T>> action, CancellationToken ct)
         {
@@ -274,6 +302,13 @@ namespace QuizGamePlatform.Backend.Application.Services
             try
             {
                 return await action();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // матч уже сдвинул другой инстанс
+                logger.LogInformation("Match {MatchId} was changed concurrently, skipped", matchId);
+
+                return default!;
             }
             finally
             {

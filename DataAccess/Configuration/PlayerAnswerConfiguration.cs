@@ -10,17 +10,18 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
         {
             builder.HasKey(pa => pa.Id);
 
-            // Один игрок — один ответ на вопрос матча
-            builder.HasIndex(pa => new { pa.MatchQuestionId, pa.PlayerId })
+            // один ответ участника на вопрос
+            builder.HasIndex(pa => new { pa.MatchQuestionId, pa.RoomPlayerId })
                 .IsUnique();
 
             builder.Property(pa => pa.AnsweredAt)
                 .HasDefaultValueSql("NOW()");
 
-            builder.HasOne(pa => pa.Player)
+            // удаляются вместе с комнатой
+            builder.HasOne(pa => pa.RoomPlayer)
                 .WithMany()
-                .HasForeignKey(pa => pa.PlayerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(pa => pa.RoomPlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(pa => pa.SelectedOption)
                 .WithMany()

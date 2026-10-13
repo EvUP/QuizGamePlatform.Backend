@@ -45,11 +45,25 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         {
             return await context.PlayerAnswers
                 .Where(a => a.MatchQuestion.MatchId == matchId
-                    && a.SelectedOption.IsCorrect
-                    && a.SelectedOption.QuestionId == a.MatchQuestion.QuestionId)
-                .GroupBy(a => a.PlayerId)
-                .Select(g => new { PlayerId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.PlayerId, x => x.Count, ct);
+                    && a.SelectedOption.IsCorrect)
+                .GroupBy(a => a.RoomPlayerId)
+                .Select(g => new { RoomPlayerId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.RoomPlayerId, x => x.Count, ct);
+        }
+
+        // без загрузки матча, чтобы не держать его в контексте до лока
+        public async Task<bool> IsHost(Guid matchId, string keycloakSubject, CancellationToken ct)
+        {
+            return await context.Matches
+                .AnyAsync(m => m.Id == matchId
+                    && m.Room.HostUser!.KeycloakSubject == keycloakSubject
+                    && m.Room.Players.Any(p => p.UserId == m.Room.HostUserId && p.IsActive), ct);
+        }
+
+        public async Task<int> CountActiveAnswers(Guid matchQuestionId, CancellationToken ct)
+        {
+            return await context.PlayerAnswers
+                .CountAsync(a => a.MatchQuestionId == matchQuestionId && a.RoomPlayer.IsActive, ct);
         }
 
         public async Task AddAnswerAsync(PlayerAnswerEntity answer, CancellationToken ct)

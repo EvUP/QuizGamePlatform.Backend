@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuizGamePlatform.Backend.Api.Swagger;
 using QuizGamePlatform.Backend.Application.Abstractions;
+using QuizGamePlatform.Backend.Application.Auth;
 using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Core.Extensions;
@@ -15,6 +17,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         IGuestTokenService guestTokenService) : ControllerBase
     {
         [HttpPost]
+        [Authorize(Policy = AuthorizationPolicies.Registered)]
         public async Task<IActionResult> CreateRoom(CancellationToken ct)
         {
             var room = await roomService.CreateRoomAsync(ct);
@@ -22,36 +25,46 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             return Ok(room);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetRoomById(Guid id, CancellationToken ct)
+        [HttpGet("{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> GetRoomState(Guid id, CancellationToken ct)
         {
-            var room = await roomService.GetRoomByIdAsync(id, ct);
+            var room = await roomService.GetRoomStateAsync(id, ct);
 
             if (room is null)
             {
                 return NotFound(new CommonErrorResponse(
-                    message: $"Room with {id} is not found",
+                    message: $"Комната {id} не найдена или вы в ней не участвуете",
                     method: HttpContext.GetMethodWithPath()));
             }
 
             return Ok(room);
         }
 
-        [HttpGet("all")]
-        public async Task<IActionResult> GetAllExistingRooms(CancellationToken ct)
+        [HttpGet("my")]
+        [Authorize(Policy = AuthorizationPolicies.Registered)]
+        public async Task<IActionResult> GetMyRooms(CancellationToken ct)
         {
-            return Ok(await roomService.GetAllExistingRoomsAsync(ct));
+            return Ok(await roomService.GetMyRoomsAsync(ct));
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
+        [Authorize(Policy = AuthorizationPolicies.Registered)]
         public async Task<IActionResult> DeleteExistingRoom(Guid id, CancellationToken ct)
         {
+            if (!await roomService.IsRoomHostAsync(id, ct))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new CommonErrorResponse(
+                    message: "Удалить комнату может только её владелец",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
             var isDeletedRoom = await roomService.DeleteExistingRoomByIdAsync(id, ct);
 
             if (!isDeletedRoom)
             {
-                return NotFound(new CommonErrorResponse(
-                    message: $"Room with {id} is not found",
+                return Conflict(new CommonErrorResponse(
+                    message: "Удалить комнату можно только до начала игры",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -69,7 +82,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                     method: HttpContext.GetMethodWithPath()));
             }
 
-            if (string.IsNullOrWhiteSpace(roomRequest.Username))
+            // ник вводит только гость
+            if (!currentUser.IsRegistered && string.IsNullOrWhiteSpace(roomRequest.Username))
             {
                 return BadRequest(new CommonErrorResponse
                (
@@ -78,7 +92,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                ));
             }
 
-            if (roomRequest.Username.Length > 25)
+            if (!currentUser.IsRegistered && roomRequest.Username!.Trim().Length > 25)
             {
                 return BadRequest(new CommonErrorResponse
                (
@@ -90,21 +104,14 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             var (roomPlayer, nicknameTaken) = await roomService.JoinToRoomByRoomCodeAsync(
                 roomRequest.Username,
                 roomRequest.RoomCode,
-                currentUser.RoomPlayerLinkId,
                 ct);
 
             if (nicknameTaken)
             {
-                // Участие есть, но подтвердить владение нечем: у гостя это делает токен,
-                // а аккаунт с участием пока не связан.
-                var message = currentUser.IsRegistered
-                    ? $"Участие с ником {roomRequest.Username} в этой комнате уже существует. "
-                      + "Повторный вход под аккаунтом будет доступен после привязки участия к аккаунту"
-                    : $"Ник {roomRequest.Username} в этой комнате уже занят. "
-                      + "Чтобы вернуться в своё участие, войдите с гостевым токеном, выданным при первом входе";
-
+                // ник занят только у гостя, своё участие токен не нашёл
                 return Conflict(new CommonErrorResponse(
-                    message: message,
+                    message: $"Ник {roomRequest.Username} занят. "
+                        + "Если это ваше участие, войдите с гостевым токеном, выданным при первом входе",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -134,15 +141,16 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         }
 
         [HttpPost("leave")]
+        [Authorize]
         public async Task<IActionResult> LeaveRoom([FromBody] LeaveRoomRequest roomRequest, CancellationToken ct)
         {
-            var roomPlayer = await roomService.LeaveRoom(roomRequest.RoomId, roomRequest.PlayerId, roomRequest.ExitReason, ct);
+            var roomPlayer = await roomService.LeaveRoom(roomRequest.RoomId, roomRequest.ExitReason, ct);
 
             if (roomPlayer is null)
             {
                 return NotFound(new CommonErrorResponse
                (
-                   message: $"Комната с игроком {roomRequest.PlayerId} не найдена или игрок уже покинул комнату {roomRequest.RoomId}",
+                   message: $"Вы не участник комнаты {roomRequest.RoomId} или уже покинули её",
                    method: HttpContext.GetMethodWithPath()
                ));
             }
@@ -150,16 +158,10 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             return Ok(roomPlayer);
         }
 
-        [HttpGet("participations/{roomId}")]
-        public async Task<IActionResult> GetRoomParticipationsById(Guid roomId, CancellationToken ct)
+        [HttpGet("leaderboard")]
+        public async Task<IActionResult> GetGlobalLeaderboard(CancellationToken ct)
         {
-            return Ok(await roomService.GetRoomParticipationsById(roomId, ct));
-        }
-
-        [HttpGet("participations/all")]
-        public async Task<IActionResult> GetAllParticipations(CancellationToken ct)
-        {
-            return Ok(await roomService.GetAllExistingParticipation(ct));
+            return Ok(await roomService.GetGlobalLeaderboardAsync(ct));
         }
     }
 }

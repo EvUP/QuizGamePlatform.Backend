@@ -102,6 +102,12 @@ namespace QuizGamePlatform.Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId")
@@ -152,7 +158,7 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.Property<Guid>("MatchQuestionId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("PlayerId")
+                    b.Property<Guid>("RoomPlayerId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("SelectedOptionId")
@@ -160,33 +166,14 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("RoomPlayerId");
 
                     b.HasIndex("SelectedOptionId");
 
-                    b.HasIndex("MatchQuestionId", "PlayerId")
+                    b.HasIndex("MatchQuestionId", "RoomPlayerId")
                         .IsUnique();
 
                     b.ToTable("PlayerAnswers");
-                });
-
-            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserName")
-                        .IsUnique();
-
-                    b.ToTable("Players");
                 });
 
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", b =>
@@ -225,6 +212,9 @@ namespace QuizGamePlatform.Backend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<Guid?>("HostUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RoomCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -233,7 +223,15 @@ namespace QuizGamePlatform.Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("HostUserId");
 
                     b.ToTable("Rooms");
                 });
@@ -258,8 +256,10 @@ namespace QuizGamePlatform.Backend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<Guid>("PlayerId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
@@ -267,14 +267,45 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("RoomId", "PlayerId")
+                    b.HasIndex("RoomId", "Nickname")
+                        .IsUnique()
+                        .HasFilter("\"UserId\" IS NULL");
+
+                    b.HasIndex("RoomId", "UserId")
                         .IsUnique();
 
                     b.ToTable("RoomParticipations");
+                });
+
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("KeycloakSubject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeycloakSubject")
+                        .IsUnique();
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.AnswerOptionEntity", b =>
@@ -326,10 +357,10 @@ namespace QuizGamePlatform.Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", "Player")
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.RoomPlayerEntity", "RoomPlayer")
                         .WithMany()
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("RoomPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.AnswerOptionEntity", "SelectedOption")
@@ -340,7 +371,7 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.Navigation("MatchQuestion");
 
-                    b.Navigation("Player");
+                    b.Navigation("RoomPlayer");
 
                     b.Navigation("SelectedOption");
                 });
@@ -356,23 +387,32 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", b =>
+                {
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", "HostUser")
+                        .WithMany()
+                        .HasForeignKey("HostUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("HostUser");
+                });
+
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomPlayerEntity", b =>
                 {
-                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", "Player")
-                        .WithMany("RoomParticipations")
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", "Room")
                         .WithMany("Players")
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Player");
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", "User")
+                        .WithMany("RoomParticipations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Room");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.CategoryEntity", b =>
@@ -390,11 +430,6 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.Navigation("Answers");
                 });
 
-            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.PlayerEntity", b =>
-                {
-                    b.Navigation("RoomParticipations");
-                });
-
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.QuestionEntity", b =>
                 {
                     b.Navigation("AnswerOptions");
@@ -403,6 +438,11 @@ namespace QuizGamePlatform.Backend.Migrations
             modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", b =>
                 {
                     b.Navigation("Players");
+                });
+
+            modelBuilder.Entity("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", b =>
+                {
+                    b.Navigation("RoomParticipations");
                 });
 #pragma warning restore 612, 618
         }

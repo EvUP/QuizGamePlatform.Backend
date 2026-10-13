@@ -1,10 +1,10 @@
 using QuizGamePlatform.Backend.Application.Abstractions;
 
 namespace QuizGamePlatform.Backend.Application.BackgroundServices
-{   
-    // TODO: на несколько инстансов — планирование через Redis
+{
     // раз в секунду двигает матчи у которых истёк вопрос
- 
+    // при нескольких инстансах двойной сдвиг отсекает версия строки матча
+
     public class MatchTimerService(
         IServiceScopeFactory scopeFactory,
         ILogger<MatchTimerService> logger) : BackgroundService
@@ -19,11 +19,10 @@ namespace QuizGamePlatform.Backend.Application.BackgroundServices
             {
                 try
                 {
-                    using var scope = scopeFactory.CreateScope();
-
-                    var matchService = scope.ServiceProvider.GetRequiredService<IMatchService>();
-
-                    await matchService.AdvanceExpiredMatchesAsync(stoppingToken);
+                    foreach (var matchId in await GetExpiredMatchIdsAsync(stoppingToken))
+                    {
+                        await AdvanceMatchAsync(matchId, stoppingToken);
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -33,6 +32,28 @@ namespace QuizGamePlatform.Backend.Application.BackgroundServices
                 {
                     logger.LogError(ex, "Match timer tick failed");
                 }
+            }
+        }
+
+        private async Task<List<Guid>> GetExpiredMatchIdsAsync(CancellationToken ct)
+        {
+            using var scope = scopeFactory.CreateScope();
+
+            return await scope.ServiceProvider.GetRequiredService<IMatchService>().GetExpiredMatchIdsAsync(ct);
+        }
+
+        // свой scope на матч, чтобы контекст не копил сущности всего тика и сбой одного матча не ронял остальные
+        private async Task AdvanceMatchAsync(Guid matchId, CancellationToken ct)
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+
+                await scope.ServiceProvider.GetRequiredService<IMatchService>().AdvanceExpiredMatchAsync(matchId, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Failed to advance match {MatchId}", matchId);
             }
         }
     }

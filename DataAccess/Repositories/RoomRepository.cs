@@ -7,21 +7,28 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 {
     public class RoomRepository(ApplicationDbContext context) : IRoomRepository
     {
-        public async Task<RoomEntity> CreateRoomAsync(string roomCode, CancellationToken ct)
+        public async Task<RoomEntity> CreateRoomAsync(string roomCode, UserEntity host, CancellationToken ct)
         {
             var room = new RoomEntity
             {
                 Id = Guid.NewGuid(),
                 RoomCode = roomCode,
                 Status = RoomStatus.Waiting,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                HostUser = host,
+                HostUserId = host.Id
             };
 
             await context.Rooms.AddAsync(room, ct);
-            await context.SaveChangesAsync(ct);
 
             return room;
         }
+
+        // владелец управляет, только пока сам в комнате
+        public async Task<bool> IsHost(Guid roomId, string keycloakSubject, CancellationToken ct)
+            => await context.Rooms.AnyAsync(r => r.Id == roomId
+                && r.HostUser!.KeycloakSubject == keycloakSubject
+                && r.Players.Any(p => p.UserId == r.HostUserId && p.IsActive), ct);
 
         public async Task<RoomEntity?> GetRoomByIdAsync(Guid id, CancellationToken ct)
             => await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
@@ -29,40 +36,17 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public async Task<RoomEntity?> GetRoomByRoomCodeAsync(string roomCode, CancellationToken ct)
             => await context.Rooms.FirstOrDefaultAsync(r => r.RoomCode == roomCode, ct);
 
-        public async Task<List<RoomEntity>> GetAllExistingRoomsAsync(CancellationToken ct)
-            => await context.Rooms.ToListAsync(ct);
+        public async Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct)
+            => await context.Rooms
+                .Where(r => r.Players.Any(p => p.User!.KeycloakSubject == keycloakSubject))
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync(ct);
 
-        public async Task<bool> DeleteExistingRoom(Guid id, CancellationToken ct)
-        {
-            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
+        public void RemoveRoom(RoomEntity room)
+            => context.Rooms.Remove(room);
 
-            if (room is null)
-            {
-                return false;
-            }
-
-            context.Rooms.Remove(room);
-            await context.SaveChangesAsync(ct);
-
-            return true;
-        }
-
-        public async Task<RoomPlayerEntity?> GetRoomParticipation(Guid roomId, Guid playerId, CancellationToken ct)
-        {
-            var participation = await context.RoomParticipations
-                    .FirstOrDefaultAsync(
-                    rp => rp.PlayerId == playerId
-                    && rp.RoomId == roomId
-                    && rp.IsActive,
-            ct);
-
-            if (participation is null)
-            {
-                return null;
-            }
-
-            return participation;
-        }
+        public void MarkChanged(RoomEntity room)
+            => context.Entry(room).State = EntityState.Modified;
     }
 
 }

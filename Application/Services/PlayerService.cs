@@ -6,7 +6,7 @@ using QuizGamePlatform.Backend.Core.Abstractions;
 namespace QuizGamePlatform.Backend.Application.Services
 {
     public class PlayerService(
-        IPlayerRepository repository,
+        IUserRepository repository,
         ILogger<PlayerService> logger) : IPlayerService
     {
       

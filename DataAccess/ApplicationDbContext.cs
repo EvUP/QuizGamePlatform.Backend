@@ -12,7 +12,7 @@ namespace QuizGamePlatform.Backend.DataAccess
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         }
       
-        public DbSet<PlayerEntity> Players { get; set; } = null!;
+        public DbSet<UserEntity> Users { get; set; } = null!;
         public DbSet<RoomEntity> Rooms { get; set; } = null!;
         public DbSet<RoomPlayerEntity> RoomParticipations { get; set; } = null!;
 

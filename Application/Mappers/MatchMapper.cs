@@ -22,6 +22,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                 Status: match.Status,
                 QuestionOrder: matchQuestion.Order,
                 TotalQuestions: match.Questions.Count,
+                QuestionEndsAt: match.QuestionEndsAt,
                 QuestionId: matchQuestion.QuestionId,
                 Text: matchQuestion.Question.Text,
                 Options: matchQuestion.Question.AnswerOptions
