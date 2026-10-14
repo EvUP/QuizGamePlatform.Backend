@@ -19,5 +19,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public int Score { get; set; }
         public bool IsActive { get; set; } = true;
         public ExitReason? ExitReason { get; set; }
+
+        // null в обычной комнате и у вышедших до старта
+        public int? TeamNumber { get; set; }
+
+        // капитан тот, кто раньше всех в команде
+        public DateTime? TeamJoinedAt { get; set; }
     }
 }

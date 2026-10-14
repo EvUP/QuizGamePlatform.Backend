@@ -13,6 +13,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.Property(r => r.RoomCode)
                 .IsRequired();
 
+            // по коду ищут при каждом входе, один код не может вести в две комнаты
+            builder.HasIndex(r => r.RoomCode)
+                .IsUnique();
+
             builder.Property(r => r.Status)
                 .HasConversion<string>();
 

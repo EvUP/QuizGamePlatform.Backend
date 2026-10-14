@@ -25,6 +25,28 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct);
         /// <summary>
+        /// Команды комнаты по номеру
+        /// </summary>
+        Task<List<RoomTeamEntity>> GetTeams(Guid roomId, CancellationToken ct);
+        /// <summary>
+        /// Найти команду с её комнатой по коду из ссылки
+        /// </summary>
+        Task<RoomTeamEntity?> GetTeamByJoinCodeAsync(string joinCode, CancellationToken ct);
+
+        Task<bool> IsCodeTakenAsync(string code, CancellationToken ct);
+        /// <summary>
+        /// Добавить команду (без сохранения)
+        /// </summary>
+        void AddTeam(RoomTeamEntity team);
+        /// <summary>
+        /// Удалить команду (без сохранения)
+        /// </summary>
+        void RemoveTeam(RoomTeamEntity team);
+        /// <summary>
+        /// Забыть несохранённые изменения, чтобы повторить действие с чистого листа
+        /// </summary>
+        void ForgetChanges();
+        /// <summary>
         /// Удалить комнату (без сохранения)
         /// </summary>
         void RemoveRoom(RoomEntity room);

@@ -51,6 +51,15 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .ToDictionaryAsync(x => x.RoomPlayerId, x => x.Count, ct);
         }
 
+        public async Task<List<PlayerAnswerEntity>> GetAnswersAsync(Guid matchId, CancellationToken ct)
+        {
+            return await context.PlayerAnswers
+                .AsNoTracking()
+                .Include(a => a.SelectedOption)
+                .Where(a => a.MatchQuestion.MatchId == matchId)
+                .ToListAsync(ct);
+        }
+
         // без загрузки матча, чтобы не держать его в контексте до лока
         public async Task<bool> IsHost(Guid matchId, string keycloakSubject, CancellationToken ct)
         {
@@ -74,7 +83,9 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 
         public async Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct)
         {
-            return await context.Matches.FirstOrDefaultAsync(match => match.RoomId == roomId, ct);
+            return await context.Matches
+                .Include(m => m.Questions)
+                .FirstOrDefaultAsync(match => match.RoomId == roomId, ct);
         }
     }
 }

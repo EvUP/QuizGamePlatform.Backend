@@ -4,9 +4,10 @@ using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.Application.Contracts.Match
 {
+    // вопросы случайно из всех выбранных тем, без повторов
     public record StartMatchRequest(
     Guid RoomId,
-    Guid CategoryId,
+    List<Guid>? CategoryIds,
     int QuestionCount,
     [EnumDataType(typeof(RoomMode))] RoomMode RoomMode);
 

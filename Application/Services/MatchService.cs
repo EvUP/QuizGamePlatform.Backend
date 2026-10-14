@@ -30,7 +30,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             => currentUser.KeycloakSubject is { } subject
                 && await matchRepository.IsHost(matchId, subject, ct);
 
-        public async Task<MatchStateResponse?> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
+        public async Task<(MatchStateResponse? Match, StartRefusal Refusal)> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
         {
             var room = await roomRepository.GetRoomByIdAsync(request.RoomId, ct);
 
@@ -38,7 +38,12 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Cannot start match: room {RoomId} not found or not waiting", request.RoomId);
 
-                return null;
+                return (null, room?.Status switch
+                {
+                    null => StartRefusal.NotFound,
+                    RoomStatus.InProgress => StartRefusal.Started,
+                    _ => StartRefusal.Finished
+                });
             }
 
             var activePlayers = await roomParticipationRepository.CountActivePlayers(request.RoomId, ct);
@@ -47,19 +52,32 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Cannot start match: room {RoomId} has too few players ({Count})", request.RoomId, activePlayers);
 
-                return null;
+                return (null, StartRefusal.TooFewPlayers);
             }
 
-            var questions = await quizContentRepository.GetQuestionsByCategoryAsync(request.CategoryId, ct);
+            var players = room.IsTeamGame
+                ? await roomParticipationRepository.GetParticipationsByRoomId(room.Id, ct)
+                : [];
 
-            // порядок вопросов каждый раз новый
-            var selected = questions?.OrderBy(_ => Random.Shared.Next()).Take(request.QuestionCount).ToList() ?? [];
+            // играют команды с активными игроками, нужно хотя бы две
+            if (room.IsTeamGame && players.Where(p => p.IsActive).Select(p => p.TeamNumber).Distinct().Count() < MatchHelper.MinTeams)
+            {
+                logger.LogInformation("Cannot start match: team room {RoomId} has fewer than two non-empty teams", room.Id);
+
+                return (null, StartRefusal.TooFewTeams);
+            }
+
+            var categoryIds = request.CategoryIds?.Distinct().ToList() ?? [];
+            var questions = await quizContentRepository.GetQuestionsByCategoriesAsync(categoryIds, ct);
+
+            // общая куча вопросов выбранных тем, случайные без повторов, из одной темы может выпасть сколько угодно
+            var selected = questions.OrderBy(_ => Random.Shared.Next()).Take(request.QuestionCount).ToList();
 
             if (selected.Count == 0)
             {
-                logger.LogInformation("Cannot start match: no questions for category {CategoryId}", request.CategoryId);
+                logger.LogInformation("Cannot start match: no questions in categories {CategoryIds}", string.Join(", ", categoryIds));
 
-                return null;
+                return (null, StartRefusal.NoQuestions);
             }
 
             var match = new MatchEntity
@@ -83,6 +101,12 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             room.Status = RoomStatus.InProgress;
 
+            // состав команд фиксируется, ушедшие из лобби в него не входят
+            foreach (var player in players.Where(p => !p.IsActive))
+            {
+                player.TeamNumber = null;
+            }
+
             try
             {
                 await matchRepository.AddMatchAsync(match, ct);
@@ -92,12 +116,12 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Cannot start match: room {RoomId} changed concurrently or already has an active match", room.Id);
 
-                return null;
+                return (null, StartRefusal.Concurrent);
             }
 
             logger.LogInformation("Match {MatchId} started in room {RoomId} with {Count} questions", match.Id, room.Id, match.Questions.Count);
 
-            return Publish(match);
+            return (Publish(match), StartRefusal.None);
         }
 
         public async Task<CurrentQuestionResponse?> GetCurrentQuestionAsync(Guid matchId, CancellationToken ct)
@@ -121,9 +145,11 @@ namespace QuizGamePlatform.Backend.Application.Services
         }
         public async Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct)
         {
+            // время ответа фиксируем сразу, иначе после запросов в базу оно может оказаться позже закрытия
+            var now = UtcNow;
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
-            if (match is null || match.Status != MatchStatus.QuestionActive || UtcNow > match.QuestionEndsAt)
+            if (match is null || match.Status != MatchStatus.QuestionActive || now > match.QuestionEndsAt)
             {
                 return false;
             }
@@ -154,7 +180,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 MatchQuestionId = currentQuestion.Id,
                 RoomPlayerId = participant.Id,
                 SelectedOptionId = request.SelectedOptionId,
-                AnsweredAt = UtcNow
+                AnsweredAt = now
             };
 
             try
@@ -195,6 +221,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                 }
 
                 match.Status = MatchStatus.QuestionClosed;
+                await CloseQuestionAsync(match, currentQuestion, UtcNow, ct);
                 match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
 
                 await matchRepository.SaveChangesAsync(ct);
@@ -261,12 +288,28 @@ namespace QuizGamePlatform.Backend.Application.Services
             var state = match.ToStateResponse();
 
             notifier.MatchUpdated(state);
+            // таблица команд меняется после закрытия вопроса
+            notifier.RoomUpdated(match.RoomId);
 
             return state;
         }
 
         private async Task AdvanceMatchAsync(MatchEntity match, CancellationToken ct)
         {
+            // на финише комнату грузим раньше участников: выход или возврат после этого чтения
+            // меняет версию комнаты, и сохранение откатится вместо очков по старому составу
+            var room = match.CurrentQuestionIndex + 1 < match.Questions.Count
+                ? null
+                : await roomRepository.GetRoomByIdAsync(match.RoomId, ct);
+
+            // по таймеру вопрос закрылся в дедлайн, досрочно уже закрыт
+            var current = match.Questions.First(q => q.Order == match.CurrentQuestionIndex);
+
+            if (current.ClosedAt is null)
+            {
+                await CloseQuestionAsync(match, current, match.QuestionEndsAt, ct);
+            }
+
             if (match.CurrentQuestionIndex + 1 < match.Questions.Count)
             {
                 match.CurrentQuestionIndex++;
@@ -281,12 +324,22 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             await ApplyFinalScoresAsync(match, ct);
 
-            var room = await roomRepository.GetRoomByIdAsync(match.RoomId, ct);
-
             if (room is not null)
             {
                 room.Status = RoomStatus.Finished;
             }
+        }
+
+        // запоминаем, кто был в игре на закрытии: вышедший раньше не тянет команду, даже если потом вернулся
+        private async Task CloseQuestionAsync(MatchEntity match, MatchQuestionEntity question, DateTime closedAt, CancellationToken ct)
+        {
+            var participants = await roomParticipationRepository.GetParticipationsByRoomId(match.RoomId, ct);
+
+            question.ClosedAt = closedAt;
+            question.InGamePlayerIds = participants
+                .Where(p => p.IsActive || p.FinishedAt >= closedAt)
+                .Select(p => p.Id)
+                .ToList();
         }
 
         private async Task ApplyFinalScoresAsync(MatchEntity match, CancellationToken ct)

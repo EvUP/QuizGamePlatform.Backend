@@ -14,9 +14,13 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public Guid? HostUserId { get; set; }
         public UserEntity? HostUser { get; set; }
 
+        // режим задаётся при создании и потом не меняется
+        public bool IsTeamGame { get; set; }
+
         // системный xmin postgres, меняется при каждом обновлении строки
         public uint Version { get; set; }
 
         public ICollection<RoomPlayerEntity> Players { get; set; } = new List<RoomPlayerEntity>();
+        public ICollection<RoomTeamEntity> Teams { get; set; } = new List<RoomTeamEntity>();
     }
 }

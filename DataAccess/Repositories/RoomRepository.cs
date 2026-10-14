@@ -42,6 +42,31 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
 
+        public async Task<List<RoomTeamEntity>> GetTeams(Guid roomId, CancellationToken ct)
+            => await context.RoomTeams
+                .Where(t => t.RoomId == roomId)
+                .OrderBy(t => t.Number)
+                .ToListAsync(ct);
+
+        public async Task<RoomTeamEntity?> GetTeamByJoinCodeAsync(string joinCode, CancellationToken ct)
+            => await context.RoomTeams
+                .Include(t => t.Room)
+                .FirstOrDefaultAsync(t => t.JoinCode == joinCode, ct);
+
+        // коды комнат и команд живут в одном пространстве ссылок
+        public async Task<bool> IsCodeTakenAsync(string code, CancellationToken ct)
+            => await context.Rooms.AnyAsync(r => r.RoomCode == code, ct)
+                || await context.RoomTeams.AnyAsync(t => t.JoinCode == code, ct);
+
+        public void AddTeam(RoomTeamEntity team)
+            => context.RoomTeams.Add(team);
+
+        public void RemoveTeam(RoomTeamEntity team)
+            => context.RoomTeams.Remove(team);
+
+        public void ForgetChanges()
+            => context.ChangeTracker.Clear();
+
         public void RemoveRoom(RoomEntity room)
             => context.Rooms.Remove(room);
 

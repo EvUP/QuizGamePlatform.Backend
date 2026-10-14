@@ -29,5 +29,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .OrderBy(q => q.Text)
                 .ToListAsync(ct);
         }
+
+        public Task<List<QuestionEntity>> GetQuestionsByCategoriesAsync(IReadOnlyCollection<Guid> categoryIds, CancellationToken ct)
+            => context.Questions
+                .AsNoTracking()
+                .Where(q => categoryIds.Contains(q.CategoryId))
+                .ToListAsync(ct);
     }
 }

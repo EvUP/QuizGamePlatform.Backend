@@ -7,8 +7,14 @@
   "registrationEmailAsUsername": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
-  "verifyEmail": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "keycloak@corp.local",
+    "fromDisplayName": "Корпоративный квиз"
+  },
   "editUsernameAllowed": false,
   "clients": [
     {
