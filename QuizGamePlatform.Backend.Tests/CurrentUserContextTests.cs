@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Moq;
+using QuizGamePlatform.Backend.Application.Auth;
 using QuizGamePlatform.Backend.Application.Services;
 using System.Security.Claims;
 
@@ -89,6 +90,24 @@ namespace QuizGamePlatform.Backend.Tests
                 new Claim("preferred_username", "   ")));
 
             Assert.Null(_sut.DisplayName);
+        }
+
+        // в хабе пользователь берётся из соединения, правила те же
+        [Fact]
+        public void For_ConnectionUser_ResolvesGuestAndAccountLikeRequest()
+        {
+            var linkId = Guid.NewGuid();
+            var guest = CurrentUserContext.For(new ClaimsPrincipal(
+                new ClaimsIdentity([new Claim("sub", linkId.ToString())], AuthenticationSchemes.Guest)));
+            var account = CurrentUserContext.For(AuthenticatedUser(new Claim("sub", "kc-sub")));
+
+            Assert.True(guest.IsGuest);
+            Assert.Equal(linkId, guest.RoomPlayerLinkId);
+            Assert.Null(guest.KeycloakSubject);
+            Assert.True(account.IsRegistered);
+            Assert.Equal("kc-sub", account.KeycloakSubject);
+            Assert.Null(account.RoomPlayerLinkId);
+            Assert.False(CurrentUserContext.For(null).IsAuthenticated);
         }
     }
 }

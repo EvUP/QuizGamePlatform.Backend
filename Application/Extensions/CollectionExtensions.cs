@@ -1,4 +1,5 @@
 
+using QuizGamePlatform.Backend.Api.Hubs;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.BackgroundServices;
 using QuizGamePlatform.Backend.Application.Services;
@@ -35,6 +36,10 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             builder.Services.AddSingleton<IMatchLockProvider, MatchLockProvider>();
 
             builder.Services.AddHostedService<MatchTimerService>();
+
+            builder.Services.AddSingleton<SignalRGameNotifier>();
+            builder.Services.AddSingleton<IGameNotifier>(sp => sp.GetRequiredService<SignalRGameNotifier>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalRGameNotifier>());
 
             return builder;
         }

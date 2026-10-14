@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using QuizGamePlatform.Backend.Application.Options;
 using QuizGamePlatform.Backend.Api.Handlers;
+using QuizGamePlatform.Backend.Api.Hubs;
 using QuizGamePlatform.Backend.Application.Extensions;
 using QuizGamePlatform.Backend.DataAccess.HealthChecks;
 
@@ -20,6 +21,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddApiAuthentication(builder.Configuration);
 builder.Services.AddApiSwagger();
+builder.Services.AddGameHub(builder.Configuration);
 
 builder.AddAppServices();
 
@@ -63,6 +65,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<GameHub>(GameHub.Path);
 app.MapHealthChecks("/health");
 
 app.Run();

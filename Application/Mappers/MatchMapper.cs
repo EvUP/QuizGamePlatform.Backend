@@ -12,7 +12,8 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                 RoomId: match.RoomId,
                 Status: match.Status,
                 CurrentQuestionIndex: match.CurrentQuestionIndex,
-                TotalQuestions: match.Questions.Count);
+                TotalQuestions: match.Questions.Count,
+                QuestionEndsAt: match.QuestionEndsAt);
         }
 
         public static CurrentQuestionResponse ToCurrentQuestionResponse(this MatchQuestionEntity matchQuestion, MatchEntity match)

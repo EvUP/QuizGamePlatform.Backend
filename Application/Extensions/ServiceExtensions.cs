@@ -4,13 +4,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuizGamePlatform.Backend.Api.Hubs;
 using QuizGamePlatform.Backend.Api.Swagger;
 using QuizGamePlatform.Backend.Application.Auth;
 using QuizGamePlatform.Backend.Application.Options;
 using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.DataAccess;
+using StackExchange.Redis;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace QuizGamePlatform.Backend.Application.Extensions
 {
@@ -89,8 +92,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                     var guestIssuer = guestOptions.Value.Issuer;
 
                     options.ForwardDefaultSelector = context =>
-                        GuestTokenReader.IsGuestToken(
-                            context.Request.Headers.Authorization.ToString(), guestIssuer)
+                        GuestTokenReader.IsGuestToken(GetAuthorization(context.Request), guestIssuer)
                             ? AuthenticationSchemes.Guest
                             : JwtBearerDefaults.AuthenticationScheme;
                 });
@@ -100,6 +102,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                 {
                     var guest = guestOptions.Value;
                     options.MapInboundClaims = false;
+                    options.Events = new JwtBearerEvents { OnMessageReceived = ReadHubToken };
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -133,6 +136,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
 
                     // Сохраняем имена полей токена, включая sub
                     options.MapInboundClaims = false;
+                    options.Events = new JwtBearerEvents { OnMessageReceived = ReadHubToken };
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -156,6 +160,42 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                     .RequireAuthenticatedUser()
                     .RequireAssertion(context =>
                         context.User.Identity?.AuthenticationType == JwtBearerDefaults.AuthenticationScheme)));
+
+            return services;
+        }
+
+        // браузер не передаёт заголовки в WebSocket, поэтому токен хаба приходит в query
+        private static string? GetHubToken(HttpRequest request)
+            => request.Path.StartsWithSegments(GameHub.Path)
+                ? request.Query["access_token"].ToString()
+                : null;
+
+        private static string GetAuthorization(HttpRequest request)
+            => GetHubToken(request) is { Length: > 0 } token
+                ? $"Bearer {token}"
+                : request.Headers.Authorization.ToString();
+
+        private static Task ReadHubToken(MessageReceivedContext context)
+        {
+            if (GetHubToken(context.Request) is { Length: > 0 } token)
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        // события игры, через Redis доходят до клиентов на любом инстансе
+        public static IServiceCollection AddGameHub(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            services.AddSignalR()
+                // статусы строками, как в REST
+                .AddJsonProtocol(options =>
+                    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+                .AddStackExchangeRedis(GetConnection("Redis", configuration)!, options =>
+                    options.Configuration.ChannelPrefix = RedisChannel.Literal("quiz-platform-signalr"));
 
             return services;
         }

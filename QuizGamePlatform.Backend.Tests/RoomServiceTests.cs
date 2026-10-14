@@ -24,6 +24,7 @@ namespace QuizGamePlatform.Backend.Tests
         private readonly Mock<IUserRepository> _userRepo = new();
         private readonly Mock<IMatchRepository> _matchRepo = new();
         private readonly Mock<IRoomHelper> _roomHelper = new();
+        private readonly Mock<IGameNotifier> _notifier = new();
         private readonly FakeTimeProvider _time = new();
         private readonly HttpContextAccessor _http = new() { HttpContext = new DefaultHttpContext() };
         private readonly CurrentUserContext _currentUser;
@@ -46,6 +47,7 @@ namespace QuizGamePlatform.Backend.Tests
                 _userRepo.Object,
                 _matchRepo.Object,
                 _currentUser,
+                _notifier.Object,
                 _roomHelper.Object,
                 _context.Object,
                 Mock.Of<ILogger<RoomService>>(),
@@ -163,11 +165,13 @@ namespace QuizGamePlatform.Backend.Tests
             {
                 Assert.IsType<NoContentResult>(result);
                 _roomRepo.Verify(r => r.RemoveRoom(room), Times.Once);
+                _notifier.Verify(n => n.RoomUpdated(room.Id), Times.Once);
             }
             else
             {
                 Assert.IsType<ConflictObjectResult>(result);
                 _roomRepo.Verify(r => r.RemoveRoom(It.IsAny<RoomEntity>()), Times.Never);
+                _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
             }
         }
 
@@ -184,6 +188,7 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await controller.DeleteExistingRoom(room.Id, CancellationToken.None);
 
             Assert.IsType<ConflictObjectResult>(result);
+            _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
 
         // состояние комнаты
@@ -256,6 +261,7 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.NotNull(result);
             Assert.Equal(link.Id, result!.RoomPlayerLinkId);
             _userRepo.Verify(r => r.GetOrCreateUserAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _notifier.Verify(n => n.RoomUpdated(room.Id), Times.Once);
         }
 
         [Fact]
@@ -270,6 +276,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.NotNull(result);
             _participationRepo.Verify(r => r.CreateRoomPlayer(room, "alice", user, It.IsAny<CancellationToken>()), Times.Once);
+            _notifier.Verify(n => n.RoomUpdated(room.Id), Times.Once);
         }
 
         [Fact]
@@ -415,6 +422,8 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.NotNull(result);
             Assert.True(result!.IsActive);
+            // состав не изменился, рассылать нечего
+            _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
 
         [Theory]
@@ -433,6 +442,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.Equal(returns, result is not null);
             Assert.Equal(returns, left.IsActive);
+            _notifier.Verify(n => n.RoomUpdated(room.Id), returns ? Times.Once() : Times.Never());
         }
 
         [Theory]
@@ -450,6 +460,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.Equal(returns, result is not null);
             Assert.Equal(returns, left.IsActive);
+            _notifier.Verify(n => n.RoomUpdated(room.Id), returns ? Times.Once() : Times.Never());
         }
 
         [Fact]
@@ -502,6 +513,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.IsType<NotFoundObjectResult>(result);
             _roomRepo.Verify(r => r.MarkChanged(room), Times.Once);
+            _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
 
         // выход из комнаты
@@ -545,6 +557,7 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(Now, active.FinishedAt);
             Assert.Equal(ExitReason.Disconnected, active.ExitReason);
             _roomRepo.Verify(r => r.MarkChanged(room), Times.Once);
+            _notifier.Verify(n => n.RoomUpdated(room.Id), Times.Once);
         }
 
         // после матча очки и состав уже итоговые
@@ -560,6 +573,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.Null(result);
             Assert.True(active.IsActive);
+            _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
     }
 }
