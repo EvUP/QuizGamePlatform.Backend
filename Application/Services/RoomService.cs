@@ -16,6 +16,7 @@ namespace QuizGamePlatform.Backend.Application.Services
         IUserRepository userRepository,
         IMatchRepository matchRepository,
         ICurrentUserContext currentUser,
+        IGameNotifier notifier,
 
         IRoomHelper roomHelper,
         ApplicationDbContext context,
@@ -62,6 +63,9 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
 
             logger.LogInformation("Room with {id} sucessfully deleted", id);
+
+            // участники перечитают комнату и получат 404
+            notifier.RoomUpdated(id);
 
             return true;
         }
@@ -151,6 +155,8 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             logger.LogInformation("Player {name} joined room {roomCode}", name, roomCode);
 
+            notifier.RoomUpdated(room.Id);
+
             return (link.ToJoinRoomResponse(), false);
         }
 
@@ -179,7 +185,14 @@ namespace QuizGamePlatform.Backend.Application.Services
             roomPlayer.ExitReason = null;
             roomRepository.MarkChanged(room);
 
-            return await TrySaveAsync(ct) ? roomPlayer.ToJoinRoomResponse() : null;
+            if (!await TrySaveAsync(ct))
+            {
+                return null;
+            }
+
+            notifier.RoomUpdated(room.Id);
+
+            return roomPlayer.ToJoinRoomResponse();
         }
 
         public async Task<LeaveRoomResponse?> LeaveRoom(Guid roomId, ExitReason exitReason, CancellationToken ct)
@@ -221,6 +234,8 @@ namespace QuizGamePlatform.Backend.Application.Services
             logger.LogInformation(
             "Participant {RoomPlayerId} left room {RoomId} due to {ExitReason}",
             roomPlayer.Id, roomId, exitReason);
+
+            notifier.RoomUpdated(roomId);
 
             return roomPlayer.ToLeaveRoomResponse();
         }

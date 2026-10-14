@@ -5,9 +5,20 @@ using System.Security.Claims;
 
 namespace QuizGamePlatform.Backend.Application.Services
 {
-    public class CurrentUserContext(IHttpContextAccessor httpContextAccessor) : ICurrentUserContext
+    public class CurrentUserContext : ICurrentUserContext
     {
-        private ClaimsPrincipal? User => httpContextAccessor.HttpContext?.User;
+        private readonly Func<ClaimsPrincipal?> _user;
+
+        public CurrentUserContext(IHttpContextAccessor httpContextAccessor)
+            => _user = () => httpContextAccessor.HttpContext?.User;
+
+        private CurrentUserContext(ClaimsPrincipal? user)
+            => _user = () => user;
+
+        // пользователь соединения хаба: там нет текущего http-запроса
+        public static CurrentUserContext For(ClaimsPrincipal? user) => new(user);
+
+        private ClaimsPrincipal? User => _user();
 
         public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
 

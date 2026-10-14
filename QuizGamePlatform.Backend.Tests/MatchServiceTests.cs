@@ -23,6 +23,7 @@ namespace QuizGamePlatform.Backend.Tests
         private readonly Mock<IQuizContentRepository> _contentRepo = new();
         private readonly Mock<IMatchLockProvider> _locks = new();
         private readonly Mock<ICurrentUserContext> _currentUser = new();
+        private readonly Mock<IGameNotifier> _notifier = new();
         private readonly FakeTimeProvider _time = new();
         private readonly MatchService _sut;
 
@@ -37,6 +38,7 @@ namespace QuizGamePlatform.Backend.Tests
                 _contentRepo.Object,
                 _locks.Object,
                 _currentUser.Object,
+                _notifier.Object,
                 Mock.Of<ILogger<MatchService>>(),
                 _time);
         }
@@ -203,6 +205,8 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.NotNull(created);
             Assert.Equal(Now.AddSeconds(30), created!.QuestionEndsAt);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(s =>
+                s.RoomId == room.Id && s.CurrentQuestionIndex == 0 && s.QuestionEndsAt == Now.AddSeconds(30))), Times.Once);
         }
 
         [Fact]
@@ -240,6 +244,7 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, Guid.NewGuid(), 1, RoomMode.Simple), CancellationToken.None);
 
             Assert.Null(result);
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
 
         // текущий вопрос
@@ -325,6 +330,8 @@ namespace QuizGamePlatform.Backend.Tests
             _matchRepo.Verify(r => r.AddAnswerAsync(
                 It.Is<PlayerAnswerEntity>(a => a.RoomPlayerId == participant.Id), It.IsAny<CancellationToken>()), Times.Once);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _notifier.Verify(n => n.PlayerAnswered(It.Is<PlayerAnsweredEvent>(e =>
+                e.MatchId == matchId && e.QuestionIndex == 0 && e.RoomPlayerLinkId == participant.Id)), Times.Once);
         }
 
         [Fact]
@@ -372,6 +379,7 @@ namespace QuizGamePlatform.Backend.Tests
             var ok = await _sut.SubmitAnswerAsync(matchId, new SubmitAnswerRequest(Guid.NewGuid()), CancellationToken.None);
 
             Assert.False(ok);
+            _notifier.Verify(n => n.PlayerAnswered(It.IsAny<PlayerAnsweredEvent>()), Times.Never);
         }
 
         // закрытие вопроса
@@ -386,6 +394,7 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await _sut.CloseQuestionAsync(matchId, CancellationToken.None);
 
             Assert.Null(result);
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
 
         [Fact]
@@ -401,6 +410,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.Null(result);
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
 
         [Fact]
@@ -418,6 +428,7 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(MatchStatus.QuestionClosed, match.Status);
             Assert.Equal(Now.AddSeconds(30), match.QuestionEndsAt);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(m => m.Status == MatchStatus.QuestionClosed)), Times.Once);
         }
 
         // следующий вопрос и подсчёт очков
@@ -432,6 +443,7 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await _sut.NextQuestionAsync(matchId, CancellationToken.None);
 
             Assert.Null(result);
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
 
         [Fact]
@@ -447,6 +459,8 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(1, match.CurrentQuestionIndex);
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
             Assert.Equal(Now.AddSeconds(30), match.QuestionEndsAt);
+            _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(m =>
+                m.CurrentQuestionIndex == 1 && m.Status == MatchStatus.QuestionActive)), Times.Once);
         }
 
         [Fact]
@@ -479,6 +493,7 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(RoomStatus.Finished, room.Status);
             Assert.Equal(2, participants[0].Score); // активному его очки
             Assert.Equal(0, participants[1].Score); // вышедшему ноль
+            _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(m => m.Status == MatchStatus.Finished)), Times.Once);
         }
 
         // автопилот по таймеру
@@ -495,6 +510,7 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
             Assert.Equal(0, match.CurrentQuestionIndex);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
 
         [Fact]
@@ -511,6 +527,8 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(1, match.CurrentQuestionIndex);
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            // игроки узнают о новом вопросе от сервера, без опроса
+            _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(s => s.CurrentQuestionIndex == 1)), Times.Once);
         }
 
         [Fact]
@@ -525,6 +543,8 @@ namespace QuizGamePlatform.Backend.Tests
             _time.Advance(TimeSpan.FromSeconds(31));
 
             Assert.False(await _sut.AdvanceExpiredMatchAsync(matchId, CancellationToken.None));
+            // событие разошлёт инстанс, который сдвинул матч
+            _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
         }
     }
 }

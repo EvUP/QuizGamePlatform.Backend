@@ -18,7 +18,15 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Match
         Guid RoomId,
         MatchStatus Status,
         int CurrentQuestionIndex,
-        int TotalQuestions);
+        int TotalQuestions,
+        DateTime QuestionEndsAt);
+
+    // кто ответил, без самого ответа
+    public record PlayerAnsweredEvent(
+        Guid RoomId,
+        Guid MatchId,
+        int QuestionIndex,
+        Guid RoomPlayerLinkId);
 
     // Текущий вопрос для игроков — БЕЗ признака правильного ответа
     public record CurrentQuestionResponse(

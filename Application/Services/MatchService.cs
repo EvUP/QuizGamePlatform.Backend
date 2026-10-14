@@ -16,6 +16,7 @@ namespace QuizGamePlatform.Backend.Application.Services
         IQuizContentRepository quizContentRepository,
         IMatchLockProvider matchLocks,
         ICurrentUserContext currentUser,
+        IGameNotifier notifier,
         ILogger<MatchService> logger,
         TimeProvider timeProvider) : IMatchService
     {
@@ -96,7 +97,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             logger.LogInformation("Match {MatchId} started in room {RoomId} with {Count} questions", match.Id, room.Id, match.Questions.Count);
 
-            return match.ToStateResponse();
+            return Publish(match);
         }
 
         public async Task<CurrentQuestionResponse?> GetCurrentQuestionAsync(Guid matchId, CancellationToken ct)
@@ -168,6 +169,8 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             logger.LogInformation("Participant {RoomPlayerId} answered question {Order} of match {MatchId}", participant.Id, currentQuestion.Order, matchId);
 
+            notifier.PlayerAnswered(new PlayerAnsweredEvent(match.RoomId, matchId, currentQuestion.Order, participant.Id));
+
             return true;
         }
 
@@ -198,7 +201,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
                 logger.LogInformation("Question {Order} of match {MatchId} closed", match.CurrentQuestionIndex, matchId);
 
-                return match.ToStateResponse();
+                return Publish(match);
             }, ct);
         }
 
@@ -219,7 +222,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
                 logger.LogInformation("Match {MatchId} advanced to status {Status}, question {Order}", matchId, match.Status, match.CurrentQuestionIndex);
 
-                return match.ToStateResponse();
+                return Publish(match);
             }, ct);
         }
 
@@ -247,7 +250,19 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             logger.LogInformation("Match {MatchId} auto-advanced to status {Status}, question {Order}", match.Id, match.Status, match.CurrentQuestionIndex);
 
+            Publish(match);
+
             return true;
+        }
+
+        // клиенты узнают о смене вопроса сразу, без опроса сервера
+        private MatchStateResponse Publish(MatchEntity match)
+        {
+            var state = match.ToStateResponse();
+
+            notifier.MatchUpdated(state);
+
+            return state;
         }
 
         private async Task AdvanceMatchAsync(MatchEntity match, CancellationToken ct)
