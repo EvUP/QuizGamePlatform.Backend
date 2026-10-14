@@ -30,6 +30,7 @@ namespace QuizGamePlatform.Backend.Tests
         public MatchServiceTests()
         {
             _locks.Setup(l => l.GetLock(It.IsAny<Guid>())).Returns(new SemaphoreSlim(1, 1));
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
             _sut = new MatchService(
                 _matchRepo.Object,
@@ -110,7 +111,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             var results = new[]
             {
-                await controller.StartMatch(new StartMatchRequest(Guid.NewGuid(), Guid.NewGuid(), 1, RoomMode.Simple), CancellationToken.None),
+                await controller.StartMatch(new StartMatchRequest(Guid.NewGuid(), [Guid.NewGuid()], 1, RoomMode.Simple), CancellationToken.None),
                 await controller.CloseQuestion(matchId, CancellationToken.None),
                 await controller.NextQuestion(matchId, CancellationToken.None),
             };
@@ -123,7 +124,7 @@ namespace QuizGamePlatform.Backend.Tests
 
         [Theory]
         [InlineData(0)]
-        [InlineData(13)]
+        [InlineData(31)]
         public async Task Controller_QuestionCountOutOfRange_BadRequest(int questionCount)
         {
             var service = new Mock<IMatchService>(MockBehavior.Strict);
@@ -133,7 +134,7 @@ namespace QuizGamePlatform.Backend.Tests
             };
 
             var result = await controller.StartMatch(
-                new StartMatchRequest(Guid.NewGuid(), Guid.NewGuid(), questionCount, RoomMode.Simple), CancellationToken.None);
+                new StartMatchRequest(Guid.NewGuid(), [Guid.NewGuid()], questionCount, RoomMode.Simple), CancellationToken.None);
 
             Assert.IsType<BadRequestObjectResult>(result);
         }
@@ -147,7 +148,7 @@ namespace QuizGamePlatform.Backend.Tests
             _roomRepo.Setup(r => r.GetRoomByIdAsync(roomId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new RoomEntity { Id = roomId, Status = RoomStatus.InProgress });
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(roomId, Guid.NewGuid(), 5, RoomMode.Simple), CancellationToken.None);
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(roomId, [Guid.NewGuid()], 5, RoomMode.Simple), CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -160,10 +161,10 @@ namespace QuizGamePlatform.Backend.Tests
                 .ReturnsAsync(new RoomEntity { Id = roomId, Status = RoomStatus.Waiting });
             _participationRepo.Setup(r => r.CountActivePlayers(roomId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(1);
-            _contentRepo.Setup(r => r.GetQuestionsByCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<QuestionEntity> { new() { Id = Guid.NewGuid() } });
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(roomId, Guid.NewGuid(), 5, RoomMode.Simple), CancellationToken.None);
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(roomId, [Guid.NewGuid()], 5, RoomMode.Simple), CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -176,10 +177,10 @@ namespace QuizGamePlatform.Backend.Tests
                 .ReturnsAsync(new RoomEntity { Id = roomId, Status = RoomStatus.Waiting });
             _participationRepo.Setup(r => r.CountActivePlayers(roomId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(2);
-            _contentRepo.Setup(r => r.GetQuestionsByCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<QuestionEntity>());
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(roomId, Guid.NewGuid(), 5, RoomMode.Simple), CancellationToken.None);
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(roomId, [Guid.NewGuid()], 5, RoomMode.Simple), CancellationToken.None);
 
             Assert.Null(result);
         }
@@ -190,14 +191,14 @@ namespace QuizGamePlatform.Backend.Tests
             var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Waiting };
             _roomRepo.Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(room);
             _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
-            _contentRepo.Setup(r => r.GetQuestionsByCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<QuestionEntity> { new() { Id = Guid.NewGuid() }, new() { Id = Guid.NewGuid() } });
 
             MatchEntity? created = null;
             _matchRepo.Setup(r => r.AddMatchAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()))
                 .Callback<MatchEntity, CancellationToken>((m, _) => created = m);
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, Guid.NewGuid(), 2, RoomMode.Simple), CancellationToken.None);
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, [Guid.NewGuid()], 2, RoomMode.Simple), CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.Equal(MatchStatus.QuestionActive, result!.Status);
@@ -209,20 +210,73 @@ namespace QuizGamePlatform.Backend.Tests
                 s.RoomId == room.Id && s.CurrentQuestionIndex == 0 && s.QuestionEndsAt == Now.AddSeconds(30))), Times.Once);
         }
 
+        // темы с заданным числом вопросов, возвращает созданный матч
+        private async Task<(MatchEntity Match, List<QuestionEntity> Questions)> StartWithThemes(int count, params int[] perTheme)
+        {
+            var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Waiting };
+            _roomRepo.Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(room);
+            _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
+            var themes = perTheme.Select(_ => Guid.NewGuid()).ToList();
+            var questions = themes
+                .SelectMany((theme, i) => Enumerable.Range(0, perTheme[i]).Select(_ => new QuestionEntity { Id = Guid.NewGuid(), CategoryId = theme }))
+                .ToList();
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(questions);
+            MatchEntity? created = null;
+            _matchRepo.Setup(r => r.AddMatchAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()))
+                .Callback<MatchEntity, CancellationToken>((m, _) => created = m);
+
+            await _sut.StartMatchAsync(new StartMatchRequest(room.Id, themes, count, RoomMode.Simple), CancellationToken.None);
+
+            return (created!, questions);
+        }
+
+        [Fact]
+        public async Task StartMatch_FiveThemes_FifteenRandomQuestionsWithoutRepeats()
+        {
+            var (match, questions) = await StartWithThemes(15, 12, 12, 12, 12, 12);
+
+            Assert.Equal(15, match.Questions.Select(q => q.QuestionId).Distinct().Count());
+            Assert.All(match.Questions, mq => Assert.Contains(questions, q => q.Id == mq.QuestionId));
+            Assert.Equal(Enumerable.Range(0, 15), match.Questions.Select(q => q.Order));
+        }
+
+        [Fact]
+        public async Task StartMatch_MoreRequestedThanAvailable_TakesAll()
+        {
+            var (match, _) = await StartWithThemes(30, 2, 12);
+
+            Assert.Equal(14, match.Questions.Select(q => q.QuestionId).Distinct().Count());
+        }
+
+        [Fact]
+        public async Task Controller_NoThemes_BadRequest()
+        {
+            var service = new Mock<IMatchService>(MockBehavior.Strict);
+            var controller = new MatchController(service.Object)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+            };
+
+            var result = await controller.StartMatch(new StartMatchRequest(Guid.NewGuid(), [], 5, RoomMode.Simple), CancellationToken.None);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
         [Fact]
         public async Task StartMatch_FastestMode_PersistsRoomMode_DeadlineIn15s()
         {
             var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Waiting };
             _roomRepo.Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(room);
             _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
-            _contentRepo.Setup(r => r.GetQuestionsByCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<QuestionEntity> { new() { Id = Guid.NewGuid() } });
 
             MatchEntity? created = null;
             _matchRepo.Setup(r => r.AddMatchAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()))
                 .Callback<MatchEntity, CancellationToken>((m, _) => created = m);
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, Guid.NewGuid(), 1, RoomMode.Fastest), CancellationToken.None);
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, [Guid.NewGuid()], 1, RoomMode.Fastest), CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.NotNull(created);
@@ -236,15 +290,56 @@ namespace QuizGamePlatform.Backend.Tests
             var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Waiting };
             _roomRepo.Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(room);
             _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
-            _contentRepo.Setup(r => r.GetQuestionsByCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<QuestionEntity> { new() { Id = Guid.NewGuid() } });
             _matchRepo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new DbUpdateException("one active match per room"));
 
-            var result = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, Guid.NewGuid(), 1, RoomMode.Simple), CancellationToken.None);
+            var (result, refusal) = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, [Guid.NewGuid()], 1, RoomMode.Simple), CancellationToken.None);
 
             Assert.Null(result);
+            Assert.Equal(StartRefusal.Concurrent, refusal); // контроллер ответит 409 «повторите»
             _notifier.Verify(n => n.MatchUpdated(It.IsAny<MatchStateResponse>()), Times.Never);
+        }
+
+        // командная комната с игроками по командам, null у вышедших до старта
+        private (RoomEntity Room, List<RoomPlayerEntity> Players) TeamRoomReady(params (int? Team, bool IsActive)[] players)
+        {
+            var room = new RoomEntity { Id = Guid.NewGuid(), Status = RoomStatus.Waiting, IsTeamGame = true };
+            var participants = players
+                .Select(p => new RoomPlayerEntity { Id = Guid.NewGuid(), RoomId = room.Id, TeamNumber = p.Team, IsActive = p.IsActive })
+                .ToList();
+            _roomRepo.Setup(r => r.GetRoomByIdAsync(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(room);
+            _participationRepo.Setup(r => r.CountActivePlayers(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(participants.Count(p => p.IsActive));
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(participants);
+            _contentRepo.Setup(r => r.GetQuestionsByCategoriesAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<QuestionEntity> { new() { Id = Guid.NewGuid() } });
+
+            return (room, participants);
+        }
+
+        [Fact]
+        public async Task StartMatch_TeamRoom_OneNonEmptyTeam_ReturnsNull()
+        {
+            var (room, _) = TeamRoomReady((1, true), (1, true), (2, false));
+
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, [Guid.NewGuid()], 1, RoomMode.Simple), CancellationToken.None);
+
+            Assert.Null(result);
+            Assert.Equal(RoomStatus.Waiting, room.Status);
+            _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task StartMatch_TeamRoom_TwoTeams_StartsAndLocksRoster()
+        {
+            var (room, players) = TeamRoomReady((1, true), (2, true), (2, false));
+
+            var (result, _) = await _sut.StartMatchAsync(new StartMatchRequest(room.Id, [Guid.NewGuid()], 1, RoomMode.Simple), CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal(RoomStatus.InProgress, room.Status);
+            Assert.Equal(new int?[] { 1, 2, null }, players.Select(p => p.TeamNumber)); // ушедший из лобби не в составе
         }
 
         // текущий вопрос
@@ -421,11 +516,17 @@ namespace QuizGamePlatform.Backend.Tests
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
             _participationRepo.Setup(r => r.CountActivePlayers(match.RoomId, It.IsAny<CancellationToken>())).ReturnsAsync(3);
             _matchRepo.Setup(r => r.CountActiveAnswers(match.Questions.First().Id, It.IsAny<CancellationToken>())).ReturnsAsync(3);
+            var active = new RoomPlayerEntity { Id = Guid.NewGuid(), IsActive = true };
+            var leftBefore = new RoomPlayerEntity { Id = Guid.NewGuid(), IsActive = false, FinishedAt = Now.AddSeconds(-1) };
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(match.RoomId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync([active, leftBefore]);
 
             var result = await _sut.CloseQuestionAsync(matchId, CancellationToken.None);
 
             Assert.NotNull(result);
             Assert.Equal(MatchStatus.QuestionClosed, match.Status);
+            Assert.Equal(Now, match.Questions.First().ClosedAt);
+            Assert.Equal([active.Id], match.Questions.First().InGamePlayerIds); // вышедший до закрытия не в игре
             Assert.Equal(Now.AddSeconds(30), match.QuestionEndsAt);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
             _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(m => m.Status == MatchStatus.QuestionClosed)), Times.Once);
@@ -518,7 +619,11 @@ namespace QuizGamePlatform.Backend.Tests
         {
             var matchId = Guid.NewGuid();
             var match = RunningMatch(matchId, index: 0, questionCount: 2);
+            var deadline = match.QuestionEndsAt;
             _matchRepo.Setup(r => r.GetMatchAsync(matchId, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            var leftAfterDeadline = new RoomPlayerEntity { Id = Guid.NewGuid(), IsActive = false, FinishedAt = deadline.AddMilliseconds(500) };
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(match.RoomId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync([leftAfterDeadline]);
 
             _time.Advance(TimeSpan.FromSeconds(31)); // дедлайн вопроса истёк
 
@@ -526,6 +631,9 @@ namespace QuizGamePlatform.Backend.Tests
 
             Assert.Equal(1, match.CurrentQuestionIndex);
             Assert.Equal(MatchStatus.QuestionActive, match.Status);
+            Assert.Equal(deadline, match.Questions.First().ClosedAt); // закрыт по таймеру в дедлайн
+            Assert.Equal([leftAfterDeadline.Id], match.Questions.First().InGamePlayerIds); // ушёл уже после дедлайна
+            Assert.Null(match.Questions.Last().ClosedAt);
             _matchRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
             // игроки узнают о новом вопросе от сервера, без опроса
             _notifier.Verify(n => n.MatchUpdated(It.Is<MatchStateResponse>(s => s.CurrentQuestionIndex == 1)), Times.Once);

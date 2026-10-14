@@ -3,14 +3,29 @@ using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.Application.Contracts.Room
 {
+    // без тела обычная комната; командная без списка команд это две команды по умолчанию
+    public record CreateRoomRequest(bool IsTeamGame, List<NewTeamRequest>? Teams = null);
+
+    // пустое название заменяется на «Команда N»
+    public record NewTeamRequest(string? Name, int? ExpectedPlayers = null);
+
     public record CreateRoomResponse(
         Guid Id,
         string RoomCode,
         RoomStatus Status,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        bool IsTeamGame,
+        string? JoinLink,                // ссылка обычной комнаты, в командную входят по ссылкам команд
+        List<TeamLinkResponse>? Teams);
 
-    // аккаунт входит под логином, ник нужен только гостю
+    public record TeamLinkResponse(int Number, string Name, int? ExpectedPlayers, string JoinLink);
+
+    // RoomCode это код из ссылки: комнаты или команды; аккаунт входит под логином, ник нужен только гостю
     public record JoinToRoomRequest(string? Username, string RoomCode);
+
+    public record ChangeTeamRequest(int TeamNumber);
+
+    public record TeamNameRequest(string? Name);
 
     public record RoomResponse(
     Guid RoomPlayerLinkId,   // Это Id самой связи (RoomPlayerEntity.Id)
@@ -20,7 +35,8 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     string PlayerName,        // Ник в этой комнате
     DateTime? FinishedAt,
     DateTime JoinedAt,        // Время присоединения
-    bool IsActive);           // Активен ли игрок в комнате
+    bool IsActive,            // Активен ли игрок в комнате
+    int? TeamNumber);
 
     public record RoomParticipationResponse(
     Guid RoomPlayerLinkId,
@@ -29,8 +45,22 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
     bool IsHost,
     bool IsActive,
     ExitReason? ExitReason,
-    int Score
+    int? Score,               // в командной игре не показываем
+
+    int? TeamNumber,
+    bool IsCaptain
     );
+
+    // очки и место только после матча
+    public record TeamResponse(
+        int Number,
+        string Name,
+        int Members,          // в лобби активные, после старта состав на старте
+        int? ExpectedPlayers,
+        Guid? CaptainLinkId,
+        string? JoinLink,     // только владельцу
+        int? Points,          // до 100 за вопрос
+        int? Place);
 
     // состояние комнаты для её участников, игроки по очкам
     public record RoomStateResponse(
@@ -39,7 +69,9 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
         RoomStatus Status,
         Guid? MatchId,
         Guid MyRoomPlayerLinkId,
-        List<RoomParticipationResponse> Players);
+        List<RoomParticipationResponse> Players,
+        bool IsTeamGame,
+        List<TeamResponse>? Teams);
 
     // общий лидерборд, только аккаунты
     public record GlobalLeaderboardEntry(

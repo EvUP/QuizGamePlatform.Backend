@@ -34,6 +34,15 @@ services:
       retries: 5
       start_period: 10s
 
+  # вся почта для тестов: письма бэка и Keycloak, смотреть на http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: mailpit
+    restart: always
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
   keycloak-db:
     image: postgres:15-alpine
     container_name: keycloak_db

@@ -6,6 +6,7 @@ namespace QuizGamePlatform.Backend.Application.Enums
         RoomFinished,    // Комната завершилась (все игроки вышли)
         Disconnected,    // Потеря соединения
         Cheating,        // Бан за читерство
-        Other            // Что-то непредвиденное
+        Other,           // Что-то непредвиденное
+        Kicked           // Владелец убрал из лобби
     }
 }
