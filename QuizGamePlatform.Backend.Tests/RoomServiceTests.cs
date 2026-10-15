@@ -537,7 +537,7 @@ namespace QuizGamePlatform.Backend.Tests
 
             var result = await controller.JoinToRoom(new("bob", "CODE"), CancellationToken.None);
 
-            Assert.IsType<NotFoundObjectResult>(result);
+            Assert.IsType<ConflictObjectResult>(result);
             _roomRepo.Verify(r => r.MarkChanged(room), Times.Exactly(20));
             _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
