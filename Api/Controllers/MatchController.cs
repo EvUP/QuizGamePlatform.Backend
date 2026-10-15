@@ -4,6 +4,7 @@ using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Auth;
 using QuizGamePlatform.Backend.Application.Contracts;
 using QuizGamePlatform.Backend.Application.Contracts.Match;
+using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Core.Extensions;
 using QuizGamePlatform.Backend.Core.Helpers;
 
@@ -24,21 +25,52 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                     method: HttpContext.GetMethodWithPath()));
             }
 
+            if (request.CategoryIds is null || request.CategoryIds.Count == 0)
+            {
+                return BadRequest(new CommonErrorResponse(
+                    message: "Выберите хотя бы одну тему",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
             if (!await matchService.IsRoomHostAsync(request.RoomId, ct))
             {
                 return NotHost();
             }
 
-            var match = await matchService.StartMatchAsync(request, ct);
+            var (match, refusal) = await matchService.StartMatchAsync(request, ct);
 
-            if (match is null)
+            if (match is not null)
             {
-                return BadRequest(new CommonErrorResponse(
-                    message: "Не удалось начать матч.",
-                    method: HttpContext.GetMethodWithPath()));
+                return Ok(match);
             }
 
-            return Ok(match);
+            var method = HttpContext.GetMethodWithPath();
+
+            return refusal switch
+            {
+                // одновременно вошли, пересели или уже стартовали
+                StartRefusal.Concurrent => Conflict(new CommonErrorResponse(
+                    message: "Комната изменилась одновременно с вами, повторите",
+                    method: method)),
+                StartRefusal.Started => Conflict(new CommonErrorResponse(
+                    message: "Игра в этой комнате уже идёт",
+                    method: method)),
+                StartRefusal.Finished => Conflict(new CommonErrorResponse(
+                    message: "Игра в этой комнате уже прошла, для новой игры создайте новую комнату",
+                    method: method)),
+                StartRefusal.TooFewPlayers => BadRequest(new CommonErrorResponse(
+                    message: "Для старта нужно хотя бы 2 игрока",
+                    method: method)),
+                StartRefusal.TooFewTeams => BadRequest(new CommonErrorResponse(
+                    message: $"Для старта нужно хотя бы {MatchHelper.MinTeams} команды с игроками",
+                    method: method)),
+                StartRefusal.NoQuestions => BadRequest(new CommonErrorResponse(
+                    message: "В выбранных темах нет вопросов",
+                    method: method)),
+                _ => NotFound(new CommonErrorResponse(
+                    message: "Комната не найдена",
+                    method: method)),
+            };
         }
 
         [HttpGet("{matchId}/current-question")]

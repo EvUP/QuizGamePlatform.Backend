@@ -7,5 +7,7 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         Task<List<CategoryEntity>> GetCategoriesAsync(CancellationToken ct);
 
         Task<List<QuestionEntity>?> GetQuestionsByCategoryAsync(Guid categoryId, CancellationToken ct);
+
+        Task<List<QuestionEntity>> GetQuestionsByCategoriesAsync(IReadOnlyCollection<Guid> categoryIds, CancellationToken ct);
     }
 }

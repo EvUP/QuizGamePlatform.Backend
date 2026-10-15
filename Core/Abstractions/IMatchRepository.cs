@@ -13,7 +13,7 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<MatchEntity?> GetMatchAsync(Guid matchId, CancellationToken ct);
         /// <summary>
-        /// Найти матч по комнате
+        /// Найти матч по комнате с его вопросами
         /// </summary>
         Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct);
         /// <summary>
@@ -33,6 +33,10 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// Кол-во правильных ответов у каждого участника в матче
         /// </summary>
         Task<Dictionary<Guid, int>> GetCorrectAnswerCountsAsync(Guid matchId, CancellationToken ct);
+        /// <summary>
+        /// Все ответы матча с признаком верности
+        /// </summary>
+        Task<List<PlayerAnswerEntity>> GetAnswersAsync(Guid matchId, CancellationToken ct);
         /// <summary>
         /// Добавить ответ игрока (без сохранения)
         /// </summary>

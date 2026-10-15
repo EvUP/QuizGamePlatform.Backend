@@ -12,6 +12,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
 
         public int Order { get; set; }
 
+        public DateTime? ClosedAt { get; set; }
+
+        // кто был в игре на закрытии вопроса, по ним считаются очки команды
+        public List<Guid> InGamePlayerIds { get; set; } = [];
+
         public ICollection<PlayerAnswerEntity> Answers { get; set; } = new List<PlayerAnswerEntity>();
     }
 }
