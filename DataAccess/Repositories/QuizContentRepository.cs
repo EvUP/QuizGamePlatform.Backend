@@ -10,6 +10,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         {
             return await context.Categories
                 .AsNoTracking()
+                .Where(c => !c.IsHidden)
                 .OrderBy(c => c.Name)
                 .ToListAsync(ct);
         }
@@ -17,7 +18,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public async Task<List<QuestionEntity>?> GetQuestionsByCategoryAsync(Guid categoryId, CancellationToken ct)
         {
             var categoryExists = await context.Categories
-                .AnyAsync(c => c.Id == categoryId, ct);
+                .AnyAsync(c => c.Id == categoryId && !c.IsHidden, ct);
 
             if (!categoryExists)
                 return null;
@@ -33,7 +34,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
         public Task<List<QuestionEntity>> GetQuestionsByCategoriesAsync(IReadOnlyCollection<Guid> categoryIds, CancellationToken ct)
             => context.Questions
                 .AsNoTracking()
-                .Where(q => categoryIds.Contains(q.CategoryId))
+                .Where(q => categoryIds.Contains(q.CategoryId) && !q.Category.IsHidden)
                 .ToListAsync(ct);
     }
 }
