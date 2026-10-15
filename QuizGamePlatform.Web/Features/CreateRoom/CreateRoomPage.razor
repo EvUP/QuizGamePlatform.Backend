@@ -1,0 +1,226 @@
+@page "/rooms/new"
+@attribute [Authorize]
+@inject RoomApiClient RoomApi
+@inject NavigationManager Navigation
+
+<PageTitle>Новая комната · QuizGame</PageTitle>
+
+<div class="create">
+    <h1>Новая комната</h1>
+
+    <div class="modes" role="radiogroup" aria-label="Тип игры">
+        <button type="button" role="radio" aria-checked="@(isTeamGame ? "false" : "true")"
+                class="mode @(isTeamGame ? null : "checked")" @onclick="() => isTeamGame = false">
+            <span class="mode-icon simple"><Icon Name="IconName.User" Size="26" /></span>
+            <span class="mode-text">
+                <span class="mode-title">Обычная</span>
+                <span class="mode-desc">Каждый сам за себя. До @GameRules.MaxSimplePlayers игроков вместе с вами, одна ссылка на всех.</span>
+            </span>
+        </button>
+        <button type="button" role="radio" aria-checked="@(isTeamGame ? "true" : "false")"
+                class="mode @(isTeamGame ? "checked" : null)" @onclick="() => isTeamGame = true">
+            <span class="mode-icon team"><Icon Name="IconName.Users" Size="28" /></span>
+            <span class="mode-text">
+                <span class="mode-title">Командная</span>
+                <span class="mode-desc">Отдел на отдел. @GameRules.MinTeams–@GameRules.MaxTeams команд, до @GameRules.MaxTeamGamePlayers игроков, у каждой команды своя ссылка.</span>
+            </span>
+        </button>
+    </div>
+
+    <div class="body">
+        <div class="main">
+            @if (isTeamGame)
+            {
+                <div class="section-head">
+                    <h2>Команды</h2>
+                    <span>@teams.Count из @GameRules.MaxTeams</span>
+                </div>
+
+                @for (var i = 0; i < teams.Count; i++)
+                {
+                    var team = teams[i];
+                    var number = i + 1;
+                    <div class="team" @key="team.Id">
+                        <span class="team-number" style="background: var(--qg-team-@number)">@number</span>
+                        <div class="team-name">
+                            <label for="team-@team.Id">Название</label>
+                            <input id="team-@team.Id" maxlength="@GameRules.TeamNameMaxLength"
+                                   placeholder="@GameRules.DefaultTeamName(number)" @bind="team.Name" @bind:event="oninput" />
+                        </div>
+                        <div class="stepper" role="group" aria-label="@($"Сколько игроков ждёте в команде {number}")">
+                            <button type="button" aria-label="Меньше игроков" disabled="@(team.ExpectedPlayers <= 1)"
+                                    @onclick="() => team.ExpectedPlayers--">−</button>
+                            <span class="stepper-value">
+                                <span class="stepper-number">@team.ExpectedPlayers</span>
+                                <span class="stepper-caption">@RussianPlural.Choose(team.ExpectedPlayers, "игрок", "игрока", "игроков")</span>
+                            </span>
+                            <button type="button" aria-label="Больше игроков" disabled="@(ExpectedTotal >= GameRules.MaxTeamGamePlayers)"
+                                    @onclick="() => team.ExpectedPlayers++">+</button>
+                        </div>
+                        <button type="button" class="remove" aria-label="@($"Удалить команду {number}")"
+                                disabled="@(teams.Count <= GameRules.MinTeams)" @onclick="() => teams.Remove(team)">
+                            <Icon Name="IconName.Trash" />
+                        </button>
+                    </div>
+                }
+
+                <button type="button" class="add-team" @onclick="AddTeam"
+                        disabled="@(teams.Count >= GameRules.MaxTeams || ExpectedTotal >= GameRules.MaxTeamGamePlayers)">
+                    <Icon Name="IconName.Plus" StrokeWidth="2.6" />
+                    Добавить команду
+                </button>
+            }
+            else
+            {
+                <div class="how">
+                    <h2>Как это работает</h2>
+                    <ol>
+                        <li>Создаёте комнату и получаете одну ссылку-приглашение.</li>
+                        <li>Отправляете её куда удобно: в чат, на почту, хоть голубем.</li>
+                        <li>Играете вместе со всеми. Побеждает тот, у кого больше верных ответов.</li>
+                    </ol>
+                </div>
+            }
+        </div>
+
+        <aside class="summary">
+            <span class="summary-caption">Итого</span>
+            <div class="total">
+                <span class="total-number @(TotalOverflow ? "over" : null)">@(isTeamGame ? ExpectedTotal : GameRules.MaxSimplePlayers)</span>
+                <span class="total-text">
+                    @(isTeamGame ? $"из {GameRules.MaxTeamGamePlayers} игроков максимум" : "игроков максимум, считая вас")
+                </span>
+            </div>
+            <div class="bar"><div class="bar-fill @(TotalOverflow ? "over" : null)" style="width: @(TotalPercent)%"></div></div>
+
+            <ul class="facts">
+                @foreach (var fact in isTeamGame ? TeamFacts : SimpleFacts)
+                {
+                    <li>@fact</li>
+                }
+            </ul>
+
+            @if (ValidationMessage is { } validation)
+            {
+                <p class="validation" role="alert">@validation</p>
+            }
+            @if (error is not null)
+            {
+                <ErrorBanner Message="@error" />
+            }
+
+            <button type="button" class="primary" disabled="@(busy || ValidationMessage is not null)" @onclick="CreateAsync">
+                @(busy ? "Создаём…" : "Создать комнату")
+            </button>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private const int DefaultExpectedPlayers = 5;
+
+    private static readonly string[] TeamFacts =
+    [
+        "Вы играете в команде 1 и становитесь её капитаном",
+        "Ссылки команд пришлём вам на почту, они же будут в лобби",
+        "Добавить или переименовать команды можно и в лобби"
+    ];
+
+    private static readonly string[] SimpleFacts =
+    [
+        "Ведущий тоже играет",
+        "Очко за каждый верный ответ",
+        "Гостям хватит ника, аккаунт не нужен"
+    ];
+
+    private readonly List<TeamDraft> teams = [new(1, DefaultExpectedPlayers), new(2, DefaultExpectedPlayers)];
+    private int nextTeamId = 3;
+    private bool isTeamGame;
+    private bool busy;
+
+    /// <summary>?type=team открывает командную, по умолчанию обычная (например, «Сыграть ещё» после командной игры)</summary>
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? Type { get; set; }
+
+    protected override void OnInitialized() => isTeamGame = Type == "team";
+    private string? error;
+
+    private int ExpectedTotal => teams.Sum(t => t.ExpectedPlayers);
+
+    private bool TotalOverflow => isTeamGame && ExpectedTotal > GameRules.MaxTeamGamePlayers;
+
+    private int TotalPercent => isTeamGame ? Math.Min(100, ExpectedTotal * 100 / GameRules.MaxTeamGamePlayers) : 100;
+
+    // те же правила, что на сервере: пустое название станет «Команда N», повторы без учёта регистра запрещены
+    private string? ValidationMessage
+    {
+        get
+        {
+            if (!isTeamGame)
+            {
+                return null;
+            }
+
+            if (TotalOverflow)
+            {
+                return $"Всего не больше {GameRules.MaxTeamGamePlayers} игроков — уменьшите составы";
+            }
+
+            var names = teams.Select((t, i) => string.IsNullOrWhiteSpace(t.Name) ? GameRules.DefaultTeamName(i + 1) : t.Name.Trim());
+
+            if (names.Any(n => n.Any(char.IsControl)))
+            {
+                return "Уберите из названия команды переносы строк и табуляцию";
+            }
+
+            return names.Distinct(StringComparer.OrdinalIgnoreCase).Count() < teams.Count
+                ? "Названия команд повторяются — сделайте их разными"
+                : null;
+        }
+    }
+
+    private void AddTeam()
+    {
+        var free = GameRules.MaxTeamGamePlayers - ExpectedTotal;
+        teams.Add(new TeamDraft(nextTeamId++, Math.Clamp(free, 1, DefaultExpectedPlayers)));
+    }
+
+    private async Task CreateAsync()
+    {
+        busy = true;
+        error = null;
+
+        try
+        {
+            var request = isTeamGame
+                ? new CreateRoomRequest(true, teams
+                    .Select(t => new NewTeamRequest(string.IsNullOrWhiteSpace(t.Name) ? null : t.Name.Trim(), t.ExpectedPlayers))
+                    .ToList())
+                : new CreateRoomRequest(false);
+
+            var result = await RoomApi.CreateAsync(request);
+
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"room/{result.Value.Id}");
+            }
+            else
+            {
+                error = result.Error.Message;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private sealed class TeamDraft(int id, int expectedPlayers)
+    {
+        public int Id { get; } = id;
+
+        public string Name { get; set; } = "";
+
+        public int ExpectedPlayers { get; set; } = expectedPlayers;
+    }
+}

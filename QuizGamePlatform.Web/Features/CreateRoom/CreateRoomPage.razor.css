@@ -1,0 +1,452 @@
+/* Создание комнаты во всю высоту main: список команд и итог прокручиваются внутри себя */
+.create {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+h1 {
+    flex: none;
+    font-size: clamp(26px, min(4.5vw, 5.8vh), 48px);
+}
+
+h2 {
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+}
+
+.modes {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.mode {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: clamp(12px, 2.2vh, 24px) clamp(14px, 1.8vw, 24px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 3px solid var(--qg-line);
+    text-align: left;
+}
+
+    .mode.checked {
+        border-color: var(--qg-accent);
+    }
+
+.mode-icon {
+    flex: none;
+    width: clamp(40px, 6.4vh, 52px);
+    height: clamp(40px, 6.4vh, 52px);
+    border-radius: var(--qg-radius-m);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+}
+
+    .mode-icon.simple {
+        background: var(--qg-team-1);
+    }
+
+    .mode-icon.team {
+        background: var(--qg-team-3);
+    }
+
+.mode-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mode-title {
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: clamp(17px, 2.6vh, 20px);
+}
+
+.mode-desc {
+    color: var(--qg-muted);
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+}
+
+.main {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.4vh, 14px);
+}
+
+    .main > * {
+        flex: none;
+    }
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--qg-muted);
+    font-size: 14px;
+}
+
+.team {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: clamp(8px, 1.4vh, 14px) 16px;
+    border-radius: 20px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+.team-number {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+}
+
+.team-name {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+    .team-name label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--qg-subtle);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .team-name input {
+        height: 40px;
+        padding: 0;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+        .team-name input:focus {
+            border-bottom-color: var(--qg-accent);
+            outline: none;
+        }
+
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--qg-surface-2);
+}
+
+    .stepper button {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: var(--qg-radius-s);
+        background: transparent;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+        .stepper button:hover:not(:disabled) {
+            background: var(--qg-surface-3);
+        }
+
+.stepper-value {
+    min-width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.stepper-number {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.stepper-caption {
+    font-size: 11px;
+    color: var(--qg-subtle);
+}
+
+.remove {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--qg-text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .remove:hover:not(:disabled) {
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+    }
+
+.add-team {
+    min-height: clamp(46px, 7vh, 56px);
+    border-radius: 20px;
+    border: 2px dashed var(--qg-line-strong);
+    background: transparent;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+    .add-team:hover:not(:disabled) {
+        border-color: var(--qg-text-2);
+    }
+
+.how {
+    padding: clamp(18px, 3.6vh, 32px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+    .how ol {
+        margin: 0;
+        padding-left: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        color: var(--qg-text-2);
+    }
+
+    .how li::marker {
+        color: var(--qg-accent);
+        font-family: var(--qg-font-display);
+        font-weight: 800;
+    }
+
+.summary {
+    flex: 0 0 340px;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    align-self: flex-start;
+    max-height: 100%;
+    padding: clamp(16px, 3vh, 28px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 2vh, 20px);
+}
+
+    .summary > *, .summary ::deep .error-banner {
+        flex: none;
+    }
+
+.summary-caption {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.total {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.total-number {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: clamp(36px, 6.4vh, 56px);
+    line-height: 1;
+    color: var(--qg-accent);
+}
+
+    .total-number.over {
+        color: var(--qg-danger);
+    }
+
+.total-text {
+    color: var(--qg-muted);
+    font-weight: 600;
+}
+
+.bar {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--qg-surface-2);
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--qg-accent);
+    transition: width 0.2s ease;
+}
+
+    .bar-fill.over {
+        background: var(--qg-danger);
+    }
+
+.facts {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--qg-text-2);
+    font-size: 15px;
+}
+
+    .facts li {
+        padding-left: 28px;
+        position: relative;
+    }
+
+        .facts li::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: 6px;
+            width: 12px;
+            height: 7px;
+            border-left: 3px solid var(--qg-accent);
+            border-bottom: 3px solid var(--qg-accent);
+            transform: rotate(-45deg);
+        }
+
+.validation {
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+}
+
+.primary {
+    min-height: clamp(48px, 7.4vh, 58px);
+    border: 0;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 17px;
+    box-shadow: 0 5px 0 var(--qg-accent-shadow);
+}
+
+    .primary:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+/* планшет и телефон: команды и итог друг под другом, прокручивается только эта часть — заголовок и выбор типа на месте */
+@media (max-width: 899px) {
+    .body {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .main, .summary {
+        flex: none;
+        overflow: visible;
+        max-height: none;
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 599px) {
+    .modes {
+        gap: 10px;
+    }
+
+    .mode {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border-width: 2px;
+    }
+
+    .mode-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+    }
+
+    .mode-title {
+        font-size: 16px;
+    }
+
+    .mode-desc {
+        font-size: 13px;
+    }
+}
+
+/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
+   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+@supports (animation-timeline: scroll()) {
+    .main, .summary, .body {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

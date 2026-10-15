@@ -1,0 +1,274 @@
+@inject GameSession Session
+@inject NavigationManager Navigation
+
+@* Лобби для ведущего и игрока: одна разметка, права решаются здесь. Действия — через GameSession. *@
+@{
+    var room = Room;
+}
+@if (room is not null)
+{
+    <div class="lobby">
+        <header class="top">
+            <div class="title-block">
+                <a class="back" href="" aria-label="На главную"><Icon Name="IconName.ChevronLeft" /></a>
+                <div class="titles">
+                    <span class="eyebrow">Лобби</span>
+                    <h1>@(room.IsTeamGame ? "Командная игра" : "Обычная игра")</h1>
+                </div>
+                <span class="status-chip">Ждём игроков</span>
+            </div>
+            @* опасное действие — тихая вторичная кнопка справа, отдельно от статуса и главного действия *@
+            <div class="top-actions">
+                @if (confirmExit)
+                {
+                    <span class="confirm" role="group" aria-label="@(Session.IsHost ? "Подтвердите удаление комнаты" : "Подтвердите выход из комнаты")">
+                        <span>@(Session.IsHost ? "Удалить комнату навсегда?" : "Выйти из комнаты?")</span>
+                        <button type="button" class="danger" disabled="@busy" @onclick="ExitAsync">@(Session.IsHost ? "Удалить" : "Выйти")</button>
+                        <button type="button" class="ghost" @onclick="() => confirmExit = false">@(Session.IsHost ? "Отмена" : "Остаться")</button>
+                    </span>
+                }
+                else
+                {
+                    <button type="button" class="quiet" aria-label="@(Session.IsHost ? "Удалить комнату" : "Выйти из комнаты")" @onclick="() => confirmExit = true">
+                        <Icon Name="@(Session.IsHost ? IconName.Trash : IconName.ArrowRight)" Size="16" />
+                        <span class="quiet-text">@(Session.IsHost ? "Удалить комнату" : "Выйти из комнаты")</span>
+                    </button>
+                }
+            </div>
+        </header>
+
+        @if (actionError is not null)
+        {
+            <ErrorBanner Message="@actionError" />
+        }
+
+        <div class="body">
+            <div class="stage">
+            @* шаг 1 — пригласить: заметный блок с одной кнопкой, сама ссылка (в ней код) на экран не выводится *@
+            @if (Session.IsHost && !room.IsTeamGame)
+            {
+                @* после копирования (у кнопки класс was-copied) заголовок и подсказка сменяются на «что дальше» — чистым CSS *@
+                <section class="invite" aria-label="Приглашение">
+                    <span class="invite-icon" aria-hidden="true">
+                        <span class="before-copy"><Icon Name="IconName.Link" Size="22" /></span>
+                        <span class="after-copy"><Icon Name="IconName.Check" Size="22" StrokeWidth="2.8" /></span>
+                    </span>
+                    <span class="invite-text before-copy">
+                        <span class="invite-title">Позовите игроков</span>
+                        <span class="invite-hint">Скопируйте ссылку и отправьте в чат — по ней сразу попадут в комнату.</span>
+                    </span>
+                    <span class="invite-text after-copy">
+                        <span class="invite-title">Отправьте ссылку в чат</span>
+                        <span class="invite-hint">Она уже в буфере обмена. Игроки появятся ниже, как только перейдут по ней.</span>
+                    </span>
+                    <CopyLinkButton Url="@RoomLink(room)" Label="Скопировать ссылку на комнату" Class="invite-copy" />
+                </section>
+            }
+
+            <section class="roster" aria-label="@(room.IsTeamGame ? "Команды" : "Игроки")">
+                @if (room.IsTeamGame && room.Teams is { } teams)
+                {
+                    @foreach (var team in teams)
+                    {
+                        <TeamColumn @key="team.Number"
+                                    Team="team"
+                                    Players="PlayersOf(team.Number)"
+                                    MyLinkId="room.MyRoomPlayerLinkId"
+                                    IsMine="Session.Me?.TeamNumber == team.Number"
+                                    CanRename="Session.IsHost || team.CaptainLinkId == room.MyRoomPlayerLinkId"
+                                    CanManagePlayers="Session.IsHost"
+                                    CanDelete="Session.IsHost && teams.Count > GameRules.MinTeams"
+                                    TeamOptions="TeamOptions"
+                                    OnRename="name => RunAsync(() => Session.RenameTeamAsync(team.Number, name))"
+                                    OnMove="move => RunAsync(() => Session.MovePlayerAsync(move.LinkId, move.TeamNumber))"
+                                    OnRemove="linkId => RunAsync(() => Session.RemovePlayerAsync(linkId))"
+                                    OnDelete="() => RunAsync(() => Session.DeleteTeamAsync(team.Number))" />
+                    }
+
+                    @if (Session.IsHost && teams.Count < GameRules.MaxTeams)
+                    {
+                        <button type="button" class="add-team" disabled="@busy" @onclick="() => RunAsync(Session.AddTeamAsync)">
+                            <Icon Name="IconName.Plus" Size="28" StrokeWidth="2.4" />
+                            Добавить команду
+                            <span>ссылку пришлём на почту</span>
+                        </button>
+                    }
+                }
+                else
+                {
+                    @* шаг 2 — дождаться: сетка мест на всю вместимость, занятые и пустые, сразу виден прогресс *@
+                    <article class="players-card">
+                        <div class="players-head">
+                            <h2>Игроки</h2>
+                            <span class="online"><span class="dot" aria-hidden="true"></span>@RussianPlural.Format(ActivePlayers.Count, "игрок", "игрока", "игроков") в сети</span>
+                            <span class="count">@ActivePlayers.Count / @GameRules.MaxSimplePlayers</span>
+                        </div>
+                        <div class="meter" aria-hidden="true"><span style="transform: scaleX(@MeterScale)"></span></div>
+                        <div class="players-list">
+                            @foreach (var player in VisiblePlayers)
+                            {
+                                <PlayerRow @key="player.RoomPlayerLinkId" Player="player" IsMe="player.RoomPlayerLinkId == room.MyRoomPlayerLinkId">
+                                    @if (Session.IsHost && !player.IsHost)
+                                    {
+                                        <button type="button" class="kick" aria-label="@($"Убрать {player.PlayerName} из комнаты")"
+                                                @onclick="() => RunAsync(() => Session.RemovePlayerAsync(player.RoomPlayerLinkId))">
+                                            <Icon Name="IconName.Close" Size="16" StrokeWidth="2.6" />
+                                        </button>
+                                    }
+                                </PlayerRow>
+                            }
+                            @for (var i = 0; i < FreeSlots; i++)
+                            {
+                                <div class="slot-empty" aria-hidden="true">
+                                    <span class="slot-avatar"></span>
+                                    <span>Ждём игрока</span>
+                                </div>
+                            }
+                        </div>
+                    </article>
+                }
+            </section>
+            </div>
+
+            @if (Session.IsHost)
+            {
+                <MatchSettings RosterChecks="RosterChecks(room)" Busy="busy" Error="@startError" OnStart="StartAsync" />
+            }
+            else
+            {
+                <aside class="waiting">
+                    <div class="waiting-line" role="status">
+                        <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                        Ждём, когда ведущий начнёт игру
+                    </div>
+                    @if (room.IsTeamGame)
+                    {
+                        <p>Хотите в другую команду? Попросите у ведущего её ссылку.</p>
+                        @if (Session.Me?.IsCaptain == true)
+                        {
+                            <p>Вы капитан — название команды за вами.</p>
+                        }
+                    }
+                    else
+                    {
+                        <p>Каждый играет за себя и получает очко за каждый верный ответ.</p>
+                    }
+                    <p>Пока ждём, можно размять извилины.</p>
+                </aside>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Снимок комнаты с сервера (тот же, что Session.Room)</summary>
+    [Parameter, EditorRequired]
+    public RoomStateResponse Room { get; set; } = default!;
+
+    private bool busy;
+    private bool confirmExit;
+    private string? actionError;
+    private string? startError;
+
+    // ушедшие сами или убранные ведущим не показываются, оборвавшие связь — да (место держится 40 с)
+    private IEnumerable<RoomParticipationResponse> VisiblePlayers
+        => Room.Players.Where(p => p.IsActive || p.ExitReason == ExitReason.Disconnected);
+
+    private List<RoomParticipationResponse> ActivePlayers
+        => Room.Players.Where(p => p.IsActive).ToList();
+
+    // пустые места до вместимости обычной комнаты — только для отображения
+    private int FreeSlots => Math.Max(0, GameRules.MaxSimplePlayers - VisiblePlayers.Count());
+
+    private string MeterScale => Math.Min(1.0, (double)ActivePlayers.Count / GameRules.MaxSimplePlayers)
+        .ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
+    private List<TeamOption> TeamOptions
+        => Room.Teams?.Select(t => new TeamOption(t.Number, t.Name)).ToList() ?? [];
+
+    private List<RoomParticipationResponse> PlayersOf(int teamNumber)
+        => VisiblePlayers.Where(p => p.TeamNumber == teamNumber).ToList();
+
+    // ссылку обычной комнаты сервер в состоянии не отдаёт — собираем как он: {адрес фронта}/join/{код}
+    private string RoomLink(RoomStateResponse room) => Navigation.ToAbsoluteUri($"join/{room.RoomCode}").ToString();
+
+    private List<ReadinessCheck> RosterChecks(RoomStateResponse room)
+    {
+        if (room.IsTeamGame)
+        {
+            var playingTeams = room.Teams?.Count(t => t.Members > 0) ?? 0;
+
+            return
+            [
+                playingTeams >= GameRules.MinTeams
+                    ? new ReadinessCheck($"{RussianPlural.Format(playingTeams, "команда", "команды", "команд")} с игроками", true)
+                    : new ReadinessCheck($"Нужно хотя бы {RussianPlural.Format(GameRules.MinTeams, "команда", "команды", "команд")} с игроками", false)
+            ];
+        }
+
+        var players = ActivePlayers.Count;
+
+        return
+        [
+            players >= 2
+                ? new ReadinessCheck($"{RussianPlural.Format(players, "игрок", "игрока", "игроков")} в комнате", true)
+                : new ReadinessCheck("Нужно хотя бы 2 игрока", false)
+        ];
+    }
+
+    private async Task RunAsync(Func<Task<ApiResult>> action)
+    {
+        busy = true;
+        actionError = null;
+
+        try
+        {
+            var result = await action();
+            actionError = result.IsSuccess ? null : result.Error.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task StartAsync(MatchSettingsChoice choice)
+    {
+        busy = true;
+        startError = null;
+
+        try
+        {
+            var result = await Session.StartMatchAsync(choice.CategoryIds, choice.QuestionCount, choice.Mode);
+            startError = result.IsSuccess ? null : result.Error.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ExitAsync()
+    {
+        busy = true;
+        actionError = null;
+
+        try
+        {
+            var result = Session.IsHost ? await Session.DeleteRoomAsync() : await Session.LeaveAsync();
+
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo("");
+                return;
+            }
+
+            actionError = result.Error.Message;
+            confirmExit = false;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

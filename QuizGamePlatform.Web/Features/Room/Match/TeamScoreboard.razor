@@ -1,0 +1,38 @@
+@using QuizGamePlatform.Web.Features.Leaderboard
+
+@* Таблица команд по ходу игры: очки по закрытым вопросам, сервер присылает RoomUpdated после каждого *@
+<section class="board" aria-labelledby="board-title">
+    <h2 id="board-title">Таблица команд</h2>
+    <ol>
+        @foreach (var team in Ordered)
+        {
+            <li class="@(team.Number == MyTeamNumber ? "mine" : null)" style="--team-color: var(--qg-team-@team.Number)">
+                <span class="mark" aria-hidden="true"></span>
+                <span class="name" title="@team.Name">@team.Name</span>
+                @if (team.Place is { } place && HasPoints)
+                {
+                    <PlaceBadge Place="place" />
+                }
+                <span class="points">@(team.Points ?? 0)</span>
+            </li>
+        }
+    </ol>
+    <p>Ответила верно вся команда — 100 очков, половина — 50.</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TeamResponse> Teams { get; set; } = [];
+
+    [Parameter]
+    public int? MyTeamNumber { get; set; }
+
+    // до первых очков все на «общем первом месте» — места не показываем
+    private bool HasPoints => Teams.Any(t => t.Points > 0);
+
+    // команды без игроков не играют
+    private IEnumerable<TeamResponse> Ordered => Teams
+        .Where(t => t.Members > 0)
+        .OrderBy(t => t.Place ?? int.MaxValue)
+        .ThenBy(t => t.Number);
+}

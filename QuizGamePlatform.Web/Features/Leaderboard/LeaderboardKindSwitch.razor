@@ -1,0 +1,31 @@
+@* Переключатель «Обычные / Корпоративные», поддерживает @bind-Value *@
+<div class="switch @(Large ? "large" : null)" role="group" aria-label="Тип рейтинга">
+    <button type="button" class="option @SelectedClass(LeaderboardKind.Regular)"
+            aria-pressed="@Pressed(LeaderboardKind.Regular)" @onclick="() => SelectAsync(LeaderboardKind.Regular)">
+        Обычные игры
+    </button>
+    <button type="button" class="option @SelectedClass(LeaderboardKind.TeamGames)"
+            aria-pressed="@Pressed(LeaderboardKind.TeamGames)" @onclick="() => SelectAsync(LeaderboardKind.TeamGames)">
+        @(Large ? "Корпоративные игры" : "Корпоративные")
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public LeaderboardKind Value { get; set; }
+
+    [Parameter]
+    public EventCallback<LeaderboardKind> ValueChanged { get; set; }
+
+    /// <summary>Крупный вариант для страницы рейтингов</summary>
+    [Parameter]
+    public bool Large { get; set; }
+
+    private string? SelectedClass(LeaderboardKind kind) => kind == Value ? "selected" : null;
+
+    // aria-pressed нужен строкой: булево true Blazor выводит пустым атрибутом
+    private string Pressed(LeaderboardKind kind) => kind == Value ? "true" : "false";
+
+    private Task SelectAsync(LeaderboardKind kind)
+        => kind == Value ? Task.CompletedTask : ValueChanged.InvokeAsync(kind);
+}

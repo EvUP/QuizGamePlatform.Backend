@@ -1,0 +1,34 @@
+@using QuizGamePlatform.Web.Features.Auth
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    <RedirectToLogin />
+                }
+                else
+                {
+                    <section class="not-found">
+                        <h1>Нет доступа</h1>
+                        <p>Эта страница недоступна для вашего аккаунта. Вернитесь на <a href="">главную</a>.</p>
+                    </section>
+                }
+            </NotAuthorized>
+            <Authorizing>
+                <p class="authorizing" role="status">Проверяем вход…</p>
+            </Authorizing>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Страница не найдена · QuizGame</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <section class="not-found">
+                <h1>Этого вопроса нет в нашей базе</h1>
+                <p>Похоже, в ссылке опечатка. Вернитесь на <a href="">главную</a>.</p>
+            </section>
+        </LayoutView>
+    </NotFound>
+</Router>

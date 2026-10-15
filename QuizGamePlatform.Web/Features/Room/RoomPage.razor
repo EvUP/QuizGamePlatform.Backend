@@ -1,0 +1,104 @@
+@page "/room/{RoomId:guid}"
+@layout GameLayout
+@using Microsoft.AspNetCore.SignalR.Client
+@using QuizGamePlatform.Web.Features.Room.Lobby
+@using QuizGamePlatform.Web.Features.Room.Match
+@using QuizGamePlatform.Web.Features.Room.Results
+@implements IDisposable
+@inject GameSession Session
+
+<PageTitle>@PageTitleText · QuizGame</PageTitle>
+
+@if (Session.Status == SessionStatus.Ready)
+{
+    @switch (Session.Connection)
+    {
+        case HubConnectionState.Reconnecting:
+            <ConnectionOverlay Since="Session.ReconnectingSinceUtc"
+                               InMatch="Session.Phase is GamePhase.Question or GamePhase.Reveal"
+                               IsTeamGame="Session.Room?.IsTeamGame == true" />
+            break;
+        case HubConnectionState.Disconnected:
+            <ConnectionBanner OnReconnect="() => Session.EnterAsync(RoomId)" />
+            break;
+    }
+}
+
+@switch (Session.Status)
+{
+    case SessionStatus.Ready:
+        @switch (Session.Phase)
+        {
+            case GamePhase.Lobby:
+                @* Room параметром: новый снимок с сервера → лобби перерисуется (без параметров Blazor его пропустит) *@
+                <LobbyView Room="Session.Room!" />
+                break;
+            case GamePhase.Question or GamePhase.Reveal:
+                <MatchView Room="Session.Room!" Question="Session.Question!" Answered="Session.AnsweredLinkIds" MyAnswer="Session.MyAnswerOptionId" />
+                break;
+            case GamePhase.Results:
+                <ResultsView Room="Session.Room!" TotalQuestions="Session.Question?.TotalQuestions" />
+                break;
+            default:
+                <p class="loading" role="status">Загружаем игру…</p>
+                break;
+        }
+        break;
+
+    case SessionStatus.NotParticipant:
+        <RoomMessage Title="Вы не в этой комнате"
+                     Text="Войти можно по ссылке-приглашению от ведущего. Если вы вышли сами, откройте ссылку ещё раз." />
+        break;
+
+    case SessionStatus.Removed when Session.MyExitReason == ExitReason.Kicked:
+        <RoomMessage Title="Ведущий убрал вас из комнаты"
+                     Text="Если это ошибка, напишите ведущему. Вернуться можно по той же ссылке." />
+        break;
+
+    case SessionStatus.Removed:
+        <RoomMessage Title="Вы вышли из комнаты"
+                     Text="Передумали? Откройте ту же ссылку: в лобби пустим, пока есть места, а в идущую игру — в первые 40 секунд после выхода." />
+        break;
+
+    case SessionStatus.Gone:
+        <RoomMessage Title="Комнаты больше нет"
+                     Text="Ведущий её удалил. Попросите у него ссылку на новую комнату." />
+        break;
+
+    case SessionStatus.Failed:
+        <div class="failed">
+            <h1>Не удалось открыть комнату</h1>
+            <ErrorBanner Message="@(Session.Error?.Message ?? "Попробуйте ещё раз")" OnRetry="() => Session.EnterAsync(RoomId)" />
+        </div>
+        break;
+
+    default:
+        <p class="loading" role="status">Подключаемся к комнате…</p>
+        break;
+}
+
+@code {
+    [Parameter]
+    public Guid RoomId { get; set; }
+
+    private string PageTitleText => Session.Phase switch
+    {
+        GamePhase.Lobby => "Лобби",
+        GamePhase.Question or GamePhase.Reveal => "Игра",
+        GamePhase.Results => "Итоги",
+        _ => "Комната"
+    };
+
+    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+
+    protected override Task OnParametersSetAsync() => Session.EnterAsync(RoomId);
+
+    // события хаба приходят вне цикла рендера компонента
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Session.Exit();
+    }
+}

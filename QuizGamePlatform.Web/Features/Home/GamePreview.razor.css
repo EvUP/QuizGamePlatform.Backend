@@ -1,0 +1,291 @@
+/* отступы и шрифты сжимаются по высоте окна — превью не выталкивает рейтинг вниз */
+.preview {
+    min-width: 0;
+    margin: 0;
+    /* те же поля, что у карточки рейтинга под превью (app.css) */
+    padding: var(--qg-side-card-pad-y) var(--qg-side-card-pad-x);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.6vh, 20px);
+}
+
+.preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.preview-label {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--qg-text-2);
+}
+
+.preview-timer {
+    padding: 4px 10px;
+    border-radius: var(--qg-radius-s);
+    background: var(--qg-surface-3);
+    color: var(--qg-accent);
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+}
+
+    /* показ ответа: таймер гаснет, как в игре */
+    .preview-timer.done {
+        color: var(--qg-faint);
+    }
+
+/* ---------- смена вопроса: карточка поворачивается по оси X, как грань кубика ---------- */
+
+.stage {
+    perspective: 900px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.6vh, 20px);
+    transform-origin: 50% 50% -60px;
+    backface-visibility: hidden;
+    animation: qg-card-in 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+    .card.leaving {
+        animation: qg-card-out 420ms cubic-bezier(0.4, 0, 1, 1) both;
+    }
+
+@keyframes qg-card-in {
+    from {
+        opacity: 0;
+        transform: rotateX(-65deg) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes qg-card-out {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+
+    to {
+        opacity: 0;
+        transform: rotateX(60deg) translateY(-8px);
+    }
+}
+
+/* под вопрос всегда зарезервированы три строки (хватает самому длинному из шести) —
+   смена не дёргает раскладку, короткий вопрос стоит по центру этой высоты */
+.preview-question {
+    height: calc(3em * 1.25);
+    display: flex;
+    align-items: center;
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: clamp(15px, min(2.5vh, 1.45vw), 21px);
+    line-height: 1.25;
+}
+
+    .preview-question span {
+        text-wrap: balance;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+    }
+
+.preview-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+/* варианты появляются по очереди; при показе ответа верный подсвечивается, остальные гаснут */
+.preview-option {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: clamp(5px, 1.1vh, 11px) 10px;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    background: var(--qg-surface-2);
+    font-weight: 700;
+    /* backwards, не both: после появления прозрачность снова управляется классами dimmed/correct */
+    animation: qg-option-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(200ms + var(--i) * 55ms);
+    transition: opacity 0.35s ease, border-color 0.35s ease, background-color 0.35s ease;
+}
+
+    .preview-option.dimmed {
+        opacity: 0.4;
+    }
+
+    .preview-option.correct {
+        border-color: var(--qg-accent);
+        background: var(--qg-success-bg);
+    }
+
+.option-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mark {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    animation: qg-pop 320ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes qg-option-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes qg-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.letter {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.divider {
+    height: 1px;
+    background: var(--qg-line);
+}
+
+.preview-teams {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.1vh, 12px);
+}
+
+.preview-caption {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.team {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.team-name {
+    width: 112px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.team-bar {
+    flex: 1;
+    height: 12px;
+    border-radius: 6px;
+    background: var(--qg-surface-2);
+    overflow: hidden;
+}
+
+    /* полоса растёт через transform: scaleX — без пересчёта раскладки */
+    .team-bar span {
+        display: block;
+        width: 100%;
+        height: 12px;
+        border-radius: 6px;
+        transform-origin: left center;
+        transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+/* новое число очков «выезжает» снизу */
+.team-points {
+    width: 44px;
+    overflow: hidden;
+    text-align: right;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+    .team-points span {
+        display: inline-block;
+        animation: qg-roll 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+@keyframes qg-roll {
+    from {
+        opacity: 0;
+        transform: translateY(70%);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* на низком окне показываем только вопрос и варианты — таблица команд уступает место рейтингу */
+@media (max-height: 860px) {
+    .divider, .preview-teams {
+        display: none;
+    }
+}
+
+/* без движения: вопросы просто сменяются, полосы и числа — без анимации */
+@media (prefers-reduced-motion: reduce) {
+    .card, .card.leaving, .preview-option, .mark, .team-points span {
+        animation: none;
+    }
+
+    .team-bar span, .preview-option {
+        transition: none;
+    }
+}

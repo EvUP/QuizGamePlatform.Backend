@@ -1,0 +1,16 @@
+.not-found {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 64px 0;
+}
+
+    .not-found p {
+        color: var(--qg-muted);
+    }
+
+.authorizing {
+    padding: 64px 0;
+    color: var(--qg-muted);
+    font-weight: 600;
+}

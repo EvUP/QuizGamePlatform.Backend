@@ -1,0 +1,149 @@
+@* Колонка команды в лобби. Права решает LobbyView, здесь только отображение и события. *@
+<article class="team @(IsMine ? "mine" : null)" style="--team-color: var(--qg-team-@Team.Number)">
+    <header class="head">
+        <div class="head-line">
+            <span class="eyebrow">Команда @Team.Number@(IsMine ? " · ваша" : "")</span>
+            <span class="count">@Team.Members@(Team.ExpectedPlayers is { } expected ? $" / {expected}" : "")</span>
+        </div>
+
+        @if (editing)
+        {
+            <form class="rename" @onsubmit="SaveAsync">
+                <label class="visually-hidden" for="team-name-@Team.Number">Название команды @Team.Number</label>
+                <input id="team-name-@Team.Number" maxlength="@GameRules.TeamNameMaxLength" @bind="draft" @bind:event="oninput" />
+                <button type="submit" class="rename-save" disabled="@string.IsNullOrWhiteSpace(draft)">Готово</button>
+                <button type="button" class="icon-button" aria-label="Отменить" @onclick="() => editing = false">
+                    <Icon Name="IconName.Close" Size="18" />
+                </button>
+            </form>
+        }
+        else
+        {
+            <div class="name-line">
+                <h2 class="name" title="@Team.Name">@Team.Name</h2>
+                @if (CanRename)
+                {
+                    <button type="button" class="icon-button" aria-label="@($"Переименовать команду {Team.Name}")" @onclick="StartEdit">
+                        <Icon Name="IconName.Pencil" Size="18" />
+                    </button>
+                }
+            </div>
+        }
+
+        @if (Team.JoinLink is { } link)
+        {
+            <CopyLinkButton Url="@link" DoneLabel="Скопировано" FailedLabel="Не вышло — ещё раз" />
+        }
+    </header>
+
+    <div class="players">
+        @foreach (var player in Players)
+        {
+            <PlayerRow @key="player.RoomPlayerLinkId" Player="player" IsMe="player.RoomPlayerLinkId == MyLinkId">
+                @if (CanManagePlayers && player.RoomPlayerLinkId != MyLinkId)
+                {
+                    <span class="controls">
+                    <label class="visually-hidden" for="move-@player.RoomPlayerLinkId">Перенести @player.PlayerName в команду</label>
+                    @* в списке только номера — названия видны в шапках колонок, а колонка узкая *@
+                    <select id="move-@player.RoomPlayerLinkId" class="move" value="@Team.Number" title="Перенести в команду"
+                            @onchange="e => OnMove.InvokeAsync(new PlayerMove(player.RoomPlayerLinkId, int.Parse((string)e.Value!)))">
+                        @foreach (var option in TeamOptions)
+                        {
+                            <option value="@option.Number" title="@option.Name">→ @option.Number</option>
+                        }
+                    </select>
+                    <button type="button" class="icon-button kick" aria-label="@($"Убрать {player.PlayerName} из комнаты")"
+                            @onclick="() => OnRemove.InvokeAsync(player.RoomPlayerLinkId)">
+                        <Icon Name="IconName.Close" Size="16" StrokeWidth="2.6" />
+                    </button>
+                    </span>
+                }
+            </PlayerRow>
+        }
+
+        @* ожидаемые, но ещё не пришедшие игроки — пустые места *@
+        @if (Players.Count > 0)
+        {
+            @for (var i = 0; i < FreeSlots; i++)
+            {
+                <div class="slot-empty" aria-hidden="true">
+                    <span class="slot-avatar"></span>
+                    <span>Ждём игрока</span>
+                </div>
+            }
+        }
+
+        @if (Players.Count == 0)
+        {
+            <div class="empty">
+                <span>@(CanManagePlayers ? "Пока никого. Отправьте команде её ссылку." : "Пока никого — ждём первых смельчаков.")</span>
+                @if (CanDelete)
+                {
+                    <button type="button" class="delete" @onclick="OnDelete">Удалить команду</button>
+                }
+            </div>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public TeamResponse Team { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RoomParticipationResponse> Players { get; set; } = [];
+
+    [Parameter]
+    public Guid MyLinkId { get; set; }
+
+    [Parameter]
+    public bool IsMine { get; set; }
+
+    [Parameter]
+    public bool CanRename { get; set; }
+
+    /// <summary>Ведущий: переносить между командами и убирать игроков</summary>
+    [Parameter]
+    public bool CanManagePlayers { get; set; }
+
+    [Parameter]
+    public bool CanDelete { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TeamOption> TeamOptions { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<string> OnRename { get; set; }
+
+    [Parameter]
+    public EventCallback<PlayerMove> OnMove { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnRemove { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    // пустые места до ожидаемого числа игроков команды — только для отображения
+    private int FreeSlots => Team.ExpectedPlayers is { } expected ? Math.Max(0, expected - Players.Count) : 0;
+
+    private bool editing;
+    private string draft = "";
+
+    private void StartEdit()
+    {
+        draft = Team.Name;
+        editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var name = draft.Trim();
+        editing = false;
+
+        if (name.Length > 0 && name != Team.Name)
+        {
+            await OnRename.InvokeAsync(name);
+        }
+    }
+}

@@ -1,0 +1,17 @@
+/* Игровой экран ровно в высоту окна: лобби, вопрос, итоги сами делят высоту, лишнее прокручивается внутри блоков */
+.game {
+    height: 100vh;
+    height: 100dvh;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: clamp(12px, 2.4vh, 24px) var(--qg-gutter);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+@media (max-width: 599px) {
+    .game {
+        padding: 12px 16px;
+    }
+}

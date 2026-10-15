@@ -1,0 +1,12 @@
+.loading {
+    padding: clamp(24px, 8vh, 64px) 0;
+    color: var(--qg-muted);
+    font-weight: 600;
+}
+
+.failed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: clamp(20px, 5vh, 40px) 0;
+}

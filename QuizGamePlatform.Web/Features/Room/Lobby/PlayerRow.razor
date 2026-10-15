@@ -1,0 +1,78 @@
+@* Участник: аватар, имя, «гость» овалом или галочка аккаунта, корона капитана. Действия ведущего — в ChildContent. *@
+<div class="player @(IsMe ? "me" : null) @(IsOffline ? "offline" : null)">
+    <span class="avatar" aria-hidden="true">@Initials</span>
+    <span class="info">
+        <span class="name-line">
+            <span class="name" title="@Player.PlayerName">@Player.PlayerName</span>
+            @if (Player.IsGuest)
+            {
+                <span class="guest">гость</span>
+            }
+            else
+            {
+                <span class="account"><Icon Name="IconName.CheckCircle" Size="16" StrokeWidth="2.6" Label="аккаунт" /></span>
+            }
+            @if (Player.IsCaptain)
+            {
+                <span class="captain"><Icon Name="IconName.Crown" Size="18" StrokeWidth="1.8" Label="капитан" /></span>
+            }
+        </span>
+        @if (Note is not null)
+        {
+            <span class="note">@Note</span>
+        }
+    </span>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RoomParticipationResponse Player { get; set; } = default!;
+
+    [Parameter]
+    public bool IsMe { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool IsOffline => !Player.IsActive && Player.ExitReason == ExitReason.Disconnected;
+
+    private string Initials
+    {
+        get
+        {
+            var words = Player.PlayerName.Split([' ', '.', '_', '-'], StringSplitOptions.RemoveEmptyEntries);
+            var letters = words.Length >= 2 ? $"{words[0][0]}{words[1][0]}" : Player.PlayerName[..Math.Min(2, Player.PlayerName.Length)];
+            return letters.ToUpperInvariant();
+        }
+    }
+
+    private string? Note
+    {
+        get
+        {
+            if (IsOffline)
+            {
+                return "нет связи, ждём возвращения";
+            }
+
+            var parts = new List<string>(2);
+
+            if (Player.IsHost)
+            {
+                parts.Add("ведущий");
+            }
+            else if (Player.IsCaptain)
+            {
+                parts.Add("капитан");
+            }
+
+            if (IsMe)
+            {
+                parts.Add("это вы");
+            }
+
+            return parts.Count > 0 ? string.Join(" · ", parts) : null;
+        }
+    }
+}

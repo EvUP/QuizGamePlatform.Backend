@@ -1,0 +1,341 @@
+/* Вопрос во всю высоту окна: вопрос, варианты и кнопка ведущего всегда на экране, боковые панели прокручиваются сами */
+.match {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+.top {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+}
+
+.counter {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: 20px;
+    white-space: nowrap;
+}
+
+    .counter span {
+        color: var(--qg-faint);
+    }
+
+.steps {
+    flex: 1 1 240px;
+    display: flex;
+    gap: 6px;
+}
+
+.step {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--qg-surface-3);
+}
+
+    .step.done {
+        background: var(--qg-accent);
+    }
+
+    .step.current {
+        background: var(--qg-text);
+    }
+
+.ghost {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid var(--qg-line);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.leave {
+    border-color: #5A3A40;
+    color: var(--qg-danger-soft);
+}
+
+.confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.danger {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--qg-danger);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+}
+
+.body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.main {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.8vh, 18px);
+}
+
+    .main > *, .main ::deep .error-banner {
+        flex: none;
+    }
+
+.question {
+    display: flex;
+    align-items: center;
+    gap: clamp(16px, 2.4vw, 28px);
+    padding: clamp(14px, 2.6vh, 28px) clamp(16px, 2.4vw, 28px);
+    border-radius: var(--qg-radius-xl);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+    /* кольцо таймера меньше на низком окне (размер задан компонентом инлайном — перекрываем) */
+    .question ::deep .ring {
+        --size: clamp(64px, 14vh, 120px) !important;
+    }
+
+    .question h1 {
+        min-width: 0;
+        font-weight: 700;
+        font-size: clamp(19px, min(2.6vw, 4.4vh), 34px);
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
+    }
+
+/* четыре варианта — всегда 2×2 (на телефоне — столбиком) */
+.options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(8px, 1.4vh, 14px);
+}
+
+.status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    padding: clamp(8px, 1.5vh, 14px) 18px;
+    border-radius: 18px;
+    font-weight: 700;
+}
+
+.accepted {
+    background: var(--qg-success-bg);
+    border: 1px solid var(--qg-accent);
+    color: var(--qg-accent-hover);
+}
+
+.reveal {
+    flex-direction: column;
+    align-items: flex-start;
+    background: var(--qg-success-bg);
+    border: 1px solid var(--qg-accent);
+    color: var(--qg-text-2);
+}
+
+.status-title {
+    font-family: var(--qg-font-display);
+    font-size: clamp(16px, 2.6vh, 20px);
+    color: var(--qg-text);
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-muted);
+}
+
+.host-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    padding: clamp(8px, 1.5vh, 16px) clamp(14px, 1.6vw, 20px);
+    font-size: 15px;
+    border-radius: 20px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text-2);
+    font-weight: 600;
+}
+
+    .host-bar span {
+        flex: 1 1 260px;
+    }
+
+.next {
+    min-height: clamp(44px, 6.6vh, 52px);
+    padding: 0 22px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow: 0 4px 0 var(--qg-accent-shadow);
+}
+
+    .next:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+.side {
+    flex: 0 0 clamp(260px, 25vw, 320px);
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6vh, 16px);
+}
+
+    .side ::deep .panel, .side ::deep .board {
+        flex: none;
+    }
+
+/* планшет: панели под вопросом и забирают остаток высоты */
+@media (max-width: 899px) {
+    .body {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .main {
+        flex: none;
+        overflow: visible;
+    }
+
+    .side {
+        flex: 1 1 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        align-items: start;
+        align-content: start;
+    }
+}
+
+/* телефон: счётчик и «Выйти» в строку, полоска вопросов под ними, варианты столбиком */
+@media (max-width: 599px) {
+    .top {
+        gap: 8px 12px;
+        justify-content: space-between;
+    }
+
+    .counter {
+        font-size: 17px;
+    }
+
+    .steps {
+        order: 3;
+        flex-basis: 100%;
+    }
+
+    .step {
+        height: 6px;
+    }
+
+    .confirm {
+        order: 2;
+        font-size: 13px;
+    }
+
+    .question {
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: var(--qg-radius-l);
+    }
+
+        .question ::deep .ring {
+            --size: 60px !important;
+        }
+
+        .question ::deep .ring .caption {
+            margin-top: 2px;
+            font-size: 10px;
+        }
+
+        .question h1 {
+            font-size: clamp(16px, 2.15vh, 19px);
+        }
+
+    .options {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .status {
+        padding: 8px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+    }
+
+    .host-bar {
+        padding: 10px 12px;
+        gap: 8px;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+        .host-bar span {
+            flex-basis: 100%;
+        }
+
+    .next {
+        flex: 1;
+        min-height: 44px;
+    }
+}
+
+/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
+   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+@supports (animation-timeline: scroll()) {
+    .main, .side {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

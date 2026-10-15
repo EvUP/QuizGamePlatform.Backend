@@ -1,0 +1,279 @@
+/* Колонка команды занимает ячейку сетки лобби целиком; список игроков прокручивается внутри */
+.team {
+    min-width: 0;
+    min-height: 0;
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+    .team.mine {
+        border: 2px solid var(--team-color);
+    }
+
+.head {
+    flex: none;
+    padding: clamp(10px, 1.8vh, 18px) 14px clamp(10px, 1.6vh, 16px);
+    background: var(--team-color);
+    color: var(--qg-on-accent);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vh, 10px);
+}
+
+    /* колонка узкая — подпись переносится на вторую строку, а не обрезается */
+    .head ::deep .copy {
+        min-height: 34px;
+        padding: 5px 6px;
+        gap: 6px;
+        font-size: 12.5px;
+        line-height: 1.15;
+        text-align: center;
+        overflow-wrap: break-word;
+    }
+
+    /* уже копировали — на цветной шапке вторичная кнопка тёмным контуром (светлый текст тут не читается) */
+    .head ::deep .copy.was-copied:not(.done):not(.failed) {
+        background: rgba(20, 18, 31, 0.08);
+        color: var(--qg-on-accent);
+        box-shadow: inset 0 0 0 1.5px rgba(20, 18, 31, 0.4);
+    }
+
+        .head ::deep .copy.was-copied:not(.done):not(.failed):hover {
+            background: rgba(20, 18, 31, 0.18);
+        }
+
+.head-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.count {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.name-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+}
+
+/* длинное название — до двух строк, полностью в подсказке */
+.name {
+    flex: 1;
+    min-width: 0;
+    font-size: 17px;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+}
+
+/* пять узких колонок в ряд — название мельче, чтобы слова не рвались */
+@media (min-width: 1240px) {
+    .name {
+        font-size: 15px;
+    }
+}
+
+.icon-button {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: var(--qg-radius-s);
+    background: rgba(20, 18, 31, 0.12);
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .icon-button:hover {
+        background: rgba(20, 18, 31, 0.22);
+    }
+
+.rename {
+    display: flex;
+    gap: 6px;
+}
+
+    .rename input {
+        flex: 1;
+        min-width: 0;
+        height: 44px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--qg-on-accent);
+        color: var(--qg-text);
+        font-weight: 800;
+        font-size: 17px;
+    }
+
+.rename-save {
+    flex: none;
+    height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--qg-on-accent);
+    color: var(--qg-accent);
+    font-weight: 800;
+}
+
+.players {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+}
+
+    /* строки игроков — дочерний компонент, поэтому ::deep; без flex: none они сжимались и наезжали друг на друга */
+    .players ::deep .player {
+        flex: none;
+        padding: 6px;
+    }
+
+    .players ::deep .avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+
+/* в узкой колонке кнопки ведущего переносятся под имя */
+.controls {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.move {
+    flex: none;
+    width: 58px;
+    height: 34px;
+    padding: 0 6px;
+    border-radius: var(--qg-radius-s);
+    border: 1px solid var(--qg-line);
+    background: var(--qg-surface-2);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.kick {
+    width: 32px;
+    height: 34px;
+    background: transparent;
+    color: var(--qg-subtle);
+}
+
+    .kick:hover {
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+    }
+
+.empty {
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    color: var(--qg-subtle);
+    font-size: 14px;
+}
+
+.delete {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: var(--qg-radius-s);
+    border: 1px solid #5A3A40;
+    background: transparent;
+    color: var(--qg-danger-soft);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* строки игроков в узкой колонке: плотнее, ник — переносом слов, а не по буквам */
+.players ::deep .name {
+    font-size: 14px;
+    line-height: 1.25;
+    hyphens: auto;
+}
+
+.players ::deep .note {
+    font-size: 11px;
+}
+
+/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
+   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+@supports (animation-timeline: scroll()) {
+    .players {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}
+
+/* свободные места до ожидаемого числа игроков — пунктирные строки «Ждём игрока» */
+.slot-empty {
+    flex: none;
+    min-height: 44px;
+    margin: 2px 0;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--qg-line);
+    color: var(--qg-faint);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.slot-avatar {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px dashed var(--qg-line-strong);
+}
