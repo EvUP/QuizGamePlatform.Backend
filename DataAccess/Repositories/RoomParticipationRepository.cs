@@ -75,10 +75,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .ToListAsync(ct);
         }
 
-        public async Task<List<GlobalLeaderboardEntry>> GetGlobalLeaderboard(CancellationToken ct)
+        public async Task<List<GlobalLeaderboardEntry>> GetLeaderboard(bool teamGames, CancellationToken ct)
         {
             return await context.RoomParticipations
-                .Where(rp => rp.UserId != null && rp.Room.Status == RoomStatus.Finished)
+                .Where(rp => rp.UserId != null && rp.Room.Status == RoomStatus.Finished && rp.Room.IsTeamGame == teamGames)
                 // вышедший до старта матч не сыграл
                 .Where(rp => rp.IsActive || context.Matches.Any(m => m.RoomId == rp.RoomId && rp.FinishedAt >= m.StartedAt))
                 .Select(rp => new

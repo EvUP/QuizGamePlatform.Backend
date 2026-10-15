@@ -2,6 +2,7 @@
 using QuizGamePlatform.Backend.Api.Hubs;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.BackgroundServices;
+using QuizGamePlatform.Backend.Application.Options;
 using QuizGamePlatform.Backend.Application.Services;
 using QuizGamePlatform.Backend.Core.Abstractions;
 using QuizGamePlatform.Backend.Core.Helpers;
@@ -18,6 +19,12 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
             builder.Services.AddSingleton<IGuestTokenService, GuestTokenService>();
+
+            builder.Services.AddOptions<InviteOptions>()
+                .Bind(builder.Configuration.GetSection(InviteOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+            builder.Services.AddSingleton<IInviteMailer, SmtpInviteMailer>();
 
             builder.Services.AddScoped<IRoomService, RoomService>();
             builder.Services.AddScoped<IRoomRepository, RoomRepository>();

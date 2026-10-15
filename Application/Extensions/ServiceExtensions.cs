@@ -197,6 +197,13 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                 .AddStackExchangeRedis(GetConnection("Redis", configuration)!, options =>
                     options.Configuration.ChannelPrefix = RedisChannel.Literal("quiz-platform-signalr"));
 
+            // кто на связи, общий для инстансов; потерявший связь выходит после паузы
+            services.AddSingleton(sp => new ConnectionPresence(
+                GetConnection("Redis", configuration)!,
+                sp.GetRequiredService<ILogger<ConnectionPresence>>()));
+            services.AddSingleton<DisconnectWatcher>();
+            services.AddHostedService(sp => sp.GetRequiredService<DisconnectWatcher>());
+
             return services;
         }
 
