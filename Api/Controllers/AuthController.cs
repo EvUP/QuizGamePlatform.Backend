@@ -20,7 +20,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 if (currentUser.RoomPlayerLinkId is not { } roomPlayerLinkId)
                 {
                     return Unauthorized(new CommonErrorResponse(
-                        message: "В гостевом токене нет клейма sub",
+                        message: "Вход гостя устарел — откройте ссылку ещё раз",
                         method: HttpContext.GetMethodWithPath()));
                 }
 
@@ -34,7 +34,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (subject is null)
             {
                 return Unauthorized(new CommonErrorResponse(
-                    message: "В токене нет клейма sub",
+                    message: "Вход устарел — войдите ещё раз",
                     method: HttpContext.GetMethodWithPath()));
             }
 

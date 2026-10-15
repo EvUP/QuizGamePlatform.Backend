@@ -10,7 +10,10 @@ public static class MatchHelper
     static public readonly int MaxTeams = 5;
     public const int TeamNameMaxLength = 30;
     static public readonly int MaxQuestionCount = 30;
-    
+
+    // показ правильного ответа перед следующим вопросом
+    public const int RevealSeconds = 3;
+
     static public string DefaultTeamName(int number) => $"Команда {number}";
 
     // \0 роняет запрос в базу, перевод строки ломает письмо со ссылками

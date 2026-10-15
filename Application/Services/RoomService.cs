@@ -30,6 +30,7 @@ namespace QuizGamePlatform.Backend.Application.Services
         private const int JoinAttempts = 20;
         private const int CodeAttempts = 10;
         private const int PresenceAttempts = 3;
+        private const int MyResultsLimit = 20;
 
         private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
@@ -132,8 +133,14 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            var players = await roomParticipationRepository.GetParticipationsByRoomId(roomId, ct);
-            var match = await matchRepository.GetMatchByRoomId(roomId, ct);
+            return await BuildStateAsync(room, me, ct);
+        }
+
+        // состояние глазами участника me, по нему же итоги в «Моих комнатах»
+        private async Task<RoomStateResponse> BuildStateAsync(RoomEntity room, RoomPlayerEntity me, CancellationToken ct)
+        {
+            var players = await roomParticipationRepository.GetParticipationsByRoomId(room.Id, ct);
+            var match = await matchRepository.GetMatchByRoomId(room.Id, ct);
 
             if (!room.IsTeamGame)
             {
@@ -143,13 +150,16 @@ namespace QuizGamePlatform.Backend.Application.Services
                     room.Status,
                     match?.Id,
                     me.Id,
-                    players.Select(p => p.ToRoomParticipationResponse(room.HostUserId)).ToList(),
+                    room.Status == RoomStatus.Finished && match is not null
+                        ? await FinalPlayersAsync(room, match, players, ct)
+                        : players.Select(p => p.ToRoomParticipationResponse(room.HostUserId)).ToList(),
                     false,
                     null);
             }
 
             // таблица обновляется после каждого вопроса, открытый не считаем, иначе он выдал бы верность ответов
             Func<List<RoomPlayerEntity>, int>? points = null;
+            Func<List<RoomPlayerEntity>, long?>? averageTime = null;
 
             if (room.Status != RoomStatus.Waiting && match is not null)
             {
@@ -157,13 +167,15 @@ namespace QuizGamePlatform.Backend.Application.Services
                 var questions = room.Status == RoomStatus.Finished
                     ? match.Questions
                     : match.Questions.Where(q => q.ClosedAt is not null).ToList();
+                var timings = RoomMapper.AnswerTimings(match, questions, answers);
                 points = members => RoomMapper.TeamPoints(members, questions, answers);
+                averageTime = members => RoomMapper.AverageCorrectTime(members, timings);
             }
 
             // ссылки команд видит только владелец
             var isHost = room.HostUserId is not null && me.UserId == room.HostUserId;
             var teams = (await roomRepository.GetTeams(room.Id, ct))
-                .ToTeamResponses(room.Status, players, points, t => isHost ? invites.Value.JoinLink(t.JoinCode) : null);
+                .ToTeamResponses(room.Status, players, points, averageTime, t => isHost ? invites.Value.JoinLink(t.JoinCode) : null);
             var captains = teams.Select(t => t.CaptainLinkId).ToHashSet();
 
             return new RoomStateResponse(
@@ -181,13 +193,59 @@ namespace QuizGamePlatform.Backend.Application.Services
                 teams);
         }
 
-        public async Task<List<CreateRoomResponse>> GetMyRoomsAsync(CancellationToken ct)
+        // места без дележа: очки, вышедшие до финала в конце, меньше суммарное время верных, больше ответов, кто раньше вошёл
+        private async Task<List<RoomParticipationResponse>> FinalPlayersAsync(
+            RoomEntity room,
+            MatchEntity match,
+            List<RoomPlayerEntity> players,
+            CancellationToken ct)
+        {
+            var timings = RoomMapper.AnswerTimings(match, match.Questions, await matchRepository.GetAnswersAsync(match.Id, ct));
+            RoomMapper.AnswerTiming Timing(RoomPlayerEntity p) => timings.GetValueOrDefault(p.Id) ?? RoomMapper.AnswerTiming.None;
+
+            return players
+                .OrderByDescending(p => p.Score)
+                .ThenByDescending(p => p.IsActive)
+                .ThenBy(p => Timing(p).CorrectTimeMs ?? 0)
+                .ThenByDescending(p => Timing(p).Answered)
+                .ThenBy(p => p.JoinedAt)
+                .Select((p, i) => p.ToRoomParticipationResponse(room.HostUserId, place: i + 1, correctTimeMs: Timing(p).CorrectTimeMs))
+                .ToList();
+        }
+
+        public async Task<List<MyRoomResponse>> GetMyRoomsAsync(CancellationToken ct)
         {
             var rooms = await roomRepository.GetRoomsOfUser(currentUser.KeycloakSubject!, ct);
+            var results = new Dictionary<Guid, MyRoomResult>();
+
+            // итоги считаем как на экране итогов, но только для последних завершённых, иначе список тормозит
+            foreach (var room in rooms.Where(r => r.Status == RoomStatus.Finished).Take(MyResultsLimit))
+            {
+                // в Players репозиторий кладёт только моё участие
+                if (room.Players.FirstOrDefault() is { } me)
+                {
+                    results[room.Id] = (await BuildStateAsync(room, me, ct)).ToMyRoomResult();
+                }
+            }
 
             return rooms
-                .Select(r => r.ToCreateRoomResponse(r.IsTeamGame ? null : invites.Value.JoinLink(r.RoomCode)))
+                .Select(r => r.ToMyRoomResponse(
+                    r.IsTeamGame ? null : invites.Value.JoinLink(r.RoomCode),
+                    r.IsTeamGame ? MyRoomTeams(r) : null,
+                    results.GetValueOrDefault(r.Id)))
                 .ToList();
+        }
+
+        public async Task<InviteResponse?> GetInviteAsync(string code, CancellationToken ct)
+        {
+            var invite = await roomRepository.FindInviteAsync(code.Trim().ToUpperInvariant(), ct);
+
+            if (invite is not { Room: var room, Team: var team })
+            {
+                return null;
+            }
+
+            return new InviteResponse(room.IsTeamGame, room.Status, room.HostUser?.UserName, team?.Number, team?.Name);
         }
 
         public async Task<(RoomResponse? Room, JoinRefusal Refusal)> JoinToRoomByRoomCodeAsync(
@@ -274,7 +332,7 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             // аккаунт играет под логином, гость под своим ником
             var user = currentUser.KeycloakSubject is not null ? await GetOrCreateCurrentUserAsync(ct) : null;
-            var name = user?.UserName ?? nickname!.Trim().ToLowerInvariant();
+            var name = user?.UserName ?? nickname!.Trim();
 
             // логин аккаунта уникален сам, гость не берёт имя занятое в комнате
             if (user is null && await roomParticipationRepository.IsNicknameTaken(room.Id, name, ct))
@@ -749,6 +807,17 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
 
             return code;
+        }
+
+        // ссылки команд только владельцу, участнику названия
+        private List<TeamLinkResponse> MyRoomTeams(RoomEntity room)
+        {
+            var isHost = room.HostUser is not null && room.HostUser.KeycloakSubject == currentUser.KeycloakSubject;
+
+            return room.Teams
+                .OrderBy(t => t.Number)
+                .Select(t => isHost ? ToTeamLink(t) : new TeamLinkResponse(t.Number, t.Name, t.ExpectedPlayers, null))
+                .ToList();
         }
 
         private TeamLinkResponse ToTeamLink(RoomTeamEntity team)

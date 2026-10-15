@@ -38,6 +38,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
 
         public async Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct)
             => await context.Rooms
+                .AsNoTracking()
+                .Include(r => r.HostUser)
+                .Include(r => r.Teams)
+                // из участников только своё, по нему итоги
+                .Include(r => r.Players.Where(p => p.User!.KeycloakSubject == keycloakSubject))
                 .Where(r => r.Players.Any(p => p.User!.KeycloakSubject == keycloakSubject))
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
@@ -52,6 +57,27 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
             => await context.RoomTeams
                 .Include(t => t.Room)
                 .FirstOrDefaultAsync(t => t.JoinCode == joinCode, ct);
+
+        public async Task<(RoomEntity Room, RoomTeamEntity? Team)?> FindInviteAsync(string code, CancellationToken ct)
+        {
+            var room = await context.Rooms
+                .AsNoTracking()
+                .Include(r => r.HostUser)
+                .FirstOrDefaultAsync(r => r.RoomCode == code, ct);
+
+            if (room is not null)
+            {
+                return (room, null);
+            }
+
+            var team = await context.RoomTeams
+                .AsNoTracking()
+                .Include(t => t.Room)
+                    .ThenInclude(r => r.HostUser)
+                .FirstOrDefaultAsync(t => t.JoinCode == code, ct);
+
+            return team is null ? null : (team.Room, team);
+        }
 
         // коды комнат и команд живут в одном пространстве ссылок
         public async Task<bool> IsCodeTakenAsync(string code, CancellationToken ct)

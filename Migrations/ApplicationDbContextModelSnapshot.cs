@@ -136,6 +136,9 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.Property<Guid>("MatchId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 

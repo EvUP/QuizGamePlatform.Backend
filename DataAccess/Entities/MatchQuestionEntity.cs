@@ -12,6 +12,9 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
 
         public int Order { get; set; }
 
+        // когда вопрос показали игрокам, от него считаем время ответа; у старых матчей null
+        public DateTime? OpenedAt { get; set; }
+
         public DateTime? ClosedAt { get; set; }
 
         // кто был в игре на закрытии вопроса, по ним считаются очки команды

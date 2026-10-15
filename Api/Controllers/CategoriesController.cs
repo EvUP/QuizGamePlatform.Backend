@@ -23,7 +23,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             if (questions is null)
                 return NotFound(new CommonErrorResponse(
-                    message: $"Category {categoryId} not found",
+                    message: "Тема не найдена",
                     method: HttpContext.GetMethodWithPath()));
 
             return Ok(questions);

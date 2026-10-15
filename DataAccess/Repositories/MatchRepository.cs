@@ -23,7 +23,21 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .AsNoTracking()
                 .Include(mq => mq.Question)
                     .ThenInclude(q => q.AnswerOptions)
+                .Include(mq => mq.Answers)
                 .FirstOrDefaultAsync(mq => mq.MatchId == matchId && mq.Order == order, ct);
+        }
+
+        // верность ответа по вариантам вопроса, SelectedOption отдельно не грузим
+        public async Task<List<MatchQuestionEntity>> GetQuestionsForReviewAsync(Guid matchId, CancellationToken ct)
+        {
+            return await context.MatchQuestions
+                .AsNoTracking()
+                .Include(mq => mq.Question)
+                    .ThenInclude(q => q.AnswerOptions)
+                .Include(mq => mq.Answers)
+                .Where(mq => mq.MatchId == matchId)
+                .OrderBy(mq => mq.Order)
+                .ToListAsync(ct);
         }
 
         public async Task<List<Guid>> GetExpiredMatchIdsAsync(DateTime nowUtc, CancellationToken ct)
