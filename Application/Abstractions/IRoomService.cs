@@ -7,7 +7,8 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
     {
         Task<CreateRoomResponse?> CreateRoomAsync(CreateRoomRequest? request, CancellationToken ct);
         Task<RoomStateResponse?> GetRoomStateAsync(Guid roomId, CancellationToken ct);
-        Task<List<CreateRoomResponse>> GetMyRoomsAsync(CancellationToken ct);
+        Task<List<MyRoomResponse>> GetMyRoomsAsync(CancellationToken ct);
+        Task<InviteResponse?> GetInviteAsync(string code, CancellationToken ct);
         Task<bool> IsRoomHostAsync(Guid roomId, CancellationToken ct);
         Task<bool> DeleteExistingRoomByIdAsync(Guid id, CancellationToken ct);
         Task<(RoomResponse? Room, JoinRefusal Refusal)> JoinToRoomByRoomCodeAsync(

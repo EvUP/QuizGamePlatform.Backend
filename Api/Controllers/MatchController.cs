@@ -21,7 +21,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (request.QuestionCount < 1 || request.QuestionCount > MatchHelper.MaxQuestionCount)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: $"Количество вопросов от 1 до {MatchHelper.MaxQuestionCount}",
+                    message: $"Вопросов может быть от 1 до {MatchHelper.MaxQuestionCount}",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -50,22 +50,22 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 // одновременно вошли, пересели или уже стартовали
                 StartRefusal.Concurrent => Conflict(new CommonErrorResponse(
-                    message: "Комната изменилась одновременно с вами, повторите",
+                    message: "Кто-то успел изменить комнату раньше вас. Попробуйте ещё раз",
                     method: method)),
                 StartRefusal.Started => Conflict(new CommonErrorResponse(
                     message: "Игра в этой комнате уже идёт",
                     method: method)),
                 StartRefusal.Finished => Conflict(new CommonErrorResponse(
-                    message: "Игра в этой комнате уже прошла, для новой игры создайте новую комнату",
+                    message: "Эта игра уже закончилась. Чтобы сыграть снова, создайте новую комнату",
                     method: method)),
                 StartRefusal.TooFewPlayers => BadRequest(new CommonErrorResponse(
-                    message: "Для старта нужно хотя бы 2 игрока",
+                    message: "Чтобы начать, нужно хотя бы 2 игрока",
                     method: method)),
                 StartRefusal.TooFewTeams => BadRequest(new CommonErrorResponse(
-                    message: $"Для старта нужно хотя бы {MatchHelper.MinTeams} команды с игроками",
+                    message: $"Чтобы начать, нужно хотя бы {MatchHelper.MinTeams} команды с игроками",
                     method: method)),
                 StartRefusal.NoQuestions => BadRequest(new CommonErrorResponse(
-                    message: "В выбранных темах нет вопросов",
+                    message: "В выбранных темах пока нет вопросов. Выберите другие темы",
                     method: method)),
                 _ => NotFound(new CommonErrorResponse(
                     message: "Комната не найдена",
@@ -82,11 +82,35 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (question is null)
             {
                 return NotFound(new CommonErrorResponse(
-                    message: $"Матч {matchId} не найден или вы в нём не участвуете",
+                    message: "Игра не найдена или вы в ней не играете",
                     method: HttpContext.GetMethodWithPath()));
             }
 
             return Ok(question);
+        }
+
+        // разбор вопросов на экране итогов
+        [HttpGet("{matchId}/review")]
+        [Authorize]
+        public async Task<IActionResult> GetReview(Guid matchId, CancellationToken ct)
+        {
+            var (review, notFinished) = await matchService.GetReviewAsync(matchId, ct);
+
+            if (notFinished)
+            {
+                return Conflict(new CommonErrorResponse(
+                    message: "Разбор откроется после финала",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
+            if (review is null)
+            {
+                return NotFound(new CommonErrorResponse(
+                    message: "Игра не найдена или вы в ней не играли",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
+            return Ok(review);
         }
 
         [HttpPost("{matchId}/answer")]
@@ -98,7 +122,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (!accepted)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: "Ответ не принят",
+                    message: "Ответ не принят: время вышло или вы уже ответили",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -119,7 +143,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (match is null)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: "Закрыть вопрос досрочно можно, пока он идёт и когда ответили все игроки",
+                    message: "Вопрос уже закрыт",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -148,7 +172,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         }
 
         private ObjectResult NotHost() => StatusCode(StatusCodes.Status403Forbidden, new CommonErrorResponse(
-            message: "Управлять матчем может только владелец комнаты",
+            message: "Управлять игрой может только ведущий",
             method: HttpContext.GetMethodWithPath()));
     }
 }

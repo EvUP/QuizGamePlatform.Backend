@@ -1,6 +1,7 @@
 using System.Numerics;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
+using QuizGamePlatform.Backend.Core.Helpers;
 using QuizGamePlatform.Backend.DataAccess.Entities;
 
 namespace QuizGamePlatform.Backend.Application.Mappers
@@ -23,6 +24,40 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             );
         }
 
+        public static MyRoomResponse ToMyRoomResponse(
+            this RoomEntity room,
+            string? joinLink,
+            List<TeamLinkResponse>? teams,
+            MyRoomResult? result)
+        {
+            return new MyRoomResponse(
+                Id: room.Id,
+                RoomCode: room.RoomCode,
+                Status: room.Status,
+                CreatedAt: room.CreatedAt,
+                IsTeamGame: room.IsTeamGame,
+                JoinLink: joinLink,
+                Teams: teams,
+                Result: result
+            );
+        }
+
+        // итог из состояния комнаты: места уже посчитаны, как на экране итогов
+        public static MyRoomResult ToMyRoomResult(this RoomStateResponse state)
+        {
+            var me = state.Players.FirstOrDefault(p => p.RoomPlayerLinkId == state.MyRoomPlayerLinkId);
+
+            if (state.IsTeamGame)
+            {
+                var teams = state.Teams ?? [];
+                var myTeam = teams.FirstOrDefault(t => t.Number == me?.TeamNumber);
+
+                return new MyRoomResult(myTeam?.Place, myTeam?.Points, teams.FirstOrDefault(t => t.Place == 1)?.Name);
+            }
+
+            return new MyRoomResult(me?.Place, me?.Score, state.Players.FirstOrDefault(p => p.Place == 1)?.PlayerName);
+        }
+
         public static RoomResponse ToJoinRoomResponse(this RoomPlayerEntity playerEntity)
         {
             return new RoomResponse(
@@ -38,11 +73,14 @@ namespace QuizGamePlatform.Backend.Application.Mappers
         );
         }
 
+        // место и время только в итогах обычной игры
         public static RoomParticipationResponse ToRoomParticipationResponse(
             this RoomPlayerEntity playerEntity,
             Guid? hostUserId,
             bool isCaptain = false,
-            bool showScore = true)
+            bool showScore = true,
+            int? place = null,
+            long? correctTimeMs = null)
         {
             return new RoomParticipationResponse(
             RoomPlayerLinkId: playerEntity.Id,
@@ -53,16 +91,19 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             ExitReason: playerEntity.ExitReason,
             Score: showScore ? playerEntity.Score : null,
             TeamNumber: playerEntity.TeamNumber,
-            IsCaptain: isCaptain
+            IsCaptain: isCaptain,
+            Place: place,
+            CorrectTimeMs: correctTimeMs
         );
         }
 
-        // points есть только после матча, тогда считаем места
+        // points есть только после старта, тогда считаем места
         public static List<TeamResponse> ToTeamResponses(
             this List<RoomTeamEntity> teams,
             RoomStatus status,
             List<RoomPlayerEntity> players,
             Func<List<RoomPlayerEntity>, int>? points,
+            Func<List<RoomPlayerEntity>, long?>? averageTime,
             Func<RoomTeamEntity, string?> joinLink)
         {
             var result = new List<TeamResponse>();
@@ -90,7 +131,8 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                     captain?.Id,
                     joinLink(team),
                     points?.Invoke(members),
-                    null));
+                    null,
+                    points is null ? null : averageTime?.Invoke(members)));
             }
 
             if (points is null)
@@ -98,12 +140,64 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                 return result;
             }
 
-            // равные очки делят место
+            // место не делим: при равных очках выше команда, которая в среднем быстрее отвечала верно
             return result
-                .Select(t => t with { Place = 1 + result.Count(o => o.Points > t.Points) })
-                .OrderBy(t => t.Place)
+                .OrderByDescending(t => t.Points)
+                .ThenBy(t => t.AvgCorrectTimeMs ?? long.MaxValue)
                 .ThenBy(t => t.Number)
+                .Select((t, i) => t with { Place = i + 1 })
                 .ToList();
+        }
+
+        // время ответа и число ответов игрока по этим вопросам
+        public sealed record AnswerTiming(List<long> CorrectMs, int Answered)
+        {
+            public static readonly AnswerTiming None = new([], 0);
+
+            // сумма времени верных, null если верных нет
+            public long? CorrectTimeMs => CorrectMs.Count > 0 ? CorrectMs.Sum() : null;
+        }
+
+        // время ответа от открытия вопроса; ответы должны быть с SelectedOption
+        public static Dictionary<Guid, AnswerTiming> AnswerTimings(
+            MatchEntity match,
+            ICollection<MatchQuestionEntity> questions,
+            List<PlayerAnswerEntity> answers)
+        {
+            var openedAt = questions.ToDictionary(q => q.Id, q => QuestionOpenedAt(match, q));
+
+            return answers
+                .Where(a => openedAt.ContainsKey(a.MatchQuestionId))
+                .GroupBy(a => a.RoomPlayerId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new AnswerTiming(
+                        g.Where(a => a.SelectedOption.IsCorrect)
+                            // открытие у старых матчей приблизительное, отрицательного времени не бывает
+                            .Select(a => Math.Max(0, (long)(a.AnsweredAt - openedAt[a.MatchQuestionId]).TotalMilliseconds))
+                            .ToList(),
+                        g.Count()));
+        }
+
+        // среднее время верного ответа по всем игрокам команды, null если верных нет
+        public static long? AverageCorrectTime(List<RoomPlayerEntity> members, Dictionary<Guid, AnswerTiming> timings)
+        {
+            var times = members.SelectMany(m => timings.GetValueOrDefault(m.Id)?.CorrectMs ?? []).ToList();
+
+            return times.Count > 0 ? (long)Math.Round(times.Average()) : null;
+        }
+
+        // у матчей до OpenedAt: первый вопрос со старта, следующий после показа ответа на предыдущий
+        private static DateTime QuestionOpenedAt(MatchEntity match, MatchQuestionEntity question)
+        {
+            if (question.OpenedAt is { } openedAt)
+            {
+                return openedAt;
+            }
+
+            var previous = match.Questions.FirstOrDefault(q => q.Order == question.Order - 1);
+
+            return previous?.ClosedAt?.AddSeconds(MatchHelper.RevealSeconds) ?? match.StartedAt;
         }
 
         // за вопрос до 100: доля верных среди тех, кто был в игре на этом вопросе

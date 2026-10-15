@@ -21,7 +21,7 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<RoomEntity?> GetRoomByRoomCodeAsync(string roomCode, CancellationToken ct);
         /// <summary>
-        /// Комнаты, где у аккаунта есть участие
+        /// Комнаты, где у аккаунта есть участие, с владельцем, командами и его участием (других участников нет)
         /// </summary>
         Task<List<RoomEntity>> GetRoomsOfUser(string keycloakSubject, CancellationToken ct);
         /// <summary>
@@ -32,6 +32,10 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// Найти команду с её комнатой по коду из ссылки
         /// </summary>
         Task<RoomTeamEntity?> GetTeamByJoinCodeAsync(string joinCode, CancellationToken ct);
+        /// <summary>
+        /// Комната с владельцем по коду из ссылки, команда если код командный
+        /// </summary>
+        Task<(RoomEntity Room, RoomTeamEntity? Team)?> FindInviteAsync(string code, CancellationToken ct);
 
         Task<bool> IsCodeTakenAsync(string code, CancellationToken ct);
         /// <summary>

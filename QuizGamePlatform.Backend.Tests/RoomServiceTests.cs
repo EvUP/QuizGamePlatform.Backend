@@ -257,12 +257,13 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Null(result);
         }
 
+        // ник без пробелов по краям, регистр как ввёл гость
         [Fact]
-        public async Task Join_NewGuest_NicknameAndCodeNormalized()
+        public async Task Join_NewGuest_NicknameTrimmedCaseKept()
         {
             var room = Setup(RoomStatus.Waiting);
             var link = Participant(room, isActive: true);
-            _participationRepo.Setup(r => r.CreateRoomPlayer(room, "bob", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(room, "Bob", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
 
             var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("  Bob ", " code ", CancellationToken.None);
 
@@ -1222,19 +1223,133 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(67, points); // 2 верных из 3 в игре
         }
 
+        // место не делим: при равных очках выше команда с меньшим средним временем верного, без верных ниже, дальше номер
         [Fact]
-        public void TeamResults_SamePoints_SamePlace()
+        public void TeamResults_SamePoints_FasterAverageAbove()
         {
             var room = new RoomEntity { Id = Guid.NewGuid() };
             var players = new List<RoomPlayerEntity>();
-            InTeam(room, players, 1);
-            InTeam(room, players, 2);
-            InTeam(room, players, 3);
-            var teams = Enumerable.Range(1, 3).Select(n => new RoomTeamEntity { Number = n, Name = $"T{n}" }).ToList();
+            for (var n = 1; n <= 5; n++)
+            {
+                InTeam(room, players, n);
+            }
+            var teams = Enumerable.Range(1, 5).Select(n => new RoomTeamEntity { Number = n, Name = $"T{n}" }).ToList();
+            var points = new Dictionary<int, int> { [1] = 200, [2] = 200, [3] = 100, [4] = 200, [5] = 200 };
+            var times = new Dictionary<int, long?> { [1] = 9000, [2] = 4000, [3] = 1000, [4] = null, [5] = 9000 };
 
-            var result = teams.ToTeamResponses(RoomStatus.Finished, players, m => m[0].TeamNumber == 3 ? 100 : 200, _ => null);
+            var result = teams.ToTeamResponses(
+                RoomStatus.Finished, players, m => points[m[0].TeamNumber!.Value], m => times[m[0].TeamNumber!.Value], _ => null);
 
-            Assert.Equal(new[] { (1, 1), (2, 1), (3, 3) }, result.Select(t => (t.Number, t.Place!.Value)));
+            Assert.Equal(
+                new[] { (2, 1, 4000L), (1, 2, 9000L), (5, 3, 9000L), (4, 4, -1L), (3, 5, 1000L) },
+                result.Select(t => (t.Number, t.Place!.Value, t.AvgCorrectTimeMs ?? -1)));
+        }
+
+        // время от открытия вопроса; у старого матча без OpenedAt второй открыт после показа ответа на первый
+        [Fact]
+        public void AnswerTimings_FromOpenedAt_OldMatchApproximated()
+        {
+            var first = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 0, ClosedAt = Now.AddSeconds(20) };
+            var second = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 1 };
+            var match = new MatchEntity { StartedAt = Now, Questions = [first, second] };
+            var player = Guid.NewGuid();
+            var answers = new List<PlayerAnswerEntity>
+            {
+                new() { MatchQuestionId = first.Id, RoomPlayerId = player, AnsweredAt = Now.AddSeconds(4), SelectedOption = new() { IsCorrect = true } },
+                new() { MatchQuestionId = second.Id, RoomPlayerId = player, AnsweredAt = Now.AddSeconds(25.5), SelectedOption = new() { IsCorrect = true } },
+            };
+
+            var timing = RoomMapper.AnswerTimings(match, match.Questions, answers)[player];
+
+            Assert.Equal(new long[] { 4000, 2500 }, timing.CorrectMs); // второй открыт на 23-й секунде
+            Assert.Equal(6500, timing.CorrectTimeMs);
+
+            second.OpenedAt = Now.AddSeconds(21);
+            Assert.Equal(4500, RoomMapper.AnswerTimings(match, match.Questions, answers)[player].CorrectMs[1]);
+        }
+
+        // обычная игра: очки, вышедшие в конце, меньше сумма времени верных, больше ответов, кто раньше вошёл
+        [Fact]
+        public async Task RoomState_SimpleGameFinished_TiesBrokenByTimeThenAnswersThenJoin()
+        {
+            var room = Setup(RoomStatus.Finished);
+            var question = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 0, OpenedAt = Now.AddSeconds(-60) };
+            var other = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 1, OpenedAt = Now.AddSeconds(-30) };
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now.AddSeconds(-60), Questions = [question, other] };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            var players = new List<RoomPlayerEntity>();
+            var answers = new List<PlayerAnswerEntity>();
+            RoomPlayerEntity Player(string name, int score, int joinedAgo, bool isActive = true)
+            {
+                var player = Participant(room, isActive);
+                player.Nickname = name;
+                player.Score = score;
+                player.JoinedAt = Now.AddSeconds(-joinedAgo);
+                players.Add(player);
+
+                return player;
+            }
+            void Answer(RoomPlayerEntity p, MatchQuestionEntity q, double seconds, bool correct) => answers.Add(new PlayerAnswerEntity
+            {
+                MatchQuestionId = q.Id,
+                RoomPlayerId = p.Id,
+                AnsweredAt = q.OpenedAt!.Value.AddSeconds(seconds),
+                SelectedOption = new AnswerOptionEntity { IsCorrect = correct },
+            });
+            var slow = Player("slow", 2, 100);
+            Answer(slow, question, 3, true); Answer(slow, other, 4, true);
+            var fast = Player("fast", 2, 50);
+            Answer(fast, question, 2, true); Answer(fast, other, 3, true);
+            var moreAnswers = Player("moreAnswers", 1, 10);
+            Answer(moreAnswers, question, 10, true); Answer(moreAnswers, other, 1, false);
+            var later = Player("later", 1, 70);
+            Answer(later, question, 10, true);
+            var earlier = Player("earlier", 1, 80);
+            Answer(earlier, question, 10, true);
+            var leaver = Player("leaver", 0, 90, isActive: false);
+            Answer(leaver, question, 1, true);
+            var silent = Player("silent", 0, 5);
+            var me = slow;
+            AsGuest(me.Id);
+            Mine(room, me);
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(players);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync(answers);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal(
+                new[] { ("fast", 1, 5000L), ("slow", 2, 7000L), ("moreAnswers", 3, 10000L), ("earlier", 4, 10000L), ("later", 5, 10000L), ("silent", 6, -1L), ("leaver", 7, 1000L) },
+                state!.Players.Select(p => (p.PlayerName, p.Place!.Value, p.CorrectTimeMs ?? -1)));
+        }
+
+        // командная: равные очки, выше команда, которая в среднем быстрее отвечала верно
+        [Fact]
+        public async Task RoomState_TeamGameFinished_SamePoints_FasterTeamFirst()
+        {
+            var (room, _, players) = TeamRoom(RoomStatus.Finished);
+            var question = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 0, OpenedAt = Now.AddSeconds(-30), ClosedAt = Now };
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, Questions = [question] };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            var me = MeGuest(room, players, 1);
+            var mate = InTeam(room, players, 1);
+            var rival = InTeam(room, players, 2);
+            question.InGamePlayerIds = [me.Id, mate.Id, rival.Id];
+            PlayerAnswerEntity Correct(RoomPlayerEntity p, int seconds) => new()
+            {
+                MatchQuestionId = question.Id,
+                RoomPlayerId = p.Id,
+                AnsweredAt = Now.AddSeconds(-30 + seconds),
+                SelectedOption = new AnswerOptionEntity { IsCorrect = true },
+            };
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync([Correct(me, 4), Correct(mate, 12), Correct(rival, 6)]);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            // у обеих по 100: в среднем 8 с против 6 с
+            Assert.Equal(
+                new[] { (2, 100, 1, 6000L), (1, 100, 2, 8000L) },
+                state!.Teams!.Select(t => (t.Number, t.Points!.Value, t.Place!.Value, t.AvgCorrectTimeMs!.Value)));
         }
 
         // таблица по ходу игры: закрытый вопрос считается, открытый нет
@@ -1265,6 +1380,148 @@ namespace QuizGamePlatform.Backend.Tests
                 state!.Teams!.Select(t => (t.Number, t.Points!.Value, t.Place!.Value)));
             Assert.All(state.Players, p => Assert.Null(p.Score)); // личных очков в командной игре не видно
             Assert.True(state.Players.Single(p => p.TeamNumber == 2).IsCaptain); // гость тоже капитан
+        }
+
+        // мои комнаты и приглашение
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MyRooms_TeamNames_LinksOnlyForHost(bool isHost)
+        {
+            var (room, teams, _) = TeamRoom();
+            room.Teams = teams;
+            room.HostUser = new UserEntity { KeycloakSubject = isHost ? "alice-subject" : "host-subject", UserName = "host" };
+            AsRegistered();
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+
+            var rooms = await _sut.GetMyRoomsAsync(CancellationToken.None);
+
+            var links = Assert.Single(rooms).Teams!;
+            Assert.Equal(new[] { "Команда 1", "Команда 2" }, links.Select(t => t.Name));
+            Assert.Equal(
+                isHost ? new[] { "http://quiz/join/TEAM1", "http://quiz/join/TEAM2" } : new string?[] { null, null },
+                links.Select(t => t.JoinLink));
+            Assert.Null(rooms[0].Result); // итог только у завершённой
+        }
+
+        // обычная игра: место как в итогах, равные очки разбивает время верных, победитель один
+        [Fact]
+        public async Task MyRooms_SimpleGameFinished_MyPlaceAndWinner()
+        {
+            var user = AsRegistered();
+            var room = Setup(RoomStatus.Finished);
+            var players = new List<RoomPlayerEntity>();
+            RoomPlayerEntity Player(string name, int score, Guid? userId = null)
+            {
+                var player = Participant(room, isActive: true);
+                player.Nickname = name;
+                player.Score = score;
+                player.UserId = userId;
+                players.Add(player);
+
+                return player;
+            }
+            var boris = Player("Борис", 3);
+            var me = Player("alice", 2, user.Id);
+            var anna = Player("Анна", 3);
+            Player("Дима", 1);
+            room.Players = [me];
+            var waiting = new RoomEntity { Id = Guid.NewGuid(), RoomCode = "WAIT", Status = RoomStatus.Waiting };
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(players);
+            // у Анны и Бориса по 3, Анна отвечала верно быстрее
+            var question = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 0, OpenedAt = Now };
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now, Questions = [question] };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync(
+            [
+                new() { MatchQuestionId = question.Id, RoomPlayerId = boris.Id, AnsweredAt = Now.AddSeconds(9), SelectedOption = new() { IsCorrect = true } },
+                new() { MatchQuestionId = question.Id, RoomPlayerId = anna.Id, AnsweredAt = Now.AddSeconds(5), SelectedOption = new() { IsCorrect = true } },
+            ]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([waiting, room]);
+
+            var rooms = await _sut.GetMyRoomsAsync(CancellationToken.None);
+
+            Assert.Null(rooms[0].Result);
+            var result = rooms[1].Result!;
+            Assert.Equal(3, result.MyPlace); // двое выше с тремя
+            Assert.Equal(2, result.MyPoints);
+            Assert.Equal("Анна", result.WinnerName);
+            Assert.Equal("http://quiz/join/CODE", rooms[1].JoinLink);
+        }
+
+        // командная: место и очки моей команды, победитель команда
+        [Fact]
+        public async Task MyRooms_TeamGameFinished_MyTeamPlaceAndWinner()
+        {
+            var (room, teams, players) = TeamRoom(RoomStatus.Finished);
+            room.Teams = teams;
+            var me = MeAccount(room, players, 1);
+            var vasya = InTeam(room, players, 2);
+            room.Players = [me];
+            var question = new MatchQuestionEntity { Id = Guid.NewGuid(), ClosedAt = Now, InGamePlayerIds = [me.Id, vasya.Id] };
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, Questions = [question] };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync(
+            [
+                new() { MatchQuestionId = question.Id, RoomPlayerId = me.Id, SelectedOption = new AnswerOptionEntity { IsCorrect = false } },
+                new() { MatchQuestionId = question.Id, RoomPlayerId = vasya.Id, SelectedOption = new AnswerOptionEntity { IsCorrect = true } },
+            ]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+
+            var result = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None)).Result!;
+
+            Assert.Equal(2, result.MyPlace);
+            Assert.Equal(0, result.MyPoints);
+            Assert.Equal("Команда 2", result.WinnerName);
+        }
+
+        // итоги считаем только для последних завершённых, чтобы список не тормозил
+        [Fact]
+        public async Task MyRooms_ResultsOnlyForLatestTwentyFinished()
+        {
+            AsRegistered();
+            var rooms = Enumerable.Range(0, 21)
+                .Select(_ =>
+                {
+                    var room = new RoomEntity { Id = Guid.NewGuid(), RoomCode = "CODE", Status = RoomStatus.Finished };
+                    room.Players = [Participant(room, isActive: true)];
+
+                    return room;
+                })
+                .ToList();
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(rooms);
+
+            var result = await _sut.GetMyRoomsAsync(CancellationToken.None);
+
+            Assert.All(result.Take(20), r => Assert.NotNull(r.Result));
+            Assert.Null(result[20].Result);
+            _participationRepo.Verify(r => r.GetParticipationsByRoomId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(20));
+        }
+
+        [Fact]
+        public async Task Invite_TeamCode_ShowsTeamAndHost()
+        {
+            var controller = CreateController(new Mock<IGuestTokenService>());
+            var (room, teams, _) = TeamRoom();
+            room.HostUser = new UserEntity { UserName = "alice" };
+            _roomRepo.Setup(r => r.FindInviteAsync("TEAM2", It.IsAny<CancellationToken>())).ReturnsAsync((room, teams[1]));
+
+            var result = await controller.GetInvite(" team2 ", CancellationToken.None);
+
+            var invite = Assert.IsType<InviteResponse>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.Equal(new InviteResponse(true, RoomStatus.Waiting, "alice", 2, "Команда 2"), invite);
+        }
+
+        [Fact]
+        public async Task Invite_UnknownCode_NotFound()
+        {
+            var controller = CreateController(new Mock<IGuestTokenService>());
+
+            var result = await controller.GetInvite("NOPE", CancellationToken.None);
+
+            Assert.IsType<NotFoundObjectResult>(result);
         }
     }
 }

@@ -9,6 +9,7 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
         Task<bool> IsMatchHostAsync(Guid matchId, CancellationToken ct);
         Task<(MatchStateResponse? Match, StartRefusal Refusal)> StartMatchAsync(StartMatchRequest request, CancellationToken ct);
         Task<CurrentQuestionResponse?> GetCurrentQuestionAsync(Guid matchId, CancellationToken ct);
+        Task<(MatchReviewResponse? Review, bool NotFinished)> GetReviewAsync(Guid matchId, CancellationToken ct);
         Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct);
         Task<MatchStateResponse?> CloseQuestionAsync(Guid matchId, CancellationToken ct);
         Task<MatchStateResponse?> NextQuestionAsync(Guid matchId, CancellationToken ct);

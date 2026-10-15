@@ -17,10 +17,14 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct);
         /// <summary>
-        /// Найти вопрос матча по порядковому номеру (с вариантами ответа)
+        /// Найти вопрос матча по порядковому номеру (с вариантами ответа и ответами игроков)
         /// </summary>
         /// 
         Task<MatchQuestionEntity?> GetMatchQuestionAsync(Guid matchId, int order, CancellationToken ct);
+        /// <summary>
+        /// Все вопросы матча по порядку с вариантами и ответами игроков, для разбора
+        /// </summary>
+        Task<List<MatchQuestionEntity>> GetQuestionsForReviewAsync(Guid matchId, CancellationToken ct);
         /// <summary>
         /// Id матчей с истёкшим вопросом (активным или закрытым)
         /// </summary>

@@ -18,7 +18,8 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         Task<RoomPlayerEntity> CreateRoomPlayer(RoomEntity room, string nickname, UserEntity? user, CancellationToken ct);
         Task<List<RoomPlayerEntity>> GetParticipationsByRoomId(Guid roomId, CancellationToken ct);
         /// <summary>
-        /// Сумма личных очков аккаунтов по завершённым комнатам, гостей нет; командные игры в своём рейтинге
+        /// Сумма личных очков аккаунтов по завершённым комнатам, гостей нет; командные игры в своём рейтинге.
+        /// Порядок без общих мест: очки, точность, кто набрал раньше
         /// </summary>
         Task<List<GlobalLeaderboardEntry>> GetLeaderboard(bool teamGames, CancellationToken ct);
     };

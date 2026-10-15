@@ -47,10 +47,13 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
             return null;
         }
 
+        // ник хранится как ввели, занятость без учёта регистра: «Марина» и «марина» один ник
         public async Task<bool> IsNicknameTaken(Guid roomId, string nickname, CancellationToken ct)
         {
+            var lowered = nickname.ToLowerInvariant();
+
             return await context.RoomParticipations
-                .AnyAsync(rp => rp.RoomId == roomId && rp.Nickname == nickname, ct);
+                .AnyAsync(rp => rp.RoomId == roomId && rp.Nickname.ToLower() == lowered, ct);
         }
 
         public async Task<int> CountActivePlayers(Guid roomId, CancellationToken ct)
@@ -86,7 +89,8 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                     rp.UserId,
                     rp.User!.UserName,
                     rp.Score,
-                    Questions = context.MatchQuestions.Count(mq => mq.Match.RoomId == rp.RoomId)
+                    Questions = context.MatchQuestions.Count(mq => mq.Match.RoomId == rp.RoomId),
+                    FinishedAt = context.Matches.Where(m => m.RoomId == rp.RoomId).Select(m => m.FinishedAt).FirstOrDefault()
                 })
                 .GroupBy(x => new { x.UserId, x.UserName })
                 .Select(g => new
@@ -94,9 +98,14 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                     g.Key.UserName,
                     Score = g.Sum(x => x.Score),
                     Matches = g.Count(),
-                    Questions = g.Sum(x => x.Questions)
+                    Questions = g.Sum(x => x.Questions),
+                    // когда набрал нынешние очки: последняя игра с очками, без очков — первая сыгранная
+                    ReachedAt = g.Max(x => x.Score > 0 ? x.FinishedAt : null) ?? g.Min(x => x.FinishedAt)
                 })
+                // мест не делим: очки, потом точность, потом кто набрал раньше
                 .OrderByDescending(e => e.Score)
+                .ThenByDescending(e => e.Questions == 0 ? 0 : (double)e.Score / e.Questions)
+                .ThenBy(e => e.ReachedAt)
                 .ThenBy(e => e.UserName)
                 .Select(e => new GlobalLeaderboardEntry(
                     e.UserName, e.Score, e.Matches, e.Questions == 0 ? 0 : e.Score * 100 / e.Questions))
