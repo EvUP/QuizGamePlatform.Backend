@@ -1,0 +1,155 @@
+@*
+    Разбор вопросов поверх итогов. Грузит ResultsView, здесь только показ.
+    Esc и клик по фону закрывают, Tab не уходит из панели.
+*@
+<div class="backdrop" @onclick="OnClose" @onkeydown="OnKeyDownAsync">
+    @* ловушки фокуса по краям панели: Shift+Tab с начала уводит в конец, Tab с конца в начало *@
+    <span class="trap" tabindex="0" @onfocus="FocusLastAsync"></span>
+
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="review-title" tabindex="-1"
+         @ref="sheet" @onclick:stopPropagation="true">
+        <div class="head">
+            <div class="head-text">
+                <h2 id="review-title">Разбор вопросов</h2>
+                @if (Review is { Questions.Count: > 0 } review)
+                {
+                    <p>@Summary(review)</p>
+                }
+            </div>
+            <button type="button" class="close" aria-label="Закрыть разбор" @ref="closeButton" @onclick="OnClose">
+                <Icon Name="IconName.Close" Size="20" StrokeWidth="2.6" />
+            </button>
+        </div>
+
+        @if (Error is not null)
+        {
+            <div class="message">
+                <ErrorBanner Message="@Error.Message" OnRetry="OnRetry" />
+            </div>
+        }
+        else if (Review is null)
+        {
+            <div class="message" aria-busy="true">
+                <span class="visually-hidden" role="status">Загружаем разбор</span>
+                @for (var i = 0; i < 2; i++)
+                {
+                    <div class="skeleton"></div>
+                }
+            </div>
+        }
+        else if (Review.Questions.Count == 0)
+        {
+            <p class="message empty">В этой игре не было вопросов.</p>
+        }
+        else
+        {
+            <ol class="questions" tabindex="0" aria-label="Вопросы игры" @ref="list">
+                @foreach (var question in Review.Questions)
+                {
+                    <li class="question">
+                        <div class="question-head">
+                            <span class="number" aria-hidden="true">@(question.Order + 1)</span>
+                            <p class="question-text"><span class="visually-hidden">Вопрос @(question.Order + 1). </span>@question.Text</p>
+                        </div>
+
+                        <ul class="options">
+                            @foreach (var (option, index) in question.Options.Select((o, i) => (o, i)))
+                            {
+                                var correct = option.Id == question.CorrectOptionId;
+                                var mine = option.Id == question.MyAnswerOptionId;
+
+                                <li class="option @(correct ? "correct" : mine ? "wrong" : null)" style="--letter-color: var(--qg-team-@(index % 4 + 1))">
+                                    <span class="letter" aria-hidden="true">@Letters[index % Letters.Length]</span>
+                                    <span class="text">@option.Text</span>
+                                    @if (mine)
+                                    {
+                                        <span class="badge mine">Ваш ответ</span>
+                                    }
+                                    @if (correct)
+                                    {
+                                        <span class="tick"><Icon Name="IconName.Check" Size="16" StrokeWidth="3" /><span class="visually-hidden">Верный ответ</span></span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+
+                        <p class="stats">@Stats(question)</p>
+                    </li>
+                }
+            </ol>
+        }
+    </div>
+
+    <span class="trap" tabindex="0" @onfocus="FocusFirstAsync"></span>
+</div>
+
+@code {
+    private const string Letters = "ABCD";
+
+    /// <summary>null — ещё грузится</summary>
+    [Parameter]
+    public MatchReviewResponse? Review { get; set; }
+
+    [Parameter]
+    public ApiError? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    private ElementReference sheet;
+    private ElementReference closeButton;
+    private ElementReference list;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await closeButton.FocusAsync();
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private async Task FocusFirstAsync() => await closeButton.FocusAsync();
+
+    // последний фокусируемый — список, пока его нет — сама панель
+    private async Task FocusLastAsync()
+    {
+        if (Review is { Questions.Count: > 0 } && Error is null)
+        {
+            await list.FocusAsync();
+        }
+        else
+        {
+            await sheet.FocusAsync();
+        }
+    }
+
+    private static string Summary(MatchReviewResponse review)
+    {
+        var mine = review.Questions.Count(q => q.MyAnswerOptionId is not null && q.MyAnswerOptionId == q.CorrectOptionId);
+
+        return $"{RussianPlural.Format(review.Questions.Count, "вопрос", "вопроса", "вопросов")} · вы ответили верно на {mine}";
+    }
+
+    private static string Stats(QuestionReview question)
+    {
+        if (question.AnsweredCount == 0)
+        {
+            return "Никто не ответил";
+        }
+
+        var stats = $"Верно ответили {question.CorrectCount} из {question.AnsweredCount}";
+
+        return question.MyAnswerOptionId is null ? $"{stats} · вы не ответили" : stats;
+    }
+}

@@ -1,0 +1,104 @@
+.panel {
+    padding: clamp(12px, 2.2vh, 20px) 16px;
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.4vh, 14px);
+}
+
+.head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+h2 {
+    font-family: var(--qg-font-body);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.count {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: clamp(20px, 3.4vh, 26px);
+    line-height: 1.1;
+}
+
+.of {
+    font-size: 18px;
+    color: var(--qg-faint);
+}
+
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* название команды забирает всю свободную ширину, длинное — в две строки (полностью в подсказке) */
+.team-name {
+    flex: 1 1 0;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+}
+
+.dots {
+    flex: none;
+    max-width: 62%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--team-color);
+    transition: background 0.2s ease;
+}
+
+    .dot.done {
+        background: var(--team-color);
+    }
+
+.names {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+    .names li {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1.5px solid var(--qg-line-strong);
+        color: var(--qg-text-2);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+        .names li.done {
+            border-color: var(--qg-accent);
+            color: var(--qg-accent);
+        }

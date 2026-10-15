@@ -1,0 +1,14 @@
+@* Комната недоступна: не участник или удалена *@
+<section class="message">
+    <h1>@Title</h1>
+    <p>@Text</p>
+    <a href="">На главную</a>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+}

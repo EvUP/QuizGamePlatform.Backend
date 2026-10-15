@@ -1,0 +1,179 @@
+@implements IDisposable
+@inject CategoriesApiClient CategoriesApi
+
+@* Настройки и старт матча — только ведущему. Темы грузит сам, условия по составу даёт LobbyView. *@
+<aside class="settings" aria-labelledby="settings-title">
+    <h2 id="settings-title">Настройки игры</h2>
+
+    <fieldset class="group">
+        @* «Выбрать все» — в строке заголовка справа: тем стало много, каждая строка панели на счету *@
+        <legend>
+            <span>Темы · @selected.Count из @(categories?.Count ?? 0)</span>
+            @if (categoriesError is null && categories is not null)
+            {
+                <button type="button" class="link-button" @onclick="ToggleAll">
+                    @(selected.Count == categories.Count ? "Снять все" : "Выбрать все")
+                </button>
+            }
+        </legend>
+        @if (categoriesError is not null)
+        {
+            <ErrorBanner Message="@categoriesError.Message" OnRetry="LoadCategoriesAsync" />
+        }
+        else if (categories is null)
+        {
+            <p class="muted" role="status">Загружаем темы…</p>
+        }
+        else
+        {
+            <div class="chips">
+                @foreach (var category in categories)
+                {
+                    var isSelected = selected.Contains(category.Id);
+                    <button type="button" class="chip @(isSelected ? "selected" : null)" aria-pressed="@(isSelected ? "true" : "false")"
+                            @onclick="() => Toggle(category.Id)">
+                        @category.Name
+                    </button>
+                }
+            </div>
+        }
+    </fieldset>
+
+    @* число вопросов — одной строкой: подпись, ползунок, значение *@
+    <div class="group count">
+        <div class="count-head">
+            <label for="question-count">Вопросов</label>
+            <span class="count-value">@questionCount</span>
+        </div>
+        <input id="question-count" type="range" min="1" max="@GameRules.MaxQuestionCount" @bind="questionCount" @bind:event="oninput" />
+        <span class="muted">Если в темах вопросов меньше — сыграем, сколько есть</span>
+    </div>
+
+    <div class="group" role="radiogroup" aria-label="Темп">
+        <span class="group-label">Темп</span>
+        <div class="modes">
+            <button type="button" role="radio" aria-checked="@(mode == RoomMode.Simple ? "true" : "false")"
+                    class="mode @(mode == RoomMode.Simple ? "checked" : null)" @onclick="() => mode = RoomMode.Simple">
+                <span class="mode-title">Спокойный</span>
+                <span class="mode-desc">30 секунд</span>
+            </button>
+            <button type="button" role="radio" aria-checked="@(mode == RoomMode.Fastest ? "true" : "false")"
+                    class="mode @(mode == RoomMode.Fastest ? "checked" : null)" @onclick="() => mode = RoomMode.Fastest">
+                <span class="mode-title">Блиц</span>
+                <span class="mode-desc">15 секунд</span>
+            </button>
+        </div>
+    </div>
+
+    @* условия и кнопка старта прилипают к низу панели — видны, даже если темы прокручены *@
+    <div class="launch">
+        <ul class="checks">
+            @foreach (var check in AllChecks)
+            {
+                <li class="@(check.IsMet ? "met" : "unmet")">
+                    <Icon Name="@(check.IsMet ? IconName.Check : IconName.Close)" Size="18" StrokeWidth="2.6" />
+                    @check.Text
+                </li>
+            }
+        </ul>
+
+        @if (Error is not null)
+        {
+            <ErrorBanner Message="@Error" />
+        }
+
+        <button type="button" class="start" disabled="@(Busy || !IsReady)" @onclick="StartAsync">
+            <Icon Name="IconName.Play" Size="20" StrokeWidth="0" />
+            @(Busy ? "Начинаем…" : "Начать игру")
+        </button>
+    </div>
+</aside>
+
+@code {
+    private const int DefaultQuestionCount = 10;
+
+    /// <summary>Условия по составу комнаты (команды, игроки)</summary>
+    [Parameter]
+    public IReadOnlyList<ReadinessCheck> RosterChecks { get; set; } = [];
+
+    [Parameter]
+    public bool Busy { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback<MatchSettingsChoice> OnStart { get; set; }
+
+    private readonly LatestRequest request = new();
+    private readonly HashSet<Guid> selected = [];
+    private List<CategoryDto>? categories;
+    private ApiError? categoriesError;
+    private int questionCount = DefaultQuestionCount;
+    private RoomMode mode = RoomMode.Simple;
+
+    private IEnumerable<ReadinessCheck> AllChecks => RosterChecks.Append(
+        selected.Count > 0 ? new ReadinessCheck("Темы выбраны", true) : new ReadinessCheck("Выберите хотя бы одну тему", false));
+
+    private bool IsReady => AllChecks.All(c => c.IsMet);
+
+    protected override Task OnInitializedAsync() => LoadCategoriesAsync();
+
+    private async Task LoadCategoriesAsync()
+    {
+        categories = null;
+        categoriesError = null;
+        var ct = request.Next();
+
+        try
+        {
+            var result = await CategoriesApi.GetAllAsync(ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                categories = result.Value;
+            }
+            else
+            {
+                categoriesError = result.Error;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void Toggle(Guid id)
+    {
+        if (!selected.Remove(id))
+        {
+            selected.Add(id);
+        }
+    }
+
+    private void ToggleAll()
+    {
+        if (categories is null)
+        {
+            return;
+        }
+
+        if (selected.Count == categories.Count)
+        {
+            selected.Clear();
+        }
+        else
+        {
+            selected.UnionWith(categories.Select(c => c.Id));
+        }
+    }
+
+    private Task StartAsync() => OnStart.InvokeAsync(new MatchSettingsChoice([.. selected], questionCount, mode));
+
+    public void Dispose() => request.Dispose();
+}

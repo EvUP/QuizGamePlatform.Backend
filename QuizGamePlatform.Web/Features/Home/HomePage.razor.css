@@ -1,0 +1,421 @@
+/* Главная во всю высоту main: две колонки, лишнее прокручивается внутри «Моих комнат» и рейтинга */
+.home {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: var(--qg-space-block) clamp(20px, 3vw, 40px);
+    padding-bottom: 4px;
+}
+
+.col {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+/* ---------- герой ---------- */
+
+.hero {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 2.2vh, 24px);
+}
+
+.eyebrow {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text-2);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--qg-danger);
+}
+
+/* размер от меньшего из ширины и высоты окна: на ноутбуке заголовок не съедает экран */
+h1 {
+    font-size: clamp(28px, min(5.2vw, 7.4vh), 68px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+}
+
+/* у аккаунта под героем ещё «Мои комнаты» — заголовок скромнее и плотнее */
+.home:has(.rooms-slot) h1 {
+    font-size: clamp(28px, min(4.4vw, 6vh), 60px);
+}
+
+.home:has(.rooms-slot) .hero {
+    gap: clamp(10px, 1.8vh, 22px);
+}
+
+.accent {
+    color: var(--qg-accent);
+}
+
+.lead {
+    max-width: 620px;
+    font-size: clamp(15px, 2.3vh, 19px);
+    line-height: 1.45;
+    color: var(--qg-muted);
+}
+
+.cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+}
+
+.primary-action {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: clamp(48px, 7.4vh, 58px);
+    padding: 0 26px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 17px;
+    box-shadow: 0 5px 0 var(--qg-accent-shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+    .primary-action:hover {
+        color: var(--qg-on-accent);
+        background: var(--qg-accent-hover);
+    }
+
+    .primary-action:active {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 var(--qg-accent-shadow);
+    }
+
+.invite-hint {
+    flex: 1 1 260px;
+    min-width: 0;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text-2);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+    .invite-hint b {
+        color: var(--qg-text);
+    }
+
+.invite-icon {
+    flex: none;
+    display: flex;
+    color: var(--qg-info);
+}
+
+/* ---------- режимы: компактные карточки в ряд ---------- */
+
+.modes {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.mode {
+    min-width: 0;
+    padding: clamp(12px, 1.9vh, 20px) clamp(12px, 1.2vw, 18px);
+    border-radius: 20px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+    /* заголовок карточки — без переносов с дефисом, не больше двух строк */
+    .mode h2 {
+        min-width: 0;
+        font-weight: 700;
+        font-size: clamp(12.5px, 0.95vw, 14px);
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+        hyphens: manual;
+        overflow-wrap: break-word;
+        text-wrap: balance;
+    }
+
+/* на ноутбуке и шире иконка над заголовком: заголовку достаётся вся ширина карточки — максимум две строки */
+@media (min-width: 900px) {
+    /* у третьей карточки самый длинный заголовок («Вход без регистрации и СМС») — ей чуть больше ширины */
+    .modes {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr);
+    }
+
+    .mode {
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        gap: 8px;
+    }
+
+    .mode-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+    }
+
+    .mode p {
+        grid-column: auto;
+    }
+}
+
+/* совсем низкое окно (≈640): карточки режимов плотнее, чтобы «Моим комнатам» осталось место */
+@media (min-width: 900px) and (max-height: 660px) {
+    .mode {
+        gap: 6px;
+        padding-block: 10px;
+    }
+
+    .mode-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+    }
+}
+
+    .mode p {
+        grid-column: 1 / -1;
+        align-self: start;
+        color: var(--qg-muted);
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+.mode-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+}
+
+/* ---------- «Мои комнаты» (только аккаунт): забирают остаток левой колонки ---------- */
+
+.rooms-slot {
+    flex: 1 1 0;
+    min-height: clamp(96px, 15vh, 220px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- правая колонка ---------- */
+
+.preview-slot {
+    flex: none;
+}
+
+.leaders {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+    .section-head h2 {
+        font-weight: 700;
+        font-size: clamp(20px, 3vh, 26px);
+    }
+
+    .section-head a {
+        font-weight: 700;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+/* рядом с превью рейтинг — такая же карточка с теми же полями: у колонки общие внешние края,
+   а заголовок, вкладки и строки стоят на одной линии с содержимым превью, а не выступают к краю */
+@media (min-width: 900px) {
+    .leaders {
+        padding: var(--qg-side-card-pad-y) var(--qg-side-card-pad-x);
+        border-radius: var(--qg-radius-l);
+        background: var(--qg-surface);
+        border: 1px solid var(--qg-line);
+    }
+
+        /* внутри карточки фон вкладок и строк на тон светлее, как у вариантов ответа в превью */
+        .leaders ::deep .switch {
+            background: var(--qg-surface-2);
+            border-color: transparent;
+        }
+
+        /* строки чуть плотнее и делят остаток высоты между собой: целые строки заполняют карточку до низа,
+           без пустого «хвоста» под последней (рост ограничен — при двух-трёх игроках строки не раздуваются) */
+        .leaders ::deep .row {
+            flex: 1 0 auto;
+            min-height: 38px;
+            max-height: 52px;
+            padding-block: 3px;
+            background: var(--qg-surface-2);
+        }
+
+        .leaders ::deep .list {
+            min-height: 38px;
+            row-gap: 4px;
+        }
+}
+
+/* ---------- планшет: одна колонка, превью скрыто, внизу комнаты и рейтинг рядом ---------- */
+
+@media (max-width: 899px) {
+    .home {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-areas:
+            "hero hero"
+            "modes modes"
+            "rooms leaders";
+    }
+
+    .col {
+        display: contents;
+    }
+
+    .hero {
+        grid-area: hero;
+    }
+
+    .modes {
+        grid-area: modes;
+    }
+
+    .rooms-slot {
+        grid-area: rooms;
+        min-height: 0;
+    }
+
+    .leaders {
+        grid-area: leaders;
+    }
+
+    /* у гостя «Моих комнат» нет — рейтинг на всю ширину */
+    .home:not(:has(.rooms-slot)) .leaders {
+        grid-column: 1 / -1;
+    }
+
+    .preview-slot {
+        display: none;
+    }
+}
+
+/* ---------- телефон: режимы листаются вбок, рейтинг забирает остаток высоты ---------- */
+
+@media (max-width: 599px) {
+    .home {
+        grid-template-columns: minmax(0, 1fr);
+        /* max-content: лента режимов прокручивается вбок, и строка auto сжимала её по высоте */
+        grid-template-rows: auto max-content auto minmax(200px, 1fr);
+        grid-template-areas:
+            "hero"
+            "modes"
+            "rooms"
+            "leaders";
+        gap: 12px;
+    }
+
+    .home:not(:has(.rooms-slot)) {
+        grid-template-rows: auto max-content minmax(200px, 1fr);
+        grid-template-areas:
+            "hero"
+            "modes"
+            "leaders";
+    }
+
+    .rooms-slot {
+        height: 200px;
+    }
+
+    .hero {
+        gap: 12px;
+    }
+
+    .eyebrow {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+
+    .lead {
+        font-size: 15px;
+    }
+
+    .primary-action {
+        min-height: 50px;
+        font-size: 16px;
+    }
+
+    .invite-hint {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .modes {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(240px, 78%);
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 4px;
+        /* прокручиваемый блок иначе сжимается по высоте до нуля */
+        min-height: max-content;
+    }
+
+    .mode {
+        scroll-snap-align: start;
+    }
+}
+
+/* ноутбук поуже: карточки режимов плотнее */
+@media (min-width: 900px) and (max-width: 1100px) {
+    .mode {
+        gap: 8px;
+    }
+
+    .mode-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+    }
+
+    .mode p {
+        font-size: 12.5px;
+        line-height: 1.35;
+    }
+}

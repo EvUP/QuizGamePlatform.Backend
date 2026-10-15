@@ -1,0 +1,37 @@
+.place {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--qg-radius-s);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--qg-surface-3);
+    color: var(--qg-text);
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.large {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+}
+
+.medal-1, .medal-2, .medal-3 {
+    color: var(--qg-on-accent);
+}
+
+.medal-1 {
+    background: var(--qg-medal-1);
+}
+
+.medal-2 {
+    background: var(--qg-medal-2);
+}
+
+.medal-3 {
+    background: var(--qg-medal-3);
+}

@@ -1,0 +1,78 @@
+.board {
+    padding: clamp(12px, 2.2vh, 20px) 16px;
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.4vh, 12px);
+}
+
+h2 {
+    font-family: var(--qg-font-body);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.8vh, 8px);
+}
+
+li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: clamp(5px, 1vh, 12px) 10px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-surface-2);
+    border: 2px solid transparent;
+}
+
+    li.mine {
+        border-color: var(--team-color);
+    }
+
+.mark {
+    flex: none;
+    align-self: stretch;
+    width: 10px;
+    min-height: 26px;
+    border-radius: 6px;
+    background: var(--team-color);
+}
+
+/* длинное название — в две строки, полностью в подсказке */
+.name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+}
+
+.points {
+    min-width: 40px;
+    text-align: right;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+p {
+    font-size: 13px;
+    color: var(--qg-subtle);
+}

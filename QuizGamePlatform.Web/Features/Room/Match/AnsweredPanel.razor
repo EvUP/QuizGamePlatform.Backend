@@ -1,0 +1,53 @@
+@* Кто уже ответил (без самих ответов). По событиям хаба: после перезагрузки страницы до следующего вопроса пусто. *@
+<section class="panel" aria-labelledby="answered-title">
+    <div class="head">
+        <h2 id="answered-title">Ответили</h2>
+        <span class="count">@AnsweredCount<span class="of"> / @InGame.Count</span></span>
+    </div>
+
+    @if (Room.IsTeamGame && Room.Teams is { } teams)
+    {
+        @foreach (var team in teams.Where(t => InGame.Any(p => p.TeamNumber == t.Number)))
+        {
+            <div class="team-row" style="--team-color: var(--qg-team-@team.Number)">
+                <span class="team-name" title="@team.Name">@team.Name</span>
+                <span class="dots">
+                    @foreach (var player in InGame.Where(p => p.TeamNumber == team.Number))
+                    {
+                        var done = Answered.Contains(player.RoomPlayerLinkId);
+                        <span class="dot @(done ? "done" : null)" title="@player.PlayerName"
+                              aria-label="@($"{player.PlayerName}: {(done ? "ответ есть" : "думает")}")"></span>
+                    }
+                </span>
+            </div>
+        }
+    }
+    else
+    {
+        <ul class="names">
+            @foreach (var player in InGame)
+            {
+                var done = Answered.Contains(player.RoomPlayerLinkId);
+                <li class="@(done ? "done" : null)">
+                    @if (done)
+                    {
+                        <Icon Name="IconName.Check" Size="14" StrokeWidth="3" />
+                    }
+                    @player.PlayerName
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public RoomStateResponse Room { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlySet<Guid> Answered { get; set; } = default!;
+
+    private List<RoomParticipationResponse> InGame => Room.Players.Where(p => p.IsActive).ToList();
+
+    private int AnsweredCount => InGame.Count(p => Answered.Contains(p.RoomPlayerLinkId));
+}

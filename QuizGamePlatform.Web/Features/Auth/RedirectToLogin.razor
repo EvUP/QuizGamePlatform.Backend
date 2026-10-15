@@ -1,0 +1,8 @@
+@inject NavigationManager Navigation
+
+@* Страница требует аккаунт: уводим на вход Keycloak, после входа вернёмся сюда же *@
+<p class="redirect" role="status">Переходим ко входу…</p>
+
+@code {
+    protected override void OnInitialized() => Navigation.NavigateToLogin("authentication/login");
+}

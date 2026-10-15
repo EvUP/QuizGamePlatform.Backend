@@ -1,0 +1,11 @@
+@* Автопереподключение сдалось (2 минуты без связи) — дальше только по кнопке *@
+<div class="banner error" role="alert">
+    <Icon Name="IconName.WifiOff" Size="20" />
+    <span>Нет связи с игрой. Проверьте интернет.</span>
+    <button type="button" @onclick="OnReconnect">Переподключиться</button>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnReconnect { get; set; }
+}

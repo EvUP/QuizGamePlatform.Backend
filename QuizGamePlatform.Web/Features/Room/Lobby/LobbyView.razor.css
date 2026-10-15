@@ -1,0 +1,748 @@
+/* Лобби во всю высоту окна: шапка на месте, колонки команд и настройки прокручиваются внутри себя */
+.lobby {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+.top {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.title-block {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+.back {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.titles {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.eyebrow {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+h1 {
+    font-size: clamp(22px, min(3vw, 4.2vh), 30px);
+}
+
+.status-chip {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.top-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.online {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--qg-text-2);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--qg-accent);
+}
+
+/* «Удалить комнату» / «Выйти из комнаты»: тихая вторичная кнопка, краснеет только при наведении */
+.quiet {
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--qg-muted);
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+    .quiet:hover {
+        border-color: #5A3A40;
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+    }
+
+.ghost {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid var(--qg-line);
+    background: transparent;
+    font-weight: 700;
+}
+
+.danger-text {
+    border-color: #5A3A40;
+    color: var(--qg-danger-soft);
+}
+
+.confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.danger {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--qg-danger);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+}
+
+.body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+}
+
+/* левая часть: приглашение сверху, под ним состав */
+.stage {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* шаг 1 — пригласить: заметная полоса с иконкой, подсказкой и одной кнопкой */
+.invite {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: clamp(10px, 1.8vh, 16px) 16px;
+    border-radius: var(--qg-radius-l);
+    background:
+        linear-gradient(90deg, rgba(200, 240, 74, 0.10), rgba(92, 200, 255, 0.05) 70%, transparent),
+        var(--qg-surface);
+    border: 1px solid rgba(200, 240, 74, 0.35);
+}
+
+.invite-icon {
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+}
+
+.invite-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.invite-title {
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: 17px;
+}
+
+.invite-hint {
+    color: var(--qg-muted);
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.invite ::deep .invite-copy {
+    flex: none;
+    min-height: 44px;
+    padding: 0 18px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    box-shadow: 0 4px 0 var(--qg-accent-shadow);
+}
+
+    .invite ::deep .invite-copy:hover {
+        background: var(--qg-accent-hover);
+    }
+
+    /* только что скопировали — подтверждение, а не снова яркий призыв */
+    .invite ::deep .invite-copy.done {
+        background: var(--qg-success-bg);
+        color: var(--qg-accent);
+        box-shadow: inset 0 0 0 1.5px var(--qg-accent);
+    }
+
+    /* уже копировали — главное сделано, кнопка вторичная: «Скопировать ещё раз» */
+    .invite ::deep .invite-copy.was-copied:not(.done):not(.failed) {
+        background: transparent;
+        color: var(--qg-text-2);
+        box-shadow: inset 0 0 0 1.5px var(--qg-line-strong);
+    }
+
+        .invite ::deep .invite-copy.was-copied:not(.done):not(.failed):hover {
+            background: var(--qg-surface-2);
+            color: var(--qg-text);
+        }
+
+    .invite ::deep .invite-copy.failed {
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+        box-shadow: inset 0 0 0 1.5px var(--qg-danger);
+    }
+
+/* до и после копирования — разные заголовок, подсказка и значок; переключает класс was-copied у кнопки */
+.after-copy {
+    display: none;
+}
+
+.invite:has(.was-copied) .before-copy {
+    display: none;
+}
+
+.invite:has(.was-copied) .after-copy {
+    display: flex;
+}
+
+/* после копирования рамка блока спокойнее: призыв выполнен */
+.invite:has(.was-copied) {
+    border-color: var(--qg-line);
+}
+
+.invite-icon .before-copy, .invite-icon .after-copy {
+    align-items: center;
+    justify-content: center;
+}
+
+.invite-icon .before-copy {
+    display: flex;
+}
+
+.invite:has(.was-copied) .invite-icon .before-copy {
+    display: none;
+}
+
+/* колонки команд сеткой: на широком окне все в один ряд, уже — в два ряда; высоту делят поровну */
+.roster {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 12px;
+}
+
+@media (min-width: 1240px) {
+    .roster {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+    }
+}
+
+.add-team {
+    min-width: 0;
+    min-height: 0;
+    padding: 12px;
+    text-align: center;
+    border-radius: var(--qg-radius-l);
+    border: 2px dashed var(--qg-line-strong);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+    .add-team span {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--qg-subtle);
+    }
+
+    .add-team:hover:not(:disabled) {
+        border-color: var(--qg-text-2);
+        color: var(--qg-text);
+    }
+
+.players-card {
+    grid-column: 1 / -1;
+    /* по высоте содержимого: на высоком окне карточки не растягиваются в пустые «колонны» */
+    align-self: start;
+    max-height: 100%;
+    min-height: 0;
+    padding: clamp(14px, 2.4vh, 20px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.players-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+    .players-head .online {
+        margin-right: auto;
+    }
+
+    .players-head h2 {
+        font-weight: 700;
+        font-size: 22px;
+    }
+
+.count {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--qg-text);
+}
+
+/* прогресс набора: полоса до вместимости */
+.meter {
+    flex: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--qg-surface-3);
+    overflow: hidden;
+}
+
+    .meter span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, var(--qg-accent), #7EE3B0);
+        transform-origin: left center;
+        transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+/* шаг 2 — состав: сетка мест на всю вместимость (5 × 2 на широком окне), занятые — карточки, свободные — пунктир */
+.players-list {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-auto-rows: clamp(96px, 20vh, 220px);
+    gap: 10px;
+}
+
+@media (min-width: 1240px) {
+    .players-list {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-auto-rows: clamp(104px, 22vh, 230px);
+    }
+}
+
+    /* карточка игрока в сетке: аватар сверху, имя под ним, кнопка ведущего в углу */
+    .players-list ::deep .player {
+        position: relative;
+        min-width: 0;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 10px 12px;
+        border-radius: 16px;
+        background: var(--qg-surface-2);
+        border: 1px solid var(--qg-line);
+        text-align: center;
+        animation: qg-slot-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    }
+
+    .players-list ::deep .player.me {
+        border-color: rgba(200, 240, 74, 0.55);
+        background: var(--qg-surface-3);
+    }
+
+    .players-list ::deep .avatar {
+        width: clamp(40px, 7vh, 68px);
+        height: clamp(40px, 7vh, 68px);
+        font-size: clamp(14px, 1.8vh, 18px);
+        background: var(--qg-surface-3);
+    }
+
+    .players-list ::deep .info {
+        flex: none;
+        width: 100%;
+        align-items: center;
+    }
+
+    .players-list ::deep .name-line {
+        justify-content: center;
+    }
+
+    .players-list ::deep .kick {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 30px;
+        height: 30px;
+    }
+
+.slot-empty {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 16px;
+    border: 1.5px dashed var(--qg-line-strong);
+    color: var(--qg-faint);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.slot-avatar {
+    width: clamp(40px, 7vh, 68px);
+    height: clamp(40px, 7vh, 68px);
+    border-radius: 50%;
+    border: 1.5px dashed var(--qg-line-strong);
+}
+
+    /* первое свободное место мягко «дышит» — сюда сядет следующий */
+    .players-list ::deep .player + .slot-empty .slot-avatar {
+        animation: qg-breathe 2.4s ease-in-out infinite;
+    }
+
+@keyframes qg-slot-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes qg-breathe {
+    0%, 100% {
+        opacity: 0.45;
+        transform: scale(0.94);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.kick {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: var(--qg-radius-s);
+    background: transparent;
+    color: var(--qg-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .kick:hover {
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+    }
+
+/* вид игрока: справа крупное «ждём ведущего» на всю высоту, без пустот */
+.waiting {
+    flex: 0 0 clamp(280px, 24vw, 340px);
+    min-width: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    justify-content: center;
+    padding: clamp(16px, 3vh, 28px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--qg-text-2);
+}
+
+.waiting-line {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 4px;
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: clamp(19px, 2.8vh, 24px);
+    line-height: 1.2;
+    color: var(--qg-text);
+}
+
+    .waiting-line .dots span {
+        width: 14px;
+        height: 14px;
+    }
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+    .dots span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--qg-accent);
+        animation: qg-dot 1.2s ease-in-out infinite;
+    }
+
+        .dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+@keyframes qg-dot {
+    0%, 100% {
+        opacity: 0.25;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* планшет: настройки под командами, команды листаются вбок */
+@media (max-width: 899px) {
+    .body {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .roster {
+        flex: 1 1 0;
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 1fr);
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+    }
+
+    .roster:has(.players-card) {
+        grid-auto-columns: 100%;
+    }
+
+        .roster > *, .roster ::deep .team {
+            scroll-snap-align: start;
+        }
+
+    .waiting {
+        flex: none;
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 599px) {
+    .top {
+        gap: 8px 12px;
+    }
+
+    .back {
+        width: 40px;
+        height: 40px;
+    }
+
+    .status-chip {
+        padding: 4px 10px;
+        font-size: 13px;
+    }
+
+    /* шапка в две строки максимум: «Удалить комнату» — только иконка справа от статуса */
+    .top {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+
+    .top-actions {
+        flex: none;
+        gap: 8px;
+    }
+
+    .quiet {
+        padding: 0 10px;
+    }
+
+    .confirm {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        font-size: 13px;
+    }
+
+    .ghost, .danger {
+        min-height: 40px;
+        padding: 0 12px;
+    }
+
+    .roster {
+        grid-auto-columns: 84%;
+    }
+
+    .waiting {
+        padding: 14px 16px;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .waiting-line {
+        font-size: 15px;
+    }
+
+    /* приглашение на телефоне: подсказка и кнопка на всю ширину */
+    .invite {
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        padding: 10px 12px;
+    }
+
+    .invite-icon, .invite-hint {
+        display: none;
+    }
+
+    .invite ::deep .invite-copy {
+        width: 100%;
+    }
+
+    .players-head {
+        flex-wrap: wrap;
+        gap: 4px 12px;
+    }
+
+    /* телефон: места списком в одну колонку — имя читается целиком */
+    .players-list {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: minmax(52px, auto);
+        gap: 6px;
+    }
+
+        .players-list ::deep .avatar, .slot-avatar {
+            width: 34px;
+            height: 34px;
+            font-size: 12px;
+        }
+
+        .players-list ::deep .player {
+            flex-direction: row;
+            justify-content: flex-start;
+            text-align: left;
+            padding: 8px 30px 8px 8px;
+        }
+
+        .players-list ::deep .info {
+            flex: 1;
+            align-items: flex-start;
+        }
+
+        .players-list ::deep .name-line {
+            justify-content: flex-start;
+        }
+
+    .slot-empty {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 8px;
+    }
+}
+
+/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
+   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+@supports (animation-timeline: scroll()) {
+    .players-list, .waiting {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}
+
+@media (max-width: 599px) {
+    .quiet-text {
+        display: none;
+    }
+}
