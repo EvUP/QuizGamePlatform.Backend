@@ -1,0 +1,24 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>064e2704-5407-4b1b-afee-fd547faeb191</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.6.1-preview.1.26506.6" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.6.1" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuizGamePlatform.Backend.csproj" />
+    <ProjectReference Include="..\QuizGamePlatform.Web\QuizGamePlatform.Web.csproj" />
+  </ItemGroup>
+
+</Project>

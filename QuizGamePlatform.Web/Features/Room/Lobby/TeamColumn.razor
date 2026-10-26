@@ -1,0 +1,213 @@
+@* Колонка команды: только отображение и события, права решает LobbyView. ondragstart/ondragover строкой: Firefox без setData
+   перетаскивание не начинает, а @ondragover:preventDefault без обработчика не срабатывает, обработчик же перерисовывал бы на каждое движение *@
+<article class="team @(IsMine ? "mine" : null) @(IsDropTarget ? "drop-target" : null)" style="--team-color: var(--qg-team-@Team.Number)"
+         ondragstart="event.dataTransfer && event.dataTransfer.setData('text/plain', '')"
+         ondragover="event.preventDefault()" @ondrop="DropAsync">
+    <header class="head">
+        <div class="head-line">
+            <span class="eyebrow">Команда @Team.Number@(IsMine ? " · ваша" : "")</span>
+            @* ожидаемое число только подсказка: пришло больше, показываем просто число *@
+            <span class="count">@Team.Members@(Team.ExpectedPlayers is { } expected && Team.Members <= expected ? $" / {expected}" : "")</span>
+        </div>
+
+        @* переименование на месте названия: вместо карандаша «сохранить» и «отменить», Enter и Esc тоже работают *@
+        @if (editing)
+        {
+            <form class="name-line rename" @onsubmit="SaveAsync">
+                <label class="visually-hidden" for="team-name-@Team.Number">Название команды @Team.Number</label>
+                <input id="team-name-@Team.Number" maxlength="@GameRules.TeamNameMaxLength" @ref="nameInput"
+                       @bind="draft" @bind:event="oninput" @onkeydown="OnNameKeyDown" />
+                <button type="submit" class="icon-button" aria-label="Сохранить название" disabled="@string.IsNullOrWhiteSpace(draft)">
+                    <Icon Name="IconName.Check" Size="18" StrokeWidth="2.6" />
+                </button>
+                <button type="button" class="icon-button" aria-label="Отменить" @onclick="() => editing = false">
+                    <Icon Name="IconName.Close" Size="18" />
+                </button>
+            </form>
+        }
+        else
+        {
+            <div class="name-line">
+                <h2 class="name" title="@Team.Name">@Team.Name</h2>
+                @if (CanRename)
+                {
+                    <button type="button" class="icon-button" aria-label="@($"Переименовать команду {Team.Name}")" @onclick="StartEdit">
+                        <Icon Name="IconName.Pencil" Size="18" />
+                    </button>
+                }
+            </div>
+        }
+
+        @if (Team.JoinLink is { } link)
+        {
+            <CopyLinkButton Url="@link" DoneLabel="Скопировано" FailedLabel="Не вышло — ещё раз" />
+        }
+    </header>
+
+    <div class="players">
+        @foreach (var player in Players)
+        {
+            var movable = CanManagePlayers && player.RoomPlayerLinkId != MyLinkId;
+            <div @key="player.RoomPlayerLinkId" class="row @(movable ? "movable" : null) @(Dragging?.LinkId == player.RoomPlayerLinkId ? "dragging" : null)"
+                 draggable="@(movable ? "true" : "false")" title="@(movable ? "Перетащите в другую команду" : null)"
+                 @ondragstart="() => DragStartAsync(player)" @ondragend="() => OnDragChanged.InvokeAsync(null)">
+            <PlayerRow Player="player" IsMe="player.RoomPlayerLinkId == MyLinkId">
+                @if (movable)
+                {
+                    <span class="controls">
+                    <label class="visually-hidden" for="move-@player.RoomPlayerLinkId">Перенести @player.PlayerName в команду</label>
+                    @* только на телефоне (CSS): там вместо перетаскивания список; в нём номера, названия видны в шапках *@
+                    <select id="move-@player.RoomPlayerLinkId" class="move" value="@Team.Number" title="Перенести в команду"
+                            @onchange="e => OnMove.InvokeAsync(new PlayerMove(player.RoomPlayerLinkId, int.Parse((string)e.Value!)))">
+                        @foreach (var option in TeamOptions)
+                        {
+                            <option value="@option.Number" title="@option.Name">→ @option.Number</option>
+                        }
+                    </select>
+                    @* без связи сервер не убирает (404) *@
+                    @if (player.IsActive)
+                    {
+                        <button type="button" class="icon-button kick" aria-label="@($"Убрать {player.PlayerName} из комнаты")"
+                                @onclick="() => OnRemove.InvokeAsync(player.RoomPlayerLinkId)">
+                            <Icon Name="IconName.Close" Size="16" StrokeWidth="2.6" />
+                        </button>
+                    }
+                    </span>
+                }
+            </PlayerRow>
+            </div>
+        }
+
+        @* ожидаемые, но ещё не пришедшие игроки: пустые места *@
+        @if (Players.Count > 0)
+        {
+            @for (var i = 0; i < FreeSlots; i++)
+            {
+                <div class="slot-empty" aria-hidden="true">
+                    <span class="slot-avatar"></span>
+                    <span>Ждём игрока</span>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty">
+                <span>@(CanManagePlayers ? "Пока никого. Отправьте команде её ссылку." : "Пока никого — ждём первых смельчаков.")</span>
+                @if (CanDelete)
+                {
+                    <button type="button" class="delete" @onclick="OnDelete">Удалить команду</button>
+                }
+            </div>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public TeamResponse Team { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RoomParticipationResponse> Players { get; set; } = [];
+
+    [Parameter]
+    public Guid MyLinkId { get; set; }
+
+    [Parameter]
+    public bool IsMine { get; set; }
+
+    [Parameter]
+    public bool CanRename { get; set; }
+
+    /// <summary>Ведущий: переносить между командами и убирать игроков</summary>
+    [Parameter]
+    public bool CanManagePlayers { get; set; }
+
+    [Parameter]
+    public bool CanDelete { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TeamOption> TeamOptions { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<string> OnRename { get; set; }
+
+    [Parameter]
+    public EventCallback<PlayerMove> OnMove { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnRemove { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>Кого сейчас перетаскивает ведущий (номер: из какой команды); общее на все колонки, держит LobbyView</summary>
+    [Parameter]
+    public PlayerMove? Dragging { get; set; }
+
+    [Parameter]
+    public EventCallback<PlayerMove?> OnDragChanged { get; set; }
+
+    // сюда можно бросить игрока из другой команды
+    private bool IsDropTarget => Dragging is { } drag && drag.TeamNumber != Team.Number;
+
+    // пустые места до ожидаемого числа игроков команды, только для отображения
+    private int FreeSlots => Team.ExpectedPlayers is { } expected ? Math.Max(0, expected - Players.Count) : 0;
+
+    private bool editing;
+    private bool focusName;
+    private string draft = "";
+    private ElementReference nameInput;
+
+    private void StartEdit()
+    {
+        draft = Team.Name;
+        editing = true;
+        focusName = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusName)
+        {
+            focusName = false;
+            await nameInput.FocusAsync();
+        }
+    }
+
+    private void OnNameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            editing = false;
+        }
+    }
+
+    private Task DragStartAsync(RoomParticipationResponse player)
+        => OnDragChanged.InvokeAsync(new PlayerMove(player.RoomPlayerLinkId, Team.Number));
+
+    private async Task DropAsync()
+    {
+        if (Dragging is not { } drag)
+        {
+            return;
+        }
+
+        await OnDragChanged.InvokeAsync(null);
+
+        if (drag.TeamNumber != Team.Number)
+        {
+            await OnMove.InvokeAsync(drag with { TeamNumber = Team.Number });
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var name = draft.Trim();
+        editing = false;
+
+        if (name.Length > 0 && name != Team.Name)
+        {
+            await OnRename.InvokeAsync(name);
+        }
+    }
+}

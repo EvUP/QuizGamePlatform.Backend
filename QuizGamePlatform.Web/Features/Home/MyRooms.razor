@@ -1,0 +1,87 @@
+@using QuizGamePlatform.Web.Features.History
+@implements IDisposable
+@inject RoomApiClient RoomApi
+
+@* «Мои комнаты» на главной, только для аккаунта: сам грузит GET /api/Room/my, всё остальное на странице «Вся история» *@
+<section class="my-rooms" aria-labelledby="my-rooms-title">
+    <div class="section-head">
+        <h2 id="my-rooms-title">Мои комнаты</h2>
+        @if (series is { Count: > 0 })
+        {
+            <a href="history">Вся история →</a>
+        }
+    </div>
+
+    @if (error is not null)
+    {
+        <ErrorBanner Message="@error.Message" OnRetry="LoadAsync" />
+    }
+    else if (series is null)
+    {
+        <div class="list" aria-busy="true">
+            <span class="visually-hidden" role="status">Загружаем комнаты</span>
+            @for (var i = 0; i < 3; i++)
+            {
+                <div class="skeleton"></div>
+            }
+        </div>
+    }
+    else if (series.Count == 0)
+    {
+        <div class="empty">
+            <p>Здесь пока пусто — самое время позвать коллег.</p>
+            <a href="rooms/new">Создать комнату</a>
+        </div>
+    }
+    else
+    {
+        <ul class="list">
+            @foreach (var item in series.Take(MaxShown))
+            {
+                <RoomHistoryRow @key="item.Last.SeriesId ?? item.Last.Id" Series="item" />
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private const int MaxShown = 6;
+
+    private readonly LatestRequest request = new();
+    private List<RoomSeries>? series;
+    private ApiError? error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        series = null;
+        error = null;
+        var ct = request.Next();
+
+        try
+        {
+            var result = await RoomApi.GetMyAsync(ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                series = RoomHistory.Build(result.Value);
+            }
+            else
+            {
+                error = result.Error;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // ушли со страницы
+        }
+    }
+
+    public void Dispose() => request.Dispose();
+}

@@ -1,0 +1,309 @@
+/* Карточка по содержимому, не выше колонки (flex задаёт MatchView), длинный список внутри прокручивается */
+.panel {
+    min-height: 0;
+    padding: clamp(14px, 2.2vh, 22px) clamp(14px, 1.4vw, 20px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.4vh, 14px);
+}
+
+.head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+h2 {
+    font-family: var(--qg-font-body);
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.all h2 {
+    color: var(--qg-accent);
+}
+
+.count {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: clamp(22px, 3.6vh, 30px);
+    line-height: 1.1;
+}
+
+.of {
+    font-size: 18px;
+    color: var(--qg-faint);
+}
+
+/* полоска «сколько ответили», как заполненность комнаты в лобби */
+.meter {
+    flex: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--qg-surface-3);
+    overflow: hidden;
+}
+
+    .meter span {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        background: var(--qg-accent);
+        transition: width 0.3s ease;
+    }
+
+/* обычная игра: список игроков */
+.people {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .people li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 5px 8px;
+        border-radius: 14px;
+        color: var(--qg-muted);
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+        .people li.me {
+            background: var(--qg-surface-2);
+        }
+
+        .people li.done {
+            color: var(--qg-text);
+        }
+
+.avatar {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--qg-line-strong);
+    color: var(--qg-subtle);
+    font-weight: 800;
+    font-size: 12px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.done .avatar {
+    border: 0;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    animation: answered-pop 0.3s ease-out;
+}
+
+.name {
+    flex: 1 1 0;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.you {
+    flex: none;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--qg-surface-3);
+    color: var(--qg-text-2);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 18px;
+}
+
+.state {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--qg-faint);
+}
+
+.done .state {
+    color: var(--qg-accent);
+}
+
+/* командная игра: строка на команду, кружки игроков */
+.teams {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.team-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.team-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+/* длинное название в одну строку с многоточием, полностью в подсказке */
+.team-name {
+    flex: 1 1 0;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.team-count {
+    flex: none;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--qg-subtle);
+}
+
+.dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--team-color);
+    color: var(--qg-text-2);
+    font-size: 12px;
+    font-weight: 800;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+    .dot.done {
+        background: var(--team-color);
+        color: var(--qg-on-accent);
+    }
+
+    .dot.me {
+        outline: 2px solid var(--qg-text);
+        outline-offset: 2px;
+    }
+
+.note {
+    flex: none;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--qg-muted);
+}
+
+@keyframes answered-pop {
+    0% {
+        transform: scale(0.6);
+    }
+
+    70% {
+        transform: scale(1.12);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* широкий экран (трансляция): подписи крупнее, на 1280×720 без изменений */
+@media (min-width: 1400px) and (min-height: 800px) {
+    h2 {
+        font-size: 16px;
+    }
+
+    .state {
+        font-size: 15px;
+    }
+
+    .team-name {
+        font-size: 16px;
+    }
+
+    .team-count {
+        font-size: 15px;
+    }
+
+    .note {
+        font-size: 16px;
+    }
+}
+
+/* телефон: панель под вариантами компактнее, игроки «плиткой» в несколько колонок */
+@media (max-width: 599px) {
+    .panel {
+        padding: 12px 14px;
+        border-radius: var(--qg-radius-m);
+        gap: 8px;
+    }
+
+    .people {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px 8px;
+        overflow: visible;
+    }
+
+        .people li {
+            min-height: 36px;
+            padding: 2px 4px;
+            gap: 8px;
+        }
+
+    .avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 10px;
+    }
+
+    .name {
+        font-size: 14px;
+    }
+
+    .state {
+        display: none;
+    }
+
+    .teams {
+        overflow: visible;
+    }
+
+    .dot {
+        width: 24px;
+        height: 24px;
+        font-size: 9px;
+    }
+}

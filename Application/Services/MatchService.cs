@@ -20,6 +20,9 @@ namespace QuizGamePlatform.Backend.Application.Services
         ILogger<MatchService> logger,
         TimeProvider timeProvider) : IMatchService
     {
+        // столько раз повторяем старт, проигравший гонку за версию комнаты
+        private const int StartAttempts = 5;
+
         private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
         public async Task<bool> IsRoomHostAsync(Guid roomId, CancellationToken ct)
@@ -32,6 +35,28 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         public async Task<(MatchStateResponse? Match, StartRefusal Refusal)> StartMatchAsync(StartMatchRequest request, CancellationToken ct)
         {
+            // в лобби игры N>1 игроки как раз переходят из прошлой игры и меняют версию комнаты: проигравший гонку старт повторяем
+            for (var attempt = 1; ; attempt++)
+            {
+                var (match, refusal, conflict) = await TryStartMatchAsync(request, ct);
+
+                if (!conflict)
+                {
+                    return (match, refusal);
+                }
+
+                if (attempt == StartAttempts)
+                {
+                    return (null, StartRefusal.Concurrent);
+                }
+
+                roomRepository.ForgetChanges();
+                await Task.Delay(Random.Shared.Next(5, 50), ct);
+            }
+        }
+
+        private async Task<(MatchStateResponse? Match, StartRefusal Refusal, bool Conflict)> TryStartMatchAsync(StartMatchRequest request, CancellationToken ct)
+        {
             var room = await roomRepository.GetRoomByIdAsync(request.RoomId, ct);
 
             if (room is null || room.Status != RoomStatus.Waiting)
@@ -43,7 +68,7 @@ namespace QuizGamePlatform.Backend.Application.Services
                     null => StartRefusal.NotFound,
                     RoomStatus.InProgress => StartRefusal.Started,
                     _ => StartRefusal.Finished
-                });
+                }, false);
             }
 
             var activePlayers = await roomParticipationRepository.CountActivePlayers(request.RoomId, ct);
@@ -52,7 +77,7 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Cannot start match: room {RoomId} has too few players ({Count})", request.RoomId, activePlayers);
 
-                return (null, StartRefusal.TooFewPlayers);
+                return (null, StartRefusal.TooFewPlayers, false);
             }
 
             var players = room.IsTeamGame
@@ -64,22 +89,32 @@ namespace QuizGamePlatform.Backend.Application.Services
             {
                 logger.LogInformation("Cannot start match: team room {RoomId} has fewer than two non-empty teams", room.Id);
 
-                return (null, StartRefusal.TooFewTeams);
+                return (null, StartRefusal.TooFewTeams, false);
             }
 
             var categoryIds = request.CategoryIds?.Distinct().ToList() ?? [];
             var questions = await quizContentRepository.GetQuestionsByCategoriesAsync(categoryIds, ct);
 
+            // в следующих играх серии сначала ещё не заданные, повторы только когда вопросы тем кончились
+            var used = room.GameNumber > 1 && room.SeriesId is { } seriesId
+                ? await matchRepository.GetQuestionIdsOfSeriesAsync(seriesId, ct)
+                : [];
+
             // общая куча вопросов выбранных тем, случайные без повторов, из одной темы может выпасть сколько угодно
-            var selected = questions.OrderBy(_ => Random.Shared.Next()).Take(request.QuestionCount).ToList();
+            var selected = questions
+                .OrderBy(q => used.Contains(q.Id))
+                .ThenBy(_ => Random.Shared.Next())
+                .Take(request.QuestionCount)
+                .ToList();
 
             if (selected.Count == 0)
             {
                 logger.LogInformation("Cannot start match: no questions in categories {CategoryIds}", string.Join(", ", categoryIds));
 
-                return (null, StartRefusal.NoQuestions);
+                return (null, StartRefusal.NoQuestions, false);
             }
 
+            var startedAt = UtcNow;
             var match = new MatchEntity
             {
                 Id = Guid.NewGuid(),
@@ -87,22 +122,28 @@ namespace QuizGamePlatform.Backend.Application.Services
                 Status = MatchStatus.QuestionActive,
                 CurrentQuestionIndex = 0,
                 RoomMode = request.RoomMode,
-                StartedAt = UtcNow,
-                QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(request.RoomMode)),
+                // подставим в следующую игру серии
+                CategoryIds = categoryIds,
+                RequestedQuestionCount = request.QuestionCount,
+                StartedAt = startedAt,
+                QuestionEndsAt = startedAt.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(request.RoomMode)),
                 Questions = selected
                     .Select((question, index) => new MatchQuestionEntity
                     {
                         Id = Guid.NewGuid(),
                         QuestionId = question.Id,
-                        Order = index
+                        Order = index,
+                        // первый вопрос открыт сразу, остальные при переходе
+                        OpenedAt = index == 0 ? startedAt : null
                     })
                     .ToList()
             };
 
             room.Status = RoomStatus.InProgress;
 
-            // состав команд фиксируется, ушедшие из лобби в него не входят
-            foreach (var player in players.Where(p => !p.IsActive))
+            // состав команд фиксируется, вышедшие из лобби сами и убранные в него не входят;
+            // оборвавший связь сохраняет команду и может вернуться в окно после старта
+            foreach (var player in players.Where(p => !p.IsActive && p.ExitReason != ExitReason.Disconnected))
             {
                 player.TeamNumber = null;
             }
@@ -112,16 +153,23 @@ namespace QuizGamePlatform.Backend.Application.Services
                 await matchRepository.AddMatchAsync(match, ct);
                 await matchRepository.SaveChangesAsync(ct);
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                // версия комнаты сменилась между чтением и сохранением (вошли, пересели), StartMatchAsync повторит
+                logger.LogInformation("Cannot start match: room {RoomId} changed concurrently, retrying", room.Id);
+
+                return (null, StartRefusal.Concurrent, true);
+            }
             catch (DbUpdateException)
             {
-                logger.LogInformation("Cannot start match: room {RoomId} changed concurrently or already has an active match", room.Id);
+                logger.LogInformation("Cannot start match: room {RoomId} already has an active match", room.Id);
 
-                return (null, StartRefusal.Concurrent);
+                return (null, StartRefusal.Concurrent, false);
             }
 
             logger.LogInformation("Match {MatchId} started in room {RoomId} with {Count} questions", match.Id, room.Id, match.Questions.Count);
 
-            return (Publish(match), StartRefusal.None);
+            return (Publish(match), StartRefusal.None, false);
         }
 
         public async Task<CurrentQuestionResponse?> GetCurrentQuestionAsync(Guid matchId, CancellationToken ct)
@@ -129,7 +177,9 @@ namespace QuizGamePlatform.Backend.Application.Services
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
             // вопрос видят только участники комнаты
-            if (match is null || await FindMeAsync(match.RoomId, ct) is null)
+            var me = match is null ? null : await FindMeAsync(match.RoomId, ct);
+
+            if (match is null || me is null)
             {
                 return null;
             }
@@ -141,12 +191,43 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return null;
             }
 
-            return currentQuestion.ToCurrentQuestionResponse(match);
+            return currentQuestion.ToCurrentQuestionResponse(match, me.Id, UtcNow);
         }
+
+        // разбор только после финала, иначе подсказал бы верные ответы идущей игры
+        public async Task<(MatchReviewResponse? Review, bool NotFinished)> GetReviewAsync(Guid matchId, CancellationToken ct)
+        {
+            var match = await matchRepository.GetMatchAsync(matchId, ct);
+
+            // видят все участники, и вышедшие тоже
+            var me = match is null ? null : await FindMeAsync(match.RoomId, ct);
+
+            if (match is null || me is null)
+            {
+                return (null, false);
+            }
+
+            if (match.Status != MatchStatus.Finished)
+            {
+                return (null, true);
+            }
+
+            var questions = await matchRepository.GetQuestionsForReviewAsync(matchId, ct);
+
+            return (new MatchReviewResponse(matchId, questions.Select(q => q.ToQuestionReview(me.Id)).ToList()), false);
+        }
+
         public async Task<bool> SubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, CancellationToken ct)
         {
             // время ответа фиксируем сразу, иначе после запросов в базу оно может оказаться позже закрытия
             var now = UtcNow;
+
+            // под общим локом с закрытием вопроса: ответ либо войдёт в итог, либо не будет принят
+            return await RunExclusiveAsync(matchId, () => TrySubmitAnswerAsync(matchId, request, now, ct), ct);
+        }
+
+        private async Task<bool> TrySubmitAnswerAsync(Guid matchId, SubmitAnswerRequest request, DateTime now, CancellationToken ct)
+        {
             var match = await matchRepository.GetMatchAsync(matchId, ct);
 
             if (match is null || match.Status != MatchStatus.QuestionActive || now > match.QuestionEndsAt)
@@ -211,18 +292,8 @@ namespace QuizGamePlatform.Backend.Application.Services
                     return null;
                 }
 
-                // досрочно только когда ответили все, иначе ждём таймер
-                var currentQuestion = match.Questions.First(q => q.Order == match.CurrentQuestionIndex);
-                var answered = await matchRepository.CountActiveAnswers(currentQuestion.Id, ct);
-
-                if (answered < await roomParticipationRepository.CountActivePlayers(match.RoomId, ct))
-                {
-                    return null;
-                }
-
-                match.Status = MatchStatus.QuestionClosed;
-                await CloseQuestionAsync(match, currentQuestion, UtcNow, ct);
-                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
+                // ведущий закрывает когда захочет, даже если ответили не все
+                await ShowAnswerAsync(match, UtcNow, ct);
 
                 await matchRepository.SaveChangesAsync(ct);
 
@@ -271,7 +342,15 @@ namespace QuizGamePlatform.Backend.Application.Services
                 return false;
             }
 
-            await AdvanceMatchAsync(match, ct);
+            // время вышло: сначала показываем ответ, следующий вопрос после паузы
+            if (match.Status == MatchStatus.QuestionActive)
+            {
+                await ShowAnswerAsync(match, match.QuestionEndsAt, ct);
+            }
+            else
+            {
+                await AdvanceMatchAsync(match, ct);
+            }
 
             await matchRepository.SaveChangesAsync(ct);
 
@@ -296,11 +375,11 @@ namespace QuizGamePlatform.Backend.Application.Services
 
         private async Task AdvanceMatchAsync(MatchEntity match, CancellationToken ct)
         {
+            var isLast = match.CurrentQuestionIndex + 1 >= match.Questions.Count;
+
             // на финише комнату грузим раньше участников: выход или возврат после этого чтения
             // меняет версию комнаты, и сохранение откатится вместо очков по старому составу
-            var room = match.CurrentQuestionIndex + 1 < match.Questions.Count
-                ? null
-                : await roomRepository.GetRoomByIdAsync(match.RoomId, ct);
+            var room = isLast ? await roomRepository.GetRoomByIdAsync(match.RoomId, ct) : null;
 
             // по таймеру вопрос закрылся в дедлайн, досрочно уже закрыт
             var current = match.Questions.First(q => q.Order == match.CurrentQuestionIndex);
@@ -310,11 +389,15 @@ namespace QuizGamePlatform.Backend.Application.Services
                 await CloseQuestionAsync(match, current, match.QuestionEndsAt, ct);
             }
 
-            if (match.CurrentQuestionIndex + 1 < match.Questions.Count)
+            if (!isLast)
             {
+                var openedAt = UtcNow;
+
                 match.CurrentQuestionIndex++;
                 match.Status = MatchStatus.QuestionActive;
-                match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
+                match.QuestionEndsAt = openedAt.AddSeconds(MatchHelper.GetQuestionDurationByRoomMode(match.RoomMode));
+                // от этого момента считаем время ответа на новый вопрос
+                match.Questions.First(q => q.Order == match.CurrentQuestionIndex).OpenedAt = openedAt;
 
                 return;
             }
@@ -330,14 +413,26 @@ namespace QuizGamePlatform.Backend.Application.Services
             }
         }
 
-        // запоминаем, кто был в игре на закрытии: вышедший раньше не тянет команду, даже если потом вернулся
+        // ответы больше не принимаются, все видят правильный ответ, через паузу таймер двигает матч
+        private async Task ShowAnswerAsync(MatchEntity match, DateTime closedAt, CancellationToken ct)
+        {
+            var current = match.Questions.First(q => q.Order == match.CurrentQuestionIndex);
+
+            match.Status = MatchStatus.QuestionClosed;
+            await CloseQuestionAsync(match, current, closedAt, ct);
+            match.QuestionEndsAt = UtcNow.AddSeconds(MatchHelper.RevealSeconds);
+        }
+
+        // запоминаем, кто был в игре на вопросе: активные на закрытии и вышедшие уже после открытия,
+        // иначе выйти и вернуться выгоднее, чем ошибиться; вышедший до открытия команду не тянет
         private async Task CloseQuestionAsync(MatchEntity match, MatchQuestionEntity question, DateTime closedAt, CancellationToken ct)
         {
             var participants = await roomParticipationRepository.GetParticipationsByRoomId(match.RoomId, ct);
+            var openedAt = question.OpenedAt ?? closedAt;
 
             question.ClosedAt = closedAt;
             question.InGamePlayerIds = participants
-                .Where(p => p.IsActive || p.FinishedAt >= closedAt)
+                .Where(p => p.IsActive || p.FinishedAt >= openedAt)
                 .Select(p => p.Id)
                 .ToList();
         }
@@ -348,14 +443,14 @@ namespace QuizGamePlatform.Backend.Application.Services
 
             var participants = await roomParticipationRepository.GetParticipationsByRoomId(match.RoomId, ct);
 
+            // после финиша вернуться нельзя: ноль только у того, чьё окно возврата истекло ещё до финиша
             foreach (var participant in participants)
             {
-                participant.Score = participant.IsActive
+                participant.Score = RoomMapper.KeepsScore(participant, match.FinishedAt!.Value)
                     ? correctCounts.GetValueOrDefault(participant.Id)
                     : 0;
             }
         }
-
 
         private Task<RoomPlayerEntity?> FindMeAsync(Guid roomId, CancellationToken ct)
             => roomParticipationRepository.FindParticipant(

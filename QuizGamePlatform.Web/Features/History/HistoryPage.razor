@@ -1,0 +1,157 @@
+@page "/history"
+@attribute [Authorize]
+@implements IDisposable
+@inject RoomApiClient RoomApi
+@inject NavigationManager Navigation
+
+<PageTitle>Вся история · QuizGame</PageTitle>
+
+@* Все комнаты аккаунта по дням, сверху то, что идёт сейчас. Раскладка как у рейтинга:
+   заголовок с переключателем на месте, список прокручивается внутри карточки, заголовки дней прилипают. *@
+<div class="history">
+    <div class="heading">
+        <h1>Вся история</h1>
+        <HistoryKindSwitch Value="kind" ValueChanged="SwitchKind" />
+    </div>
+
+    @if (error is not null)
+    {
+        <ErrorBanner Message="@error.Message" OnRetry="LoadAsync" />
+    }
+    else if (series is null)
+    {
+        <div class="box" aria-busy="true">
+            <span class="visually-hidden" role="status">Загружаем историю</span>
+            @for (var i = 0; i < 5; i++)
+            {
+                <div class="skeleton"></div>
+            }
+        </div>
+    }
+    else if (Groups() is { Count: > 0 } groups)
+    {
+        <div class="box">
+            @foreach (var group in groups)
+            {
+                <section class="day" aria-label="@group.Title">
+                    <h2 class="day-title">@group.Title</h2>
+                    <ul class="list">
+                        @foreach (var item in group.Series)
+                        {
+                            <RoomHistoryRow @key="item.Last.SeriesId ?? item.Last.Id" Series="item" TimeOnly="group.TimeOnly" />
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty">
+            <p>@EmptyText</p>
+            <a href="rooms/new">Создать комнату</a>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>?kind=simple или ?kind=team, без параметра все игры</summary>
+    [SupplyParameterFromQuery(Name = "kind")]
+    public string? Kind { get; set; }
+
+    private readonly LatestRequest request = new();
+    private HistoryKind kind;
+    private List<RoomSeries>? series;
+    private ApiError? error;
+
+    private string EmptyText => kind switch
+    {
+        HistoryKind.Simple => "Обычных игр пока не было.",
+        HistoryKind.Team => "Командных игр пока не было.",
+        _ => "Здесь пока пусто — самое время позвать коллег."
+    };
+
+    protected override void OnParametersSet()
+        => kind = Kind switch
+        {
+            "simple" => HistoryKind.Simple,
+            "team" => HistoryKind.Team,
+            _ => HistoryKind.All
+        };
+
+    // фильтр работает по уже загруженному списку, грузим один раз
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        series = null;
+        error = null;
+        var ct = request.Next();
+
+        try
+        {
+            var result = await RoomApi.GetMyAsync(ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                series = RoomHistory.Build(result.Value);
+            }
+            else
+            {
+                error = result.Error;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // ушли со страницы
+        }
+    }
+
+    // «Сейчас»: идущие игры и лобби, дальше по дням; в группе дня во второй строке только время
+    private List<DayGroup> Groups()
+    {
+        var shown = series!
+            .Where(s => kind switch
+            {
+                HistoryKind.Simple => !s.Last.IsTeamGame,
+                HistoryKind.Team => s.Last.IsTeamGame,
+                _ => true
+            })
+            .ToList();
+
+        var groups = new List<DayGroup>();
+        var current = shown.Where(s => RoomHistory.IsCurrent(s.Last)).ToList();
+
+        if (current.Count > 0)
+        {
+            groups.Add(new DayGroup("Сейчас", false, current));
+        }
+
+        groups.AddRange(shown
+            .Where(s => !RoomHistory.IsCurrent(s.Last))
+            .GroupBy(s => RoomHistory.Local(s.Last.CreatedAt).Date)
+            .Select(g => new DayGroup(RoomHistory.DayTitle(g.Key), true, g.ToList())));
+
+        return groups;
+    }
+
+    // фильтр живёт в адресе, как вкладка рейтинга: «назад» не плодит историю
+    private void SwitchKind(HistoryKind value)
+        => Navigation.NavigateTo(
+            Navigation.GetUriWithQueryParameter("kind", value switch
+            {
+                HistoryKind.Simple => "simple",
+                HistoryKind.Team => "team",
+                _ => null
+            }),
+            replace: true);
+
+    public void Dispose() => request.Dispose();
+
+    private sealed record DayGroup(string Title, bool TimeOnly, List<RoomSeries> Series);
+}

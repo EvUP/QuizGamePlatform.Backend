@@ -1,0 +1,353 @@
+@page "/rooms/new"
+@layout GameLayout
+@attribute [Authorize]
+@implements IDisposable
+@inject RoomApiClient RoomApi
+@inject CategoriesApiClient CategoriesApi
+@inject NavigationManager Navigation
+
+<PageTitle>Новая комната · QuizGame</PageTitle>
+
+@* Один столбец на всю ширину: тип игры, что будет в игре или команды, внизу полоса «Итого» с главным действием.
+   На десктопе столбец по центру окна, прокручивается только середина. До 899px «Создать комнату» прилипает к низу экрана. *@
+<div class="create">
+    <header class="top">
+        <a class="back" href="" aria-label="На главную"><Icon Name="IconName.ChevronLeft" /></a>
+        <h1>Новая комната</h1>
+    </header>
+
+    <div class="body">
+        <div class="stage">
+            <div class="modes" role="radiogroup" aria-label="Тип игры">
+                <button type="button" role="radio" aria-checked="@(isTeamGame ? "false" : "true")"
+                        class="mode @(isTeamGame ? null : "checked")" @onclick="() => isTeamGame = false">
+                    <span class="mode-icon is-simple"><Icon Name="IconName.User" Size="24" /></span>
+                    <span class="mode-text">
+                        <span class="mode-title">Обычная</span>
+                        <span class="mode-desc">Каждый сам за себя. До @GameRules.MaxSimplePlayers игроков вместе с вами, одна ссылка на всех.</span>
+                    </span>
+                    @* мини-лобби: места на всю вместимость, первое ваше *@
+                    <span class="mode-preview seats" aria-hidden="true">
+                        @for (var i = 0; i < GameRules.MaxSimplePlayers; i++)
+                        {
+                            <span class="seat @(i == 0 ? "me" : null)"></span>
+                        }
+                    </span>
+                </button>
+                <button type="button" role="radio" aria-checked="@(isTeamGame ? "true" : "false")"
+                        class="mode @(isTeamGame ? "checked" : null)" @onclick="() => isTeamGame = true">
+                    <span class="mode-icon is-team"><Icon Name="IconName.Users" Size="26" /></span>
+                    <span class="mode-text">
+                        <span class="mode-title">Командная</span>
+                        <span class="mode-desc">Отдел на отдел. @GameRules.MinTeams–@GameRules.MaxTeams команд, до @GameRules.MaxTeamGamePlayers игроков, у каждой команды своя ссылка.</span>
+                    </span>
+                    @* мини-лобби: колонки команд в их цветах, закрашено столько, сколько команд сейчас в форме *@
+                    <span class="mode-preview squads" aria-hidden="true">
+                        @for (var i = 1; i <= GameRules.MaxTeams; i++)
+                        {
+                            <span class="squad @(i <= (isTeamGame ? teams.Count : GameRules.MinTeams) ? "on" : null)" style="--squad: var(--qg-team-@i)"></span>
+                        }
+                    </span>
+                </button>
+            </div>
+
+            @if (isTeamGame)
+            {
+                <section class="card teams-card" aria-labelledby="teams-title">
+                    <div class="card-head">
+                        <h2 id="teams-title">Команды</h2>
+                        <span class="count">@teams.Count из @GameRules.MaxTeams</span>
+                    </div>
+
+                    <div class="team-list">
+                        @for (var i = 0; i < teams.Count; i++)
+                        {
+                            var team = teams[i];
+                            var number = i + 1;
+                            <div class="team-row" @key="team.Id">
+                                <span class="team-number" style="background: var(--qg-team-@number)">@number</span>
+                                <div class="team-name">
+                                    <label for="team-@team.Id">Название</label>
+                                    <input id="team-@team.Id" maxlength="@GameRules.TeamNameMaxLength"
+                                           placeholder="@GameRules.DefaultTeamName(number)" @bind="team.Name" @bind:event="oninput" />
+                                </div>
+                                <div class="stepper" role="group" aria-label="@($"Сколько игроков ждёте в команде {number}")">
+                                    <button type="button" aria-label="Меньше игроков" disabled="@(team.ExpectedPlayers <= 1)"
+                                            @onclick="() => team.ExpectedPlayers--">−</button>
+                                    <span class="stepper-value">
+                                        <span class="stepper-number">@team.ExpectedPlayers</span>
+                                        <span class="stepper-caption">@RussianPlural.Choose(team.ExpectedPlayers, "игрок", "игрока", "игроков")</span>
+                                    </span>
+                                    <button type="button" aria-label="Больше игроков" disabled="@(ExpectedTotal >= GameRules.MaxTeamGamePlayers)"
+                                            @onclick="() => team.ExpectedPlayers++">+</button>
+                                </div>
+                                <button type="button" class="remove" aria-label="@($"Удалить команду {number}")"
+                                        disabled="@(teams.Count <= GameRules.MinTeams)" @onclick="() => teams.Remove(team)">
+                                    <Icon Name="IconName.Trash" />
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    @* под списком, а не в нём: при пяти командах кнопка не уезжает из виду *@
+                    <button type="button" class="add-team" @onclick="AddTeam"
+                            disabled="@(teams.Count >= GameRules.MaxTeams || ExpectedTotal >= GameRules.MaxTeamGamePlayers)">
+                        <Icon Name="IconName.Plus" StrokeWidth="2.6" />
+                        Добавить команду
+                    </button>
+                </section>
+
+                @* пока команд мало, под списком остаётся место: напоминаем, что ещё настраивается в лобби *@
+                @if (teams.Count < 4)
+                {
+                    <p class="lobby-note">
+                        <span class="lobby-note-lead">В лобби выберете:</span>
+                        <span>@TopicsCountText</span>
+                        <span aria-hidden="true">·</span>
+                        <span>@GameRules.MinQuestionCount–@GameRules.MaxQuestionCount вопросов</span>
+                        <span aria-hidden="true">·</span>
+                        <span>@GameRules.CalmQuestionSeconds или @GameRules.BlitzQuestionSeconds с</span>
+                    </p>
+                }
+            }
+            else
+            {
+                <section class="card info" aria-labelledby="info-title">
+                    <div class="card-head">
+                        <h2 id="info-title">Что будет в игре</h2>
+                        <span class="hint">Темы, число вопросов и темп выберете в лобби</span>
+                    </div>
+
+                    @* темы: число и чипы; пока грузятся, место занято заранее, чтобы ниже ничего не прыгало *@
+                    <div class="tile topics @(categories is null && !categoriesFailed ? "loading" : null)">
+                        @if (categories is not null)
+                        {
+                            <div class="topics-head">
+                                <span class="info-number">@categories.Count</span>
+                                <span class="info-caption">@RussianPlural.Choose(categories.Count, "тема", "темы", "тем") — берите одну или все сразу</span>
+                            </div>
+                            <ul class="chips" aria-label="Темы">
+                                @foreach (var category in categories)
+                                {
+                                    <li class="chip">@category.Name</li>
+                                }
+                            </ul>
+                            @* низкое окно и телефон: одна строка вместо чипов *@
+                            <p class="topics-line">@TopicsLine</p>
+                        }
+                        else if (categoriesFailed)
+                        {
+                            <div class="topics-head">
+                                <span class="info-caption">Темы на выбор — берите одну или все сразу</span>
+                            </div>
+                        }
+                    </div>
+
+                    <ul class="facts-row">
+                        <li class="tile">
+                            <span class="info-label"><Icon Name="IconName.Clock" Size="18" />Темп</span>
+                            <span class="info-number small">@GameRules.CalmQuestionSeconds с / @GameRules.BlitzQuestionSeconds с</span>
+                            <span class="info-caption">Спокойный или блиц. Вопросов — от @GameRules.MinQuestionCount до @GameRules.MaxQuestionCount</span>
+                        </li>
+                        <li class="tile">
+                            <span class="info-label"><Icon Name="IconName.CheckCircle" Size="18" />После вопроса</span>
+                            <span class="info-number small">@GameRules.RevealSeconds с</span>
+                            <span class="info-caption">Показываем верный ответ — и дальше</span>
+                        </li>
+                        <li class="tile">
+                            <span class="info-label"><Icon Name="IconName.Play" Size="18" />После игры</span>
+                            <span class="info-number small">Разбор</span>
+                            <span class="info-caption">Кто где ошибся. «Сыграть ещё» — по той же ссылке, без повторов вопросов</span>
+                        </li>
+                    </ul>
+                </section>
+            }
+        </div>
+
+        @* на десктопе полоса внизу: итог, факты, кнопка; до 899px полоса «растворяется»:
+           факты идут в общий поток, а .launch с итогом и кнопкой прилипает к низу экрана *@
+        <aside class="summary" aria-labelledby="summary-title">
+            <h2 id="summary-title">Итого</h2>
+
+            <ul class="facts">
+                @foreach (var fact in isTeamGame ? TeamFacts : SimpleFacts)
+                {
+                    <li>@fact</li>
+                }
+            </ul>
+
+            <div class="launch">
+                <div class="total">
+                    <span class="total-number @(TotalOverflow ? "over" : null)">@(isTeamGame ? ExpectedTotal : GameRules.MaxSimplePlayers)</span>
+                    <span class="total-text">
+                        @(isTeamGame ? $"из {GameRules.MaxTeamGamePlayers} игроков максимум" : "игроков максимум, считая вас")
+                    </span>
+                </div>
+                <div class="meter" aria-hidden="true"><span class="@(TotalOverflow ? "over" : null)" style="width: @(TotalPercent)%"></span></div>
+
+                @if (ValidationMessage is { } validation)
+                {
+                    <p class="validation" role="alert">@validation</p>
+                }
+                @if (error is not null)
+                {
+                    <ErrorBanner Message="@error" />
+                }
+
+                <button type="button" class="start" disabled="@(busy || ValidationMessage is not null)" @onclick="CreateAsync">
+                    <Icon Name="IconName.Plus" StrokeWidth="2.6" />
+                    @(busy ? "Создаём…" : "Создать комнату")
+                </button>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private const int DefaultExpectedPlayers = 5;
+
+    private static readonly string[] TeamFacts =
+    [
+        "Вы играете в команде 1 и становитесь её капитаном",
+        "За вопрос команде до 100 очков — по доле верных ответов, при равенстве — кто быстрее",
+        "Ссылки команд пришлём вам на почту, они же будут в лобби",
+        "Добавить или переименовать команды можно и в лобби"
+    ];
+
+    private static readonly string[] SimpleFacts =
+    [
+        "Ведущий тоже играет",
+        "Очко за верный ответ, при равенстве — кто быстрее",
+        "Гостям хватит ника, аккаунт не нужен"
+    ];
+
+    private readonly LatestRequest categoriesRequest = new();
+    private List<CategoryDto>? categories;
+    private bool categoriesFailed;
+
+    private readonly List<TeamDraft> teams = [new(1, DefaultExpectedPlayers), new(2, DefaultExpectedPlayers)];
+    private int nextTeamId = 3;
+    private bool isTeamGame;
+    private bool busy;
+
+    /// <summary>?type=team открывает командную, по умолчанию обычная (например, «Новая комната» на итогах командной игры)</summary>
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? Type { get; set; }
+
+    private string? error;
+
+    private int ExpectedTotal => teams.Sum(t => t.ExpectedPlayers);
+
+    // «Мемы, Кино, Офисная жизнь и ещё 9»: первые три темы из API и остаток
+    private string TopicsLine => categories is null
+        ? ""
+        : string.Join(", ", categories.Take(3).Select(c => c.Name)) + (categories.Count > 3 ? $" и ещё\u00A0{categories.Count - 3}" : "");
+
+    private string TopicsCountText => categories is null
+        ? "темы"
+        : RussianPlural.Format(categories.Count, "тему", "темы", "тем");
+
+    private bool TotalOverflow => isTeamGame && ExpectedTotal > GameRules.MaxTeamGamePlayers;
+
+    private int TotalPercent => isTeamGame ? Math.Min(100, ExpectedTotal * 100 / GameRules.MaxTeamGamePlayers) : 100;
+
+    // те же правила, что на сервере: пустое название станет «Команда N», повторы без учёта регистра запрещены
+    private string? ValidationMessage
+    {
+        get
+        {
+            if (!isTeamGame)
+            {
+                return null;
+            }
+
+            if (TotalOverflow)
+            {
+                return $"Всего не больше {GameRules.MaxTeamGamePlayers} игроков — уменьшите составы";
+            }
+
+            var names = teams.Select((t, i) => string.IsNullOrWhiteSpace(t.Name) ? GameRules.DefaultTeamName(i + 1) : t.Name.Trim());
+
+            if (names.Any(n => n.Any(char.IsControl)))
+            {
+                return "Уберите из названия команды переносы строк и табуляцию";
+            }
+
+            return names.Distinct(StringComparer.OrdinalIgnoreCase).Count() < teams.Count
+                ? "Названия команд повторяются — сделайте их разными"
+                : null;
+        }
+    }
+
+    protected override void OnInitialized() => isTeamGame = Type == "team";
+
+    // темы только для справки: не загрузились, значит покажем блок без них
+    protected override async Task OnInitializedAsync()
+    {
+        var ct = categoriesRequest.Next();
+
+        try
+        {
+            var result = await CategoriesApi.GetAllAsync(ct);
+
+            if (result.IsSuccess)
+            {
+                categories = result.Value;
+            }
+            else
+            {
+                categoriesFailed = true;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose() => categoriesRequest.Dispose();
+
+    private void AddTeam()
+    {
+        var free = GameRules.MaxTeamGamePlayers - ExpectedTotal;
+        teams.Add(new TeamDraft(nextTeamId++, Math.Clamp(free, 1, DefaultExpectedPlayers)));
+    }
+
+    private async Task CreateAsync()
+    {
+        busy = true;
+        error = null;
+
+        try
+        {
+            var request = isTeamGame
+                ? new CreateRoomRequest(true, teams
+                    .Select(t => new NewTeamRequest(string.IsNullOrWhiteSpace(t.Name) ? null : t.Name.Trim(), t.ExpectedPlayers))
+                    .ToList())
+                : new CreateRoomRequest(false);
+
+            var result = await RoomApi.CreateAsync(request);
+
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"room/{result.Value.Id}");
+            }
+            else
+            {
+                error = result.Error.Message;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private sealed class TeamDraft(int id, int expectedPlayers)
+    {
+        public int Id { get; } = id;
+
+        public string Name { get; set; } = "";
+
+        public int ExpectedPlayers { get; set; } = expectedPlayers;
+    }
+}

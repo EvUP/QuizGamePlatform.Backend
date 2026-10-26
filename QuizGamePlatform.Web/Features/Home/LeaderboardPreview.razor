@@ -1,0 +1,59 @@
+@using QuizGamePlatform.Web.Features.Leaderboard
+
+@* Топ рейтинга на главной. Данные грузит страница, здесь только отображение. *@
+@if (Error is not null)
+{
+    <ErrorBanner Message="@Error.Message" OnRetry="OnRetry" />
+}
+else if (Rows is null)
+{
+    <div class="list" aria-busy="true">
+        <span class="visually-hidden" role="status">Загружаем рейтинг</span>
+        @for (var i = 0; i < 5; i++)
+        {
+            <div class="row skeleton"></div>
+        }
+    </div>
+}
+else if (Rows.Count == 0)
+{
+    <p class="empty">Пьедестал пока пустует — займите его первым.</p>
+}
+else
+{
+    <ol class="list">
+        @foreach (var row in Rows)
+        {
+            var mine = row.IsMine(myName);
+            <li class="row @(mine ? "mine" : null)">
+                <PlaceBadge Place="row.Place" />
+                <span class="name" title="@row.Entry.UserName">@row.Entry.UserName</span>
+                @if (mine)
+                {
+                    <span class="you">· вы</span>
+                }
+                <span class="accuracy">точность @row.Entry.AccuracyPercent%</span>
+                <span class="score">@row.Entry.Score</span>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<LeaderboardRow>? Rows { get; set; }
+
+    [Parameter]
+    public ApiError? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? myName;
+
+    // вход и выход меняют AuthState, тогда пересчитываем свою строку
+    protected override async Task OnParametersSetAsync() => myName = await LeaderboardRow.MyNameAsync(AuthState);
+}

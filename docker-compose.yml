@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: postgres_db
-    restart: always
+    restart: unless-stopped
     ports:
       - '5450:5432'
     environment:
@@ -21,7 +21,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis_db
-    restart: always
+    restart: unless-stopped
     ports:
       - '6379:6379'
     command: redis-server --appendonly yes
@@ -38,7 +38,7 @@ services:
   mailpit:
     image: axllent/mailpit:v1.21
     container_name: mailpit
-    restart: always
+    restart: unless-stopped
     ports:
       - '8025:8025'
       - '1025:1025'
@@ -46,7 +46,7 @@ services:
   keycloak-db:
     image: postgres:15-alpine
     container_name: keycloak_db
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
@@ -63,7 +63,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak_server
-    restart: always
+    restart: unless-stopped
     command: ['start-dev', '--import-realm']
     environment:
       KC_DB: postgres

@@ -1,0 +1,28 @@
+@* Фильтр истории «Все · Обычные · Командные», как переключатель рейтинга; поддерживает @bind-Value *@
+<div class="switch" role="group" aria-label="Тип игр">
+    @foreach (var (kind, label) in Options)
+    {
+        <button type="button" class="option @(kind == Value ? "selected" : null)"
+                aria-pressed="@(kind == Value ? "true" : "false")" @onclick="() => SelectAsync(kind)">
+            @label
+        </button>
+    }
+</div>
+
+@code {
+    private static readonly (HistoryKind Kind, string Label)[] Options =
+    [
+        (HistoryKind.All, "Все"),
+        (HistoryKind.Simple, "Обычные"),
+        (HistoryKind.Team, "Командные")
+    ];
+
+    [Parameter]
+    public HistoryKind Value { get; set; }
+
+    [Parameter]
+    public EventCallback<HistoryKind> ValueChanged { get; set; }
+
+    private Task SelectAsync(HistoryKind kind)
+        => kind == Value ? Task.CompletedTask : ValueChanged.InvokeAsync(kind);
+}

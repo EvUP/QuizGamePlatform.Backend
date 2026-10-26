@@ -1,0 +1,192 @@
+@page "/join/{Code}"
+@inject RoomApiClient RoomApi
+@inject GuestSession Guest
+@inject NavigationManager Navigation
+
+<PageTitle>Приглашение · QuizGame</PageTitle>
+
+<section class="join">
+    <span class="badge">@(invite is { GameNumber: > 1 } ? $"Приглашение · игра {invite.GameNumber}" : "Приглашение")</span>
+
+    @if (linkBroken)
+    {
+        <h1>Ссылка не работает</h1>
+    }
+    else if (invite?.Status == RoomStatus.Finished)
+    {
+        <h1>Эта игра уже закончилась</h1>
+    }
+    else if (invite is { TeamNumber: { } teamNumber })
+    {
+        <h1>Вас пригласили в команду</h1>
+        <span class="team" style="--team-color: var(--qg-team-@teamNumber)">
+            <span class="dot" aria-hidden="true"></span>
+            @invite.TeamName
+        </span>
+    }
+    else
+    {
+        <h1>Вас пригласили в игру</h1>
+    }
+
+    @if (linkBroken)
+    {
+        <p class="lead">Похоже, комнату удалили или в ссылке опечатка. Попросите у ведущего новую.</p>
+    }
+    else if (invite?.Status == RoomStatus.Finished)
+    {
+        <p class="lead">Здесь уже подвели итоги. Если ведущий соберёт ещё одну игру, эта же ссылка приведёт в неё.</p>
+    }
+    else
+    {
+        <p class="lead">
+            @if (invite?.HostName is { } host)
+            {
+                <span>Ведущий — <b>@host</b>. </span>
+            }
+            @(invite?.Status == RoomStatus.InProgress
+                ? $"Игра уже идёт. Если вы вышли из неё меньше {GameRules.ReturnWindowSeconds} секунд назад — заходите, место ещё за вами."
+                : invite?.TeamNumber is not null
+                    ? "Команду мы уже знаем, осталось представиться."
+                    : "Осталось представиться, и вы в игре.")
+        </p>
+    }
+
+    @if (!CanJoin)
+    {
+        <a class="secondary" href="">На главную</a>
+    }
+    else
+    {
+        <AuthorizeView>
+            <Authorized>
+                <div class="card">
+                    <p class="account-line">
+                        Вы войдёте как <b>@context.User.Identity?.Name</b>.
+                        Очки попадут в рейтинг.
+                    </p>
+                    <button type="button" class="primary" disabled="@busy" @onclick="JoinAsAccountAsync">
+                        @(busy ? "Входим…" : "Войти в игру")
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <form class="card" @onsubmit="JoinAsGuestAsync" novalidate>
+                    <label for="nickname">Ваш ник</label>
+                    <input id="nickname" maxlength="@NicknameMaxLength" autocomplete="nickname" placeholder="Как вас будут видеть в игре"
+                           @bind="nickname" @bind:event="oninput" @bind:after="ClearNicknameError"
+                           aria-invalid="@(nicknameError is null ? "false" : "true")" aria-describedby="nickname-hint" />
+                    <div id="nickname-hint" class="hint @(nicknameError is null ? null : "invalid")">
+                        <span>@(nicknameError ?? "Ник увидят все игроки")</span>
+                        <span>@nickname.Length / @NicknameMaxLength</span>
+                    </div>
+                    <button type="submit" class="primary" disabled="@busy">@(busy ? "Входим…" : "Войти гостем")</button>
+                </form>
+
+                <div class="divider"><span>или</span></div>
+
+                <button type="button" class="secondary" disabled="@busy" @onclick="LogIn">
+                    <Icon Name="IconName.User" />
+                    Войти с аккаунтом
+                </button>
+                <p class="note">С аккаунтом очки попадут в рейтинг</p>
+            </NotAuthorized>
+            <Authorizing>
+                <p class="note" role="status">Проверяем вход…</p>
+            </Authorizing>
+        </AuthorizeView>
+    }
+
+    @if (error is not null)
+    {
+        <ErrorBanner Message="@error" />
+    }
+</section>
+
+@code {
+    private const int NicknameMaxLength = GameRules.NicknameMaxLength;
+
+    /// <summary>Последний сегмент ссылки: код комнаты или команды. В интерфейсе не показываем.</summary>
+    [Parameter]
+    public string Code { get; set; } = "";
+
+    private string nickname = "";
+    private string? nicknameError;
+    private string? error;
+    private bool busy;
+
+    // превью приглашения: без него (нет связи) просто показываем вход, ошибку скажет сам вход
+    private InviteResponse? invite;
+    private bool linkBroken;
+
+    private bool CanJoin => !linkBroken && invite?.Status != RoomStatus.Finished;
+
+    // гость уже играл с этого браузера: предлагаем тот же ник, даже если вход истёк
+    protected override void OnInitialized() => nickname = Guest.LastNickname ?? "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        invite = null;
+        linkBroken = false;
+
+        var result = await RoomApi.GetInviteAsync(Code);
+
+        invite = result.IsSuccess ? result.Value : null;
+        linkBroken = result.Error?.StatusCode == 404;
+    }
+
+    private void LogIn() => Navigation.NavigateToLogin("authentication/login");
+
+    private Task JoinAsAccountAsync() => JoinAsync(username: null);
+
+    // ошибка ника устарела, как только его поправили; заново проверим при отправке
+    private void ClearNicknameError() => nicknameError = null;
+
+    private async Task JoinAsGuestAsync()
+    {
+        var trimmed = nickname.Trim();
+
+        nicknameError = trimmed.Length == 0
+            ? "Введите ник"
+            : trimmed.Any(char.IsControl) ? "Уберите из ника переносы строк и табуляцию" : null;
+
+        if (nicknameError is null)
+        {
+            await JoinAsync(trimmed);
+        }
+    }
+
+    private async Task JoinAsync(string? username)
+    {
+        busy = true;
+        error = null;
+
+        try
+        {
+            var request = new JoinToRoomRequest(username, Code);
+            var result = await RoomApi.JoinAsync(request);
+
+            // гостевой токен отозван или устарел на сервере: забываем его и входим заново
+            if (result.Error?.StatusCode == 401 && username is not null && Guest.Current is not null)
+            {
+                await Guest.ClearAsync();
+                result = await RoomApi.JoinAsync(request);
+            }
+
+            if (!result.IsSuccess)
+            {
+                error = result.Error.Message;
+                return;
+            }
+
+            var joined = result.Value;
+            await Guest.SaveFromJoinAsync(joined);
+
+            Navigation.NavigateTo($"room/{joined.Room.RoomId}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

@@ -32,6 +32,21 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
                 .HasForeignKey(r => r.HostUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // у игры максимум одно продолжение
+            builder.HasOne<RoomEntity>()
+                .WithMany()
+                .HasForeignKey(r => r.PreviousRoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(r => r.PreviousRoomId)
+                .IsUnique()
+                .HasFilter("\"PreviousRoomId\" IS NOT NULL");
+
+            // номер игры в серии один, два параллельных «Сыграть ещё» не создадут две
+            builder.HasIndex(r => new { r.SeriesId, r.GameNumber })
+                .IsUnique()
+                .HasFilter("\"SeriesId\" IS NOT NULL");
+
             builder.HasMany(r => r.Players)
                 .WithOne(rp => rp.Room)
                 .HasForeignKey(rp => rp.RoomId)

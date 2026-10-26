@@ -17,10 +17,17 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<MatchEntity?> GetMatchByRoomId(Guid roomId, CancellationToken ct);
         /// <summary>
-        /// Найти вопрос матча по порядковому номеру (с вариантами ответа)
+        /// Вопросы, уже заданные в играх серии
         /// </summary>
-        /// 
+        Task<HashSet<Guid>> GetQuestionIdsOfSeriesAsync(Guid seriesId, CancellationToken ct);
+        /// <summary>
+        /// Найти вопрос матча по порядковому номеру (с вариантами ответа и ответами игроков)
+        /// </summary>
         Task<MatchQuestionEntity?> GetMatchQuestionAsync(Guid matchId, int order, CancellationToken ct);
+        /// <summary>
+        /// Все вопросы матча по порядку с вариантами и ответами игроков, для разбора
+        /// </summary>
+        Task<List<MatchQuestionEntity>> GetQuestionsForReviewAsync(Guid matchId, CancellationToken ct);
         /// <summary>
         /// Id матчей с истёкшим вопросом (активным или закрытым)
         /// </summary>
@@ -45,10 +52,6 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// Владелец ли пользователь комнаты этого матча и сейчас в ней
         /// </summary>
         Task<bool> IsHost(Guid matchId, string keycloakSubject, CancellationToken ct);
-        /// <summary>
-        /// Сколько активных участников ответили на вопрос матча
-        /// </summary>
-        Task<int> CountActiveAnswers(Guid matchQuestionId, CancellationToken ct);
         /// <summary>
         /// Сохранить изменения
         /// </summary>

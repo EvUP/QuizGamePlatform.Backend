@@ -1,0 +1,91 @@
+@* Кто уже ответил (без самих ответов): снимок сервера плюс события хаба. *@
+<section class="panel @(AllAnswered ? "all" : null)" aria-labelledby="answered-title">
+    <div class="head">
+        <h2 id="answered-title">@(AllAnswered ? "Все ответили" : "Ответили")</h2>
+        <span class="count">@AnsweredCount<span class="of"> / @InGame.Count</span></span>
+    </div>
+    <div class="meter" aria-hidden="true"><span style="width: @MeterWidth"></span></div>
+
+    @if (Room.IsTeamGame && Room.Teams is { } teams)
+    {
+        <div class="teams">
+            @* по номеру: сервер сортирует по очкам, а счёт команд виден только на итогах *@
+            @foreach (var team in teams.Where(t => InGame.Any(p => p.TeamNumber == t.Number)).OrderBy(t => t.Number))
+            {
+                var members = InGame.Where(p => p.TeamNumber == team.Number).ToList();
+                var done = members.Count(p => Answered.Contains(p.RoomPlayerLinkId));
+                <div class="team-row" style="--team-color: var(--qg-team-@team.Number)">
+                    <span class="team-head">
+                        <span class="team-name" title="@team.Name">@team.Name</span>
+                        <span class="team-count">@done/@members.Count</span>
+                    </span>
+                    <span class="dots">
+                        @foreach (var player in members)
+                        {
+                            var answered = Answered.Contains(player.RoomPlayerLinkId);
+                            var me = player.RoomPlayerLinkId == Room.MyRoomPlayerLinkId;
+                            <span class="dot @(answered ? "done" : null) @(me ? "me" : null)" title="@player.PlayerName"
+                                  aria-label="@($"{player.PlayerName}: {StateText(answered)}")">@PlayerInitials.Of(player.PlayerName)</span>
+                        }
+                    </span>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <ul class="people">
+            @foreach (var player in InGame)
+            {
+                var answered = Answered.Contains(player.RoomPlayerLinkId);
+                var me = player.RoomPlayerLinkId == Room.MyRoomPlayerLinkId;
+                <li class="@(answered ? "done" : null) @(me ? "me" : null)">
+                    <span class="avatar" aria-hidden="true">
+                        @if (answered)
+                        {
+                            <Icon Name="IconName.Check" Size="16" StrokeWidth="3" />
+                        }
+                        else
+                        {
+                            @PlayerInitials.Of(player.PlayerName)
+                        }
+                    </span>
+                    <span class="name" title="@player.PlayerName">@player.PlayerName</span>
+                    @if (me)
+                    {
+                        <span class="you">вы</span>
+                    }
+                    <span class="state">@StateText(answered)</span>
+                </li>
+            }
+        </ul>
+    }
+
+    <p class="note">
+        @(Closed ? "Ответы закрыты — сейчас все видят правильный." : "Видно, кто ответил, но не что. Ведущий может показать ответ раньше таймера.")
+    </p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public RoomStateResponse Room { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlySet<Guid> Answered { get; set; } = default!;
+
+    /// <summary>Показ ответа: кто не ответил, тот уже «без ответа», а не «думает»</summary>
+    [Parameter]
+    public bool Closed { get; set; }
+
+    private List<RoomParticipationResponse> InGame => Room.Players.Where(p => p.IsActive).ToList();
+
+    private int AnsweredCount => InGame.Count(p => Answered.Contains(p.RoomPlayerLinkId));
+
+    private bool AllAnswered => InGame.Count > 0 && AnsweredCount >= InGame.Count;
+
+    private string MeterWidth => InGame.Count == 0
+        ? "0%"
+        : (100.0 * AnsweredCount / InGame.Count).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    private string StateText(bool answered) => answered ? "есть ответ" : Closed ? "без ответа" : "думает…";
+}

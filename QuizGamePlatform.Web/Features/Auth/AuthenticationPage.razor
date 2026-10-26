@@ -1,0 +1,40 @@
+@page "/authentication/{action}"
+
+@* Служебная страница библиотеки входа: редиректы в Keycloak и обратно *@
+<PageTitle>Вход · QuizGame</PageTitle>
+
+<section class="auth">
+    <RemoteAuthenticatorView Action="@Action">
+        <LoggingIn>
+            <p role="status">Переходим ко входу…</p>
+        </LoggingIn>
+        <CompletingLoggingIn>
+            <p role="status">Завершаем вход…</p>
+        </CompletingLoggingIn>
+        <LogInFailed Context="message">
+            <h1>Не удалось войти</h1>
+            <p>Что-то помешало входу. Попробуйте ещё раз.</p>
+            <a href="">На главную</a>
+        </LogInFailed>
+        <LogOut>
+            <p role="status">Выходим…</p>
+        </LogOut>
+        <CompletingLogOut>
+            <p role="status">Завершаем выход…</p>
+        </CompletingLogOut>
+        <LogOutFailed Context="message">
+            <h1>Не удалось выйти</h1>
+            <p>Что-то помешало выходу. Попробуйте ещё раз.</p>
+            <a href="">На главную</a>
+        </LogOutFailed>
+        <LogOutSucceeded>
+            <h1>Вы вышли из аккаунта</h1>
+            <a href="">На главную</a>
+        </LogOutSucceeded>
+    </RemoteAuthenticatorView>
+</section>
+
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+}

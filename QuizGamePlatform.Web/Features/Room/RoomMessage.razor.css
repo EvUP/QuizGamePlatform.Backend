@@ -1,0 +1,21 @@
+.message {
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 64px 0;
+}
+
+    .message h1 {
+        font-size: clamp(28px, 5vw, 40px);
+    }
+
+    .message p {
+        color: var(--qg-muted);
+        font-size: 17px;
+    }
+
+    .message a {
+        font-weight: 700;
+    }

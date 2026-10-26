@@ -1,0 +1,300 @@
+@implements IDisposable
+@inject GameSession Session
+@inject NavigationManager Navigation
+
+@* «Сыграть ещё» на итогах. Следующая игра (Room.Next*) последняя в серии, сервер отдаёт её только у завершённой комнаты. *@
+<div class="rematch">
+    @switch (View)
+    {
+        case RematchView.HostStart:
+            <button type="button" class="primary" disabled="@busy" @onclick="RematchAsync">@(busy ? "Собираем…" : "Сыграть ещё")</button>
+            <p class="caption">@(Room.IsTeamGame ? "Ссылки команд те же, игроки перейдут сами" : "Ссылка та же, игроки перейдут сами")</p>
+            break;
+
+        case RematchView.HostNextWaiting:
+            <a class="primary" href="room/@Room.NextRoomId">Перейти в игру @NextNumber</a>
+            break;
+
+        case RematchView.HostNextLive:
+            <p class="line">Игра @NextNumber идёт</p>
+            <a class="go" href="room/@Room.NextRoomId">Открыть игру @NextNumber</a>
+            break;
+
+        case RematchView.HostNextFinished:
+            <p class="line">Игра @NextNumber уже сыграна</p>
+            <a class="go" href="room/@Room.NextRoomId">Итоги игры @NextNumber →</a>
+            break;
+
+        case RematchView.Following:
+            <p class="line" role="status"><span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>Переходим в игру @NextNumber…</p>
+            break;
+
+        case RematchView.GuestExpired:
+            <p class="line">Гостевой вход устарел — откройте ту же ссылку, ник подставим</p>
+            break;
+
+        case RematchView.Waiting:
+            <p class="line" role="status">
+                @if (lateNight)
+                {
+                    @("Похоже, на сегодня всё")
+                }
+                else
+                {
+                    <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                    @("Ждём, позовёт ли ведущий ещё")
+                }
+            </p>
+            <p class="caption">@(WillAutoFollow ? "Позовёт — перенесём вас сами" : "Позовёт — здесь появится кнопка перехода")</p>
+            break;
+
+        case RematchView.NextWaiting:
+            <p class="line" role="status">Ведущий собрал игру @NextNumber</p>
+            <button type="button" class="primary" @onclick="() => StartFollow(auto: false)">Перейти в игру @NextNumber</button>
+            break;
+
+        case RematchView.NextLive:
+            <p class="line">Игра @NextNumber уже идёт. Соберут следующую — откройте ту же ссылку</p>
+            break;
+
+        case RematchView.NextFinished:
+            <p class="line">Игра @NextNumber уже сыграна</p>
+            break;
+    }
+
+    @if (error is not null)
+    {
+        <ErrorBanner Message="@error" />
+    }
+</div>
+
+@code {
+    /// <summary>Снимок комнаты с итогами (тот же, что Session.Room)</summary>
+    [Parameter, EditorRequired]
+    public RoomStateResponse Room { get; set; } = default!;
+
+    /// <summary>Открыт разбор вопросов: человека не выдёргиваем, переходим после закрытия</summary>
+    [Parameter]
+    public bool ReviewOpen { get; set; }
+
+    /// <summary>Сменился PendingAfterReview: родитель перерисует плашку в разборе (свой Room он отдал нам раньше, чем мы его увидели)</summary>
+    [Parameter]
+    public EventCallback PendingChanged { get; set; }
+
+    // через 10 минут без «Сыграть ещё» честно говорим, что ждать, скорее всего, нечего
+    private static readonly TimeSpan GiveUpAfter = TimeSpan.FromMinutes(10);
+
+    private readonly CancellationTokenSource lifetime = new();
+
+    // следующие игры, на которые автопереход уже был или не положен (были на экране при открытии)
+    private readonly HashSet<Guid> seenNext = [];
+    private bool initialized;
+    private bool following;
+    private bool busy;
+    private bool lateNight;
+
+    // ушли с итогов: запрос не отменяем (гостевой токен должен сохраниться), но и не уводим в новую комнату
+    private bool disposed;
+    private string? error;
+    private int? reportedPending;
+
+    private int NextNumber => Room.NextGameNumber ?? Room.GameNumber + 1;
+
+    /// <summary>Номер игры, в которую перейдём после закрытия разбора; null, если переход не ждёт</summary>
+    public int? PendingAfterReview
+        => Room.NextRoomId is { } next && !seenNext.Contains(next) && CanAutoFollow ? NextNumber : null;
+
+    // убранный ведущим и вышедший сам переходят только кнопкой; оборвавший связь как все
+    private bool CanAutoFollow
+        => !Session.IsHost
+           && !Session.AuthExpired
+           && Room.NextRoomStatus == RoomStatus.Waiting
+           && WillAutoFollow;
+
+    // ушедшего из лобби (его нет в итогах) и вышедшего сам не переносим
+    private bool WillAutoFollow => Session.Me is { } me && (me.IsActive || me.ExitReason == ExitReason.Disconnected);
+
+    private bool IsGuest => Session.Me?.IsGuest == true;
+
+    private RematchView View
+    {
+        get
+        {
+            if (Session.IsHost)
+            {
+                return Room.NextRoomId is null
+                    ? RematchView.HostStart
+                    : Room.NextRoomStatus switch
+                    {
+                        RoomStatus.Waiting => RematchView.HostNextWaiting,
+                        RoomStatus.InProgress => RematchView.HostNextLive,
+                        _ => RematchView.HostNextFinished
+                    };
+            }
+
+            if (following)
+            {
+                return RematchView.Following;
+            }
+
+            if (Session.AuthExpired && IsGuest)
+            {
+                return RematchView.GuestExpired;
+            }
+
+            return Room.NextRoomId is null
+                ? RematchView.Waiting
+                : Room.NextRoomStatus switch
+                {
+                    RoomStatus.Waiting => RematchView.NextWaiting,
+                    RoomStatus.InProgress => RematchView.NextLive,
+                    _ => RematchView.NextFinished
+                };
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!initialized)
+        {
+            initialized = true;
+
+            // открыли готовые итоги (из «Моих комнат», после F5): уже собранную игру показываем баннером, без автоперехода
+            if (!Session.SawLiveFinish && Room.NextRoomId is { } existing)
+            {
+                seenNext.Add(existing);
+            }
+
+            _ = GiveUpLaterAsync();
+        }
+
+        if (!following && !ReviewOpen && PendingAfterReview is not null)
+        {
+            StartFollow(auto: true);
+        }
+
+        if (PendingAfterReview != reportedPending)
+        {
+            reportedPending = PendingAfterReview;
+            _ = PendingChanged.InvokeAsync();
+        }
+    }
+
+    private void StartFollow(bool auto)
+    {
+        if (following || Room.NextRoomId is not { } next)
+        {
+            return;
+        }
+
+        seenNext.Add(next);
+        following = true;
+        error = null;
+        _ = FollowFlowAsync(auto);
+    }
+
+    private async Task FollowFlowAsync(bool auto)
+    {
+        try
+        {
+            // все с итогов переходят разом, разносим запросы по секунде
+            if (auto)
+            {
+                await Task.Delay(Random.Shared.Next(0, 1000), lifetime.Token);
+            }
+
+            var result = await Session.FollowAsync();
+
+            if (disposed)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"room/{result.Value}");
+                return;
+            }
+
+            var failure = result.Error;
+
+            // сначала перечитать: если следующая игра уже стартовала или сыграна, хватит баннера без текста ошибки
+            await Session.ReloadAllAsync();
+
+            following = false;
+            error = Session.Room?.NextRoomStatus != RoomStatus.Waiting || (Session.AuthExpired && IsGuest)
+                ? null
+                : failure.StatusCode == 401 && IsGuest
+                    ? "Гостевой вход устарел — откройте ту же ссылку, ник подставим"
+                    : failure.Message;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // ушли с итогов
+        }
+    }
+
+    private async Task RematchAsync()
+    {
+        busy = true;
+        error = null;
+
+        try
+        {
+            var result = await Session.RematchAsync();
+
+            if (disposed)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"room/{result.Value}");
+                return;
+            }
+
+            error = result.Error.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task GiveUpLaterAsync()
+    {
+        try
+        {
+            await Task.Delay(GiveUpAfter, lifetime.Token);
+            lateNight = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        disposed = true;
+        lifetime.Cancel();
+        lifetime.Dispose();
+    }
+
+    private enum RematchView
+    {
+        HostStart,
+        HostNextWaiting,
+        HostNextLive,
+        HostNextFinished,
+        Following,
+        GuestExpired,
+        Waiting,
+        NextWaiting,
+        NextLive,
+        NextFinished
+    }
+}

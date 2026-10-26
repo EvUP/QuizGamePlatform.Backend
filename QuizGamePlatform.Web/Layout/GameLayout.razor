@@ -1,0 +1,14 @@
+@inherits LayoutComponentBase
+
+@* Полноэкранный layout для комнаты: лобби, вопросы, итоги; у каждой стадии своя шапка *@
+<main class="game">
+    <ErrorBoundary @ref="errorBoundary">
+        @Body
+    </ErrorBoundary>
+</main>
+
+@code {
+    private ErrorBoundary? errorBoundary;
+
+    protected override void OnParametersSet() => errorBoundary?.Recover();
+}

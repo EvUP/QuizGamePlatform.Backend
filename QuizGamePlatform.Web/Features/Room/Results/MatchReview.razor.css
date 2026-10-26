@@ -1,0 +1,345 @@
+/* Панель поверх итогов: страница под ней не двигается, вопросы прокручиваются внутри */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    padding: var(--qg-gutter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(16, 14, 26, 0.78);
+    backdrop-filter: blur(3px);
+    animation: qg-fade-in 0.15s ease-out;
+}
+
+.trap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.sheet {
+    width: 100%;
+    max-width: 780px;
+    max-height: min(100%, 920px);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--qg-radius-l);
+    border: 1px solid var(--qg-line);
+    background: var(--qg-surface);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    animation: qg-sheet-in 0.2s ease-out;
+}
+
+    .sheet:focus {
+        outline: none;
+    }
+
+.head {
+    flex: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: clamp(14px, 2.4vh, 22px) clamp(16px, 2.4vw, 24px) 12px;
+    border-bottom: 1px solid var(--qg-line);
+}
+
+.head-text {
+    flex: 1;
+    min-width: 0;
+}
+
+h2 {
+    font-size: clamp(20px, 3vh, 24px);
+    line-height: 1.2;
+}
+
+.head p {
+    margin-top: 2px;
+    color: var(--qg-muted);
+    font-size: 14px;
+}
+
+.head .notice {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: var(--qg-radius-s);
+    background: var(--qg-success-bg);
+    color: var(--qg-accent);
+    font-weight: 700;
+}
+
+.close {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--qg-line);
+    background: var(--qg-surface-2);
+    color: var(--qg-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .close:hover {
+        background: var(--qg-surface-3);
+    }
+
+.message {
+    padding: 18px clamp(16px, 2.4vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.empty {
+    color: var(--qg-text-2);
+    font-weight: 600;
+}
+
+.skeleton {
+    height: 150px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-surface-2);
+    animation: qg-pulse 1.4s ease-in-out infinite;
+}
+
+/* список вопросов забирает остаток высоты панели */
+.questions {
+    flex: 0 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 6px clamp(16px, 2.4vw, 24px) 16px;
+    list-style: none;
+    overflow-y: auto;
+}
+
+    .questions:focus-visible {
+        outline-offset: -3px;
+    }
+
+.question {
+    padding: 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+    .question + .question {
+        border-top: 1px solid var(--qg-line);
+    }
+
+.question-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.number {
+    flex: none;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--qg-surface-3);
+    color: var(--qg-text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.question-text {
+    flex: 1;
+    min-width: 0;
+    padding-top: 3px;
+    font-weight: 800;
+    font-size: 17px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.options {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+/* вариант как на показе ответа, только меньше */
+.option {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    gap: 6px 10px;
+    flex-wrap: wrap;
+    padding: 6px 10px;
+    border-radius: 14px;
+    border: 2px solid var(--qg-line);
+    background: var(--qg-surface);
+}
+
+    .option.correct {
+        border-color: var(--qg-accent);
+        background: var(--qg-success-bg);
+    }
+
+    .option.wrong {
+        border-color: var(--qg-danger);
+    }
+
+.letter {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--letter-color);
+    color: var(--qg-on-accent);
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.text {
+    flex: 1 1 100px;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.badge {
+    flex: none;
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 12px;
+}
+
+    .badge.mine {
+        background: var(--qg-text);
+        color: var(--qg-on-accent);
+    }
+
+.tick {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge + .tick {
+    margin-left: 0;
+}
+
+.text + .tick {
+    margin-left: auto;
+}
+
+.stats {
+    color: var(--qg-subtle);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* телефон: лист снизу во всю ширину, варианты в столбик */
+@media (max-width: 599px) {
+    .backdrop {
+        padding: 12px 0 0;
+        align-items: flex-end;
+    }
+
+    .sheet {
+        max-height: 100%;
+        border-radius: var(--qg-radius-l) var(--qg-radius-l) 0 0;
+        border-bottom: 0;
+        animation-name: qg-sheet-up;
+    }
+
+    .options {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .option {
+        min-height: 42px;
+    }
+
+    .question-text {
+        font-size: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backdrop, .sheet {
+        animation: none;
+    }
+}
+
+@keyframes qg-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes qg-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+}
+
+@keyframes qg-sheet-up {
+    from {
+        transform: translateY(40px);
+    }
+}
+
+@keyframes qg-pulse {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
+@supports (animation-timeline: scroll()) {
+    .questions {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

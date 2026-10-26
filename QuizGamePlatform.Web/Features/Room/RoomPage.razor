@@ -1,0 +1,184 @@
+@page "/room/{RoomId:guid}"
+@layout GameLayout
+@using Microsoft.AspNetCore.SignalR.Client
+@using QuizGamePlatform.Web.Features.Room.Lobby
+@using QuizGamePlatform.Web.Features.Room.Match
+@using QuizGamePlatform.Web.Features.Room.Results
+@implements IDisposable
+@inject GameSession Session
+@inject GuestSession Guest
+
+<PageTitle>@PageTitleText · QuizGame</PageTitle>
+
+@* гостевой токен истёк на итогах: хаб без него не вернётся, «переподключаемся» было бы неправдой, объясняет RematchActions *@
+@if (Session.Status == SessionStatus.Ready && !Session.AuthExpired)
+{
+    @switch (Session.Connection)
+    {
+        case HubConnectionState.Reconnecting:
+            <ConnectionOverlay Since="Session.ReconnectingSinceUtc"
+                               InMatch="Session.Phase is GamePhase.Question or GamePhase.Reveal"
+                               IsTeamGame="Session.Room?.IsTeamGame == true" />
+            break;
+        case HubConnectionState.Disconnected:
+            <ConnectionBanner OnReconnect="() => Session.EnterAsync(RoomId)" />
+            break;
+    }
+}
+
+@switch (Session.Status)
+{
+    case SessionStatus.NotParticipant or SessionStatus.Gone when !isAccount && Guest.Current is { } guest && guest.RoomId != RoomId:
+        @* гость перешёл в следующую игру и вернулся «Назад» или обновил страницу: токен уже от другой комнаты *@
+        <RoomMessage Title="Вы уже в следующей игре" LinkHref="@($"room/{guest.RoomId}")" LinkText="Вернуться в игру" />
+        break;
+
+    case SessionStatus.Ready:
+        @switch (Session.Phase)
+        {
+            case GamePhase.Lobby:
+                @* Room параметром: новый снимок с сервера → лобби перерисуется (без параметров Blazor его пропустит) *@
+                <LobbyView Room="Session.Room!" />
+                break;
+            case GamePhase.Question or GamePhase.Reveal:
+                <MatchView Room="Session.Room!" Question="Session.Question!" Answered="Session.AnsweredLinkIds" MyAnswer="Session.MyAnswerOptionId" />
+                break;
+            case GamePhase.Results:
+                <ResultsView Room="Session.Room!" TotalQuestions="Session.Question?.TotalQuestions" />
+                break;
+            default:
+                <p class="loading" role="status">Загружаем игру…</p>
+                break;
+        }
+        break;
+
+    case SessionStatus.NotParticipant:
+        <RoomMessage Title="Вы не в этой комнате"
+                     Text="Войти можно по ссылке-приглашению от ведущего. Если вы вышли сами, откройте ссылку ещё раз." />
+        break;
+
+    case SessionStatus.Removed when Session.MyExitReason == ExitReason.Kicked:
+        <RoomMessage Title="Ведущий убрал вас из комнаты"
+                     Text="@(Session.Room?.MyCanReturn == true ? "Если это ошибка, напишите ведущему. Вернуться можно по той же ссылке." : "Если это ошибка, напишите ведущему.")" />
+        break;
+
+    case SessionStatus.Removed:
+        @* вернуться кнопкой: ведущий в комнату по ссылке не входил, ссылки у него нет. Кнопка только пока сервер пускает *@
+        var inGame = Session.Room?.Status == RoomStatus.InProgress;
+        var canReturn = Session.Room?.MyCanReturn == true;
+        <RoomMessage Title="@(inGame ? "Вы вышли из игры" : "Вы вышли из комнаты")" Text="@RemovedText(inGame, canReturn)">
+            @if (canReturn)
+            {
+                <button type="button" class="return" disabled="@returning" @onclick="ReturnAsync">
+                    @(inGame ? "Вернуться в игру" : "Вернуться в лобби")
+                </button>
+            }
+            @if (returnError is not null)
+            {
+                <p class="return-error" role="alert">@returnError</p>
+            }
+        </RoomMessage>
+        break;
+
+    case SessionStatus.Gone when Session.GoneGameNumber is > 1 and var number:
+        @* ведущий отменил игру N из «Сыграть ещё»; гость итоги прошлой игры не откроет, его токен был от отменённой *@
+        <RoomMessage Title="@($"Ведущий отменил игру {number}")"
+                     Text="Соберёт снова — та же ссылка приведёт в новую игру."
+                     LinkHref="@(isAccount && Session.GonePreviousRoomId is { } previous ? $"room/{previous}" : null)"
+                     LinkText="@($"К итогам игры {number - 1}")" />
+        break;
+
+    case SessionStatus.Gone:
+        <RoomMessage Title="Комнаты больше нет"
+                     Text="Ведущий её удалил. Попросите у него ссылку на новую комнату." />
+        break;
+
+    case SessionStatus.Failed:
+        <div class="failed">
+            <h1>Не удалось открыть комнату</h1>
+            <ErrorBanner Message="@(Session.Error?.Message ?? "Попробуйте ещё раз")" OnRetry="() => Session.EnterAsync(RoomId)" />
+            <a class="home" href="">На главную</a>
+        </div>
+        break;
+
+    default:
+        <p class="loading" role="status">Подключаемся к комнате…</p>
+        break;
+}
+
+@code {
+    [Parameter]
+    public Guid RoomId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    // аккаунт или гость: у аккаунта в браузере может остаться гостевой токен с прошлых игр
+    private bool isAccount;
+
+    private bool returning;
+    private string? returnError;
+
+    private string PageTitleText => Session.Phase switch
+    {
+        GamePhase.Lobby => Session.GameNumber > 1 ? $"Лобби · игра {Session.GameNumber}" : "Лобби",
+        GamePhase.Question or GamePhase.Reveal => "Игра",
+        GamePhase.Results => "Итоги",
+        _ => "Комната"
+    };
+
+    // обещаем возврат, только если сервер пустит; в командной очки, принесённые команде, остаются за ней
+    private string RemovedText(bool inGame, bool canReturn)
+    {
+        if (!inGame)
+        {
+            return canReturn ? "Передумали? Вернитесь, пока в комнате есть места." : "Вернуться в эту комнату уже нельзя.";
+        }
+
+        var team = Session.Room?.IsTeamGame == true;
+        var host = Session.IsHost ? "Игра идёт по таймеру. " : "";
+
+        if (canReturn)
+        {
+            return host + (team
+                ? $"Передумали? Вернуться можно в первые {GameRules.ReturnWindowSeconds} секунд после выхода. Очки, которые вы уже принесли команде, останутся за ней."
+                : $"Передумали? Вернуться можно в первые {GameRules.ReturnWindowSeconds} секунд после выхода, потом очки за эту игру сгорят.");
+        }
+
+        // без подробностей про очки: так же видит и ушедший ещё из лобби
+        return "Игра идёт без вас — дождитесь итогов.";
+    }
+
+    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isAccount = (await AuthState).User.Identity?.IsAuthenticated == true;
+        await Session.EnterAsync(RoomId);
+    }
+
+    private async Task ReturnAsync()
+    {
+        returning = true;
+        returnError = null;
+
+        try
+        {
+            var result = await Session.ReturnAsync();
+            returnError = result.IsSuccess ? null : result.Error.Message;
+        }
+        finally
+        {
+            returning = false;
+        }
+    }
+
+    // события хаба приходят вне цикла рендера компонента
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Session.Exit();
+    }
+}

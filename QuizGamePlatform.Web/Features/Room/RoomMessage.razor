@@ -1,0 +1,33 @@
+@* Комната недоступна: не участник или удалена *@
+<section class="message">
+    <h1>@Title</h1>
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <p>@Text</p>
+    }
+    @ChildContent
+    @if (LinkHref is not null && LinkText is not null)
+    {
+        <a href="@LinkHref">@LinkText</a>
+    }
+    <a href="">На главную</a>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    /// <summary>Необязательная ссылка перед «На главную»</summary>
+    [Parameter]
+    public string? LinkHref { get; set; }
+
+    [Parameter]
+    public string? LinkText { get; set; }
+
+    /// <summary>Действие под текстом, например «Вернуться в игру»</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,18 @@
+/* Игровой экран ровно в высоту окна: лобби, вопрос, итоги сами делят высоту, лишнее прокручивается внутри блоков */
+.game {
+    /* Chrome умножает vh на zoom, поэтому делим обратно */
+    height: calc(100vh / var(--qg-zoom, 1));
+    height: calc(100dvh / var(--qg-zoom, 1));
+    max-width: var(--qg-game-width);
+    margin: 0 auto;
+    padding: clamp(12px, 2.4vh, 24px) var(--qg-gutter);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+@media (max-width: 599px) {
+    .game {
+        padding: 12px 16px;
+    }
+}

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 using QuizGamePlatform.Backend.Application.Abstractions;
 
@@ -11,14 +12,22 @@ namespace QuizGamePlatform.Backend.Api.Hubs
         TimeProvider timeProvider,
         ILogger<DisconnectWatcher> logger) : BackgroundService
     {
-        public static readonly TimeSpan Grace = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan Grace = TimeSpan.FromSeconds(5);
 
         // пауза у всех одна, поэтому очередь идёт по порядку сроков
         private readonly Channel<(Guid RoomId, Guid RoomPlayerId, DateTimeOffset DueAt)> _queue =
             Channel.CreateUnbounded<(Guid, Guid, DateTimeOffset)>(new UnboundedChannelOptions { SingleReader = true });
 
+        // последний срок игрока: пауза считается от последнего обрыва, а не от первого
+        private readonly ConcurrentDictionary<Guid, DateTimeOffset> _latestDue = new();
+
         public void Watch(Guid roomId, Guid roomPlayerId)
-            => _queue.Writer.TryWrite((roomId, roomPlayerId, timeProvider.GetUtcNow() + Grace));
+        {
+            var dueAt = timeProvider.GetUtcNow() + Grace;
+
+            _latestDue[roomPlayerId] = dueAt;
+            _queue.Writer.TryWrite((roomId, roomPlayerId, dueAt));
+        }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -30,6 +39,14 @@ namespace QuizGamePlatform.Backend.Api.Hubs
                 {
                     await Task.Delay(wait, timeProvider, stoppingToken);
                 }
+
+                // был обрыв позже: решит его срок
+                if (_latestDue.TryGetValue(roomPlayerId, out var latest) && latest > dueAt)
+                {
+                    continue;
+                }
+
+                _latestDue.TryRemove(KeyValuePair.Create(roomPlayerId, dueAt));
 
                 try
                 {

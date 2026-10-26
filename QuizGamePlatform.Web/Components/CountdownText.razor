@@ -1,0 +1,17 @@
+@inherits CountdownBase
+
+@* Сколько секунд осталось, числом, для фраз вроде «следующий вопрос через 4 с».
+   С ChildContent отдаёт число шаблону: текст вокруг может меняться, например на нуле. *@
+@if (ChildContent is not null)
+{
+    @ChildContent(SecondsLeft)
+}
+else
+{
+    @SecondsLeft
+}
+
+@code {
+    [Parameter]
+    public RenderFragment<int>? ChildContent { get; set; }
+}

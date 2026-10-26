@@ -1,0 +1,100 @@
+@implements IDisposable
+@inject IJSRuntime JS
+
+@* Копирует ссылку-приглашение, саму ссылку (в ней код) на экран не выводим.
+   Класс was-copied остаётся после первого копирования: по нему родитель меняет подсказку рядом. *@
+<button type="button" class="copy @PhaseClass @(everCopied ? "was-copied" : null) @Class" @onclick="CopyAsync">
+    <span class="copy-icon" @key="phase">
+        <Icon Name="@PhaseIcon" Size="16" StrokeWidth="@(phase == CopyPhase.Done ? 3 : 2.2)" />
+    </span>
+    <span class="copy-text" role="status">@PhaseText</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = "";
+
+    /// <summary>Подпись до первого копирования</summary>
+    [Parameter]
+    public string Label { get; set; } = "Скопировать ссылку";
+
+    /// <summary>Подтверждение сразу после копирования</summary>
+    [Parameter]
+    public string DoneLabel { get; set; } = "Ссылка скопирована";
+
+    /// <summary>Подпись, когда ссылку уже копировали</summary>
+    [Parameter]
+    public string AgainLabel { get; set; } = "Скопировать ещё раз";
+
+    [Parameter]
+    public string FailedLabel { get; set; } = "Не скопировалось — ещё раз";
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    // сколько держим «Ссылка скопирована» и ошибку, прежде чем перейти к «ещё раз»
+    private static readonly TimeSpan DoneDuration = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan FailedDuration = TimeSpan.FromSeconds(5);
+
+    private readonly LatestRequest reset = new();
+    private CopyPhase phase = CopyPhase.Ready;
+    private bool everCopied;
+
+    private enum CopyPhase
+    {
+        Ready,
+        Done,
+        Failed
+    }
+
+    private string? PhaseClass => phase switch
+    {
+        CopyPhase.Done => "done",
+        CopyPhase.Failed => "failed",
+        _ => null
+    };
+
+    private IconName PhaseIcon => phase switch
+    {
+        CopyPhase.Done => IconName.Check,
+        CopyPhase.Failed => IconName.Alert,
+        _ => IconName.Copy
+    };
+
+    private string PhaseText => phase switch
+    {
+        CopyPhase.Done => DoneLabel,
+        CopyPhase.Failed => FailedLabel,
+        _ => everCopied ? AgainLabel : Label
+    };
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", Url);
+            phase = CopyPhase.Done;
+            everCopied = true;
+        }
+        catch (JSException)
+        {
+            // нет доступа к буферу (не https и не localhost, запрет браузера)
+            phase = CopyPhase.Failed;
+        }
+
+        // обработчик ещё не закончился (ждёт смены подписи), показываем результат сразу
+        StateHasChanged();
+        var ct = reset.Next();
+
+        try
+        {
+            await Task.Delay(phase == CopyPhase.Done ? DoneDuration : FailedDuration, ct);
+            phase = CopyPhase.Ready;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose() => reset.Dispose();
+}

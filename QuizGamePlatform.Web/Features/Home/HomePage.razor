@@ -1,0 +1,137 @@
+@page "/"
+@using QuizGamePlatform.Web.Features.Leaderboard
+@implements IDisposable
+@inject LeaderboardApiClient LeaderboardApi
+
+<PageTitle>QuizGame — квиз для офиса и друзей</PageTitle>
+
+@* Две колонки на всю высоту окна: слева герой, режимы и «Мои комнаты», справа превью игры и топ рейтинга.
+   Списки прокручиваются внутри своих блоков, страница нет. *@
+<div class="home">
+    <div class="col col-main">
+        <section class="hero">
+            <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Корпоративный квиз · до 30 игроков</span>
+            <h1>Квиз, в&nbsp;который играют <span class="accent">отделами</span></h1>
+            <p class="lead">
+                Создайте комнату, разошлите ссылки командам и выясните, кто в офисе знает больше всех.
+            </p>
+            <div class="cta-row">
+                <a class="primary-action" href="rooms/new">
+                    <Icon Name="IconName.Plus" StrokeWidth="2.6" />
+                    Создать комнату
+                </a>
+                <p class="invite-hint">
+                    <span class="invite-icon"><Icon Name="IconName.Link" Size="24" /></span>
+                    <span><b>Вас пригласили?</b> Просто откройте ссылку, которую вам прислали, — и вы сразу в игре.</span>
+                </p>
+            </div>
+        </section>
+
+        <section class="modes" aria-label="Типы игр">
+            @* карточки игр ведут в создание комнаты; гостя страница сама уводит на вход, как и «Создать комнату» *@
+            @foreach (var mode in Modes)
+            {
+                @if (mode.Href is { } href)
+                {
+                    <a class="mode mode-link" href="@href" aria-label="@($"Создать комнату: {mode.Title.ToLowerInvariant()}")">
+                        <span class="mode-icon" style="background: @mode.Color"><Icon Name="mode.Icon" Size="20" /></span>
+                        <h2>@mode.Title</h2>
+                        <p>@mode.Text</p>
+                    </a>
+                }
+                else
+                {
+                    <article class="mode">
+                        <span class="mode-icon" style="background: @mode.Color"><Icon Name="mode.Icon" Size="20" /></span>
+                        <h2>@mode.Title</h2>
+                        <p>@mode.Text</p>
+                    </article>
+                }
+            }
+        </section>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="rooms-slot">
+                    <MyRooms />
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <div class="col col-side">
+        <div class="preview-slot">
+            <GamePreview />
+        </div>
+
+        <section class="leaders" aria-labelledby="leaders-title">
+            <div class="section-head">
+                <h2 id="leaders-title">Рейтинг</h2>
+                <a href="@AllLeadersHref">Весь рейтинг →</a>
+            </div>
+            <LeaderboardKindSwitch @bind-Value="kind" @bind-Value:after="LoadLeadersAsync" />
+            <LeaderboardPreview Rows="leaders" Error="leadersError" OnRetry="LoadLeadersAsync" />
+        </section>
+    </div>
+</div>
+
+@code {
+    private const int PreviewSize = 5;
+
+    private static readonly ModeCard[] Modes =
+    [
+        new(IconName.User, "var(--qg-team-1)", "Обычная игра",
+            "До десяти игроков вместе с ведущим и одна ссылка на всех. Каждый сам за себя: очко за верный ответ.",
+            "rooms/new"),
+        // ?type=team уже понимает CreateRoomPage
+        new(IconName.Users, "var(--qg-team-3)", "Командная игра",
+            "От двух до пяти команд, у каждой своя ссылка. За вопрос команде до 100 очков — по доле верных ответов.",
+            "rooms/new?type=team"),
+        new(IconName.Link, "var(--qg-team-2)", "Вход без регистрации и СМС",
+            "Гостю хватит ссылки и ника. Войдёте с аккаунтом — очки попадут в общий рейтинг.")
+    ];
+
+    private readonly LatestRequest request = new();
+    private LeaderboardKind kind = LeaderboardKind.Regular;
+    private List<LeaderboardRow>? leaders;
+    private ApiError? leadersError;
+
+    private string AllLeadersHref => kind == LeaderboardKind.TeamGames ? "leaderboard?tab=team" : "leaderboard";
+
+    protected override Task OnInitializedAsync() => LoadLeadersAsync();
+
+    private async Task LoadLeadersAsync()
+    {
+        leaders = null;
+        leadersError = null;
+        var ct = request.Next();
+
+        try
+        {
+            var result = await LeaderboardApi.GetAsync(kind, ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                leaders = LeaderboardRow.Rank(result.Value).Take(PreviewSize).ToList();
+            }
+            else
+            {
+                leadersError = result.Error;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // переключили вкладку или ушли со страницы
+        }
+    }
+
+    public void Dispose() => request.Dispose();
+
+    // Href null: карточка только поясняет, без ссылки
+    private sealed record ModeCard(IconName Icon, string Color, string Title, string Text, string? Href = null);
+}
