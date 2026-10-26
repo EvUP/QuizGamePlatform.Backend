@@ -1,0 +1,94 @@
+.my-rooms {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--qg-muted);
+    font-size: 14px;
+}
+
+    .section-head h2 {
+        font-weight: 700;
+        font-size: clamp(20px, 3vh, 26px);
+        color: var(--qg-text);
+    }
+
+    /* как «Весь рейтинг →» в карточке рейтинга */
+    .section-head a {
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+/* список прокручивается внутри, заголовок остаётся на месте */
+.list {
+    flex: 0 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-radius: 18px;
+    border: 1px solid var(--qg-line);
+    background: var(--qg-surface);
+    overflow-y: auto;
+}
+
+.empty {
+    padding: 18px;
+    border-radius: 20px;
+    border: 1px dashed var(--qg-line-strong);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--qg-text-2);
+    font-weight: 600;
+}
+
+.skeleton {
+    height: 62px;
+    background: var(--qg-surface);
+    animation: qg-pulse 1.4s ease-in-out infinite;
+}
+
+    .skeleton + .skeleton {
+        border-top: 1px solid var(--qg-line);
+    }
+
+@keyframes qg-pulse {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
+@supports (animation-timeline: scroll()) {
+    .list {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

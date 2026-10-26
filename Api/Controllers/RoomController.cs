@@ -35,9 +35,9 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (room is null)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: $"Команд от {MatchHelper.MinTeams} до {MatchHelper.MaxTeams}, "
-                        + $"названия до {MatchHelper.TeamNameMaxLength} символов и без повторов, "
-                        + $"ожидаемых участников в сумме не больше {MatchHelper.MaxTeamGamePlayer}",
+                    message: $"Проверьте команды: их от {MatchHelper.MinTeams} до {MatchHelper.MaxTeams}, "
+                        + $"названия до {MatchHelper.TeamNameMaxLength} символов и не повторяются, "
+                        + $"всего не больше {MatchHelper.MaxTeamGamePlayer} игроков",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -53,7 +53,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (room is null)
             {
                 return NotFound(new CommonErrorResponse(
-                    message: $"Комната {id} не найдена или вы в ней не участвуете",
+                    message: "Комната не найдена или вы в ней не играете",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -67,6 +67,22 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             return Ok(await roomService.GetMyRoomsAsync(ct));
         }
 
+        // превью приглашения до входа, без токена
+        [HttpGet("invite/{code}")]
+        public async Task<IActionResult> GetInvite(string code, CancellationToken ct)
+        {
+            var invite = MatchHelper.HasControlChars(code) ? null : await roomService.GetInviteAsync(code, ct);
+
+            if (invite is null)
+            {
+                return NotFound(new CommonErrorResponse(
+                    message: "Комната не найдена, проверьте ссылку",
+                    method: HttpContext.GetMethodWithPath()));
+            }
+
+            return Ok(invite);
+        }
+
         [HttpDelete("{id:guid}")]
         [Authorize(Policy = AuthorizationPolicies.Registered)]
         public async Task<IActionResult> DeleteExistingRoom(Guid id, CancellationToken ct)
@@ -74,20 +90,72 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (!await roomService.IsRoomHostAsync(id, ct))
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new CommonErrorResponse(
-                    message: "Удалить комнату может только её владелец",
+                    message: "Удалить комнату может только ведущий",
                     method: HttpContext.GetMethodWithPath()));
             }
 
-            var isDeletedRoom = await roomService.DeleteExistingRoomByIdAsync(id, ct);
+            var method = HttpContext.GetMethodWithPath();
 
-            if (!isDeletedRoom)
+            return await roomService.DeleteExistingRoomByIdAsync(id, ct) switch
             {
-                return Conflict(new CommonErrorResponse(
+                DeleteRoomResult.Deleted => NoContent(),
+                DeleteRoomResult.NotWaiting => Conflict(new CommonErrorResponse(
                     message: "Удалить комнату можно только до начала игры",
-                    method: HttpContext.GetMethodWithPath()));
+                    method: method)),
+                // во время отмены игры игроки как раз переходят в неё
+                DeleteRoomResult.Busy => Conflict(new CommonErrorResponse(
+                    message: "Игроки как раз заходят — попробуйте отменить ещё раз",
+                    method: method)),
+                _ => NotFound(new CommonErrorResponse(
+                    message: "Комната не найдена",
+                    method: method)),
+            };
+        }
+
+        // «Сыграть ещё»: та же ссылка и ссылки команд ведут в новую игру, писем нет
+        [HttpPost("{id:guid}/rematch")]
+        [Authorize(Policy = AuthorizationPolicies.Registered)]
+        public async Task<IActionResult> Rematch(Guid id, CancellationToken ct)
+        {
+            var (room, refusal) = await roomService.RematchAsync(id, ct);
+
+            if (room is not null)
+            {
+                return Ok(room);
             }
 
-            return NoContent();
+            var method = HttpContext.GetMethodWithPath();
+
+            return refusal switch
+            {
+                RematchRefusal.Forbidden => StatusCode(StatusCodes.Status403Forbidden, new CommonErrorResponse(
+                    message: "Сыграть ещё может только ведущий этой комнаты",
+                    method: method)),
+                RematchRefusal.NotFinished => Conflict(new CommonErrorResponse(
+                    message: "Сыграть ещё можно только после итогов",
+                    method: method)),
+                RematchRefusal.Busy => Conflict(new CommonErrorResponse(
+                    message: "Кто-то успел изменить комнату раньше вас. Попробуйте ещё раз",
+                    method: method)),
+                _ => NotFound(new CommonErrorResponse(
+                    message: "Комната не найдена",
+                    method: method)),
+            };
+        }
+
+        // с итогов в следующую игру серии: аккаунт или гостевой токен этой комнаты
+        [HttpPost("{id:guid}/follow")]
+        [Authorize]
+        public async Task<IActionResult> Follow(Guid id, CancellationToken ct)
+        {
+            var (roomPlayer, refusal) = await roomService.FollowAsync(id, ct);
+
+            if (roomPlayer is null)
+            {
+                return FollowRefused(refusal);
+            }
+
+            return Ok(JoinResponse(roomPlayer));
         }
 
         [HttpPost("join")]
@@ -97,7 +165,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (Request.Headers.Authorization.Count > 0 && !currentUser.IsAuthenticated)
             {
                 return Unauthorized(new CommonErrorResponse(
-                    message: "Токен недействителен или истёк",
+                    message: "Вход устарел — войдите ещё раз",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -112,7 +180,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return BadRequest(new CommonErrorResponse
                (
-                   message: $"Username is empty",
+                   message: "Введите ник или войдите с аккаунтом",
                    method: HttpContext.GetMethodWithPath()
                ));
             }
@@ -128,11 +196,11 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 return JoinRefused(JoinRefusal.NotFound, roomRequest);
             }
 
-            if (!currentUser.IsRegistered && roomRequest.Username!.Trim().Length > 25)
+            if (!currentUser.IsRegistered && roomRequest.Username!.Trim().Length > RoomHelper.GuestNicknameMaxLength)
             {
                 return BadRequest(new CommonErrorResponse
                (
-                   message: "Ник слишком длинный (максимум 25 символов)",
+                   message: $"Ник длинноват: максимум {RoomHelper.GuestNicknameMaxLength} символов",
                    method: HttpContext.GetMethodWithPath()
                ));
             }
@@ -147,20 +215,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 return JoinRefused(refusal, roomRequest);
             }
 
-            if (currentUser.IsRegistered)
-            {
-                return Ok(new JoinToRoomResponse(roomPlayer, null, null));
-            }
-
-            var guestToken = guestTokenService.Issue(
-                roomPlayer.RoomPlayerLinkId,
-                roomPlayer.RoomId,
-                roomPlayer.PlayerName);
-
-            return Ok(new JoinToRoomResponse(
-                roomPlayer,
-                guestToken.AccessToken,
-                guestToken.ExpiresAtUtc));
+            return Ok(JoinResponse(roomPlayer));
         }
 
         [HttpPost("leave")]
@@ -171,7 +226,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (roomRequest.ExitReason is not (ExitReason.Normal or ExitReason.Disconnected))
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: "Причина выхода: Normal или Disconnected",
+                    message: "Не получилось выйти. Попробуйте ещё раз",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -181,7 +236,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             {
                 return NotFound(new CommonErrorResponse
                (
-                   message: $"Вы не участник комнаты {roomRequest.RoomId} или уже покинули её",
+                   message: "Вы уже вышли из этой комнаты или не были в ней",
                    method: HttpContext.GetMethodWithPath()
                ));
             }
@@ -211,7 +266,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         {
             return LobbyResult(
                 await roomService.ChangeTeamAsync(id, linkId, request.TeamNumber, ct),
-                "Пересаживает только владелец комнаты, игрок сам переходит по ссылке другой команды",
+                "Переводить игроков между командами может только ведущий",
                 "Сменить команду можно только до начала игры");
         }
 
@@ -222,7 +277,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > MatchHelper.TeamNameMaxLength)
             {
                 return BadRequest(new CommonErrorResponse(
-                    message: $"Название команды от 1 до {MatchHelper.TeamNameMaxLength} символов",
+                    message: $"Название команды — от 1 до {MatchHelper.TeamNameMaxLength} символов",
                     method: HttpContext.GetMethodWithPath()));
             }
 
@@ -233,8 +288,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             return LobbyResult(
                 await roomService.RenameTeamAsync(id, number, request.Name, ct),
-                "Переименовать команду может владелец комнаты или капитан этой команды",
-                "Переименовать можно только до начала игры, название должно быть свободно");
+                "Переименовать команду может ведущий или её капитан",
+                "Не получилось переименовать: игра уже началась или такое название занято");
         }
 
         [HttpPost("{id:guid}/teams")]
@@ -258,8 +313,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
 
             return LobbyResult(
                 await roomService.AddTeamAsync(id, request?.Name, ct),
-                "Добавить команду может только владелец комнаты",
-                $"Добавить команду можно только до начала игры, не больше {MatchHelper.MaxTeams}, название должно быть свободно");
+                "Добавить команду может только ведущий",
+                $"Не получилось добавить команду: игра уже идёт, команд уже {MatchHelper.MaxTeams} или такое название занято");
         }
 
         [HttpDelete("{id:guid}/teams/{number:int}")]
@@ -268,8 +323,8 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         {
             return LobbyResult(
                 await roomService.DeleteTeamAsync(id, number, ct),
-                "Удалить команду может только владелец комнаты",
-                $"Удалить можно только пустую команду до начала игры, команд должно остаться не меньше {MatchHelper.MinTeams}");
+                "Удалить команду может только ведущий",
+                $"Удалить можно только пустую команду и только до начала игры. Команд должно остаться хотя бы {MatchHelper.MinTeams}");
         }
 
         // в любой комнате, убранный может вернуться сам
@@ -279,12 +334,28 @@ namespace QuizGamePlatform.Backend.Api.Controllers
         {
             return LobbyResult(
                 await roomService.RemovePlayerAsync(id, linkId, ct),
-                "Убрать игрока может только владелец комнаты",
-                "Убрать игрока можно только до начала игры, себя нельзя");
+                "Убрать игрока может только ведущий",
+                "Убрать игрока можно только до начала игры. Себя убрать нельзя");
+        }
+
+        // аккаунту хватает своего токена, гостю выдаём токен этой комнаты
+        private JoinToRoomResponse JoinResponse(RoomResponse roomPlayer)
+        {
+            if (currentUser.IsRegistered)
+            {
+                return new JoinToRoomResponse(roomPlayer, null, null);
+            }
+
+            var guestToken = guestTokenService.Issue(
+                roomPlayer.RoomPlayerLinkId,
+                roomPlayer.RoomId,
+                roomPlayer.PlayerName);
+
+            return new JoinToRoomResponse(roomPlayer, guestToken.AccessToken, guestToken.ExpiresAtUtc);
         }
 
         private IActionResult InvalidChars(string what) => BadRequest(new CommonErrorResponse(
-            message: $"{what} содержит недопустимые символы (перевод строки, табуляция и т.п.)",
+            message: $"{what} с переносом строки или табуляцией не подойдёт — уберите их",
             method: HttpContext.GetMethodWithPath()));
 
         private IActionResult JoinRefused(JoinRefusal refusal, JoinToRoomRequest request)
@@ -294,30 +365,67 @@ namespace QuizGamePlatform.Backend.Api.Controllers
             return refusal switch
             {
                 JoinRefusal.TeamLinkRequired => BadRequest(new CommonErrorResponse(
-                    message: "В командную игру входят по ссылке своей команды",
+                    message: "В командную игру входят по ссылке команды — попросите её у ведущего",
                     method: method)),
                 // ник занят только у гостя, своё участие токен не нашёл
                 JoinRefusal.NicknameTaken => Conflict(new CommonErrorResponse(
-                    message: $"Ник {request.Username} занят. "
-                        + "Если это ваше участие, войдите с гостевым токеном, выданным при первом входе",
+                    message: $"Ник {request.Username} уже занят — выберите другой. "
+                        + "Если это вы, откройте ссылку в том же браузере, где играли",
                     method: method)),
                 JoinRefusal.Full => Conflict(new CommonErrorResponse(
-                    message: "Комната заполнена, свободных мест нет",
+                    message: "Мест больше нет: комната заполнена",
                     method: method)),
                 JoinRefusal.Started => Conflict(new CommonErrorResponse(
-                    message: "Игра уже началась, новые участники не входят",
+                    message: "Игра уже началась — новых игроков не пускаем",
                     method: method)),
                 JoinRefusal.ReturnExpired => Conflict(new CommonErrorResponse(
-                    message: $"Игра идёт, вернуться можно в течение {RoomHelper.ReconnectWindowSeconds} с после выхода",
+                    message: $"Время на возвращение вышло: вернуться в идущую игру можно в течение {RoomHelper.ReconnectWindowSeconds} секунд",
                     method: method)),
                 JoinRefusal.Finished => Conflict(new CommonErrorResponse(
-                    message: "Игра уже прошла",
+                    message: "Эта игра уже закончилась",
                     method: method)),
                 JoinRefusal.Busy => Conflict(new CommonErrorResponse(
-                    message: "Комната изменилась одновременно с вами, повторите",
+                    message: "Кто-то успел изменить комнату раньше вас. Попробуйте ещё раз",
                     method: method)),
                 _ => NotFound(new CommonErrorResponse(
                     message: "Комната не найдена, проверьте ссылку",
+                    method: method)),
+            };
+        }
+
+        private IActionResult FollowRefused(JoinRefusal refusal)
+        {
+            var method = HttpContext.GetMethodWithPath();
+
+            return refusal switch
+            {
+                JoinRefusal.NotParticipant => NotFound(new CommonErrorResponse(
+                    message: "Вы не играли в этой комнате",
+                    method: method)),
+                JoinRefusal.NoNextGame => NotFound(new CommonErrorResponse(
+                    message: "Следующей игры пока нет — ведущий её ещё не собрал или отменил",
+                    method: method)),
+                JoinRefusal.Started => Conflict(new CommonErrorResponse(
+                    message: "Следующая игра уже идёт — новых игроков не пускаем",
+                    method: method)),
+                JoinRefusal.NextFinished => Conflict(new CommonErrorResponse(
+                    message: "Следующая игра уже сыграна",
+                    method: method)),
+                JoinRefusal.ReturnExpired => Conflict(new CommonErrorResponse(
+                    message: $"Время на возвращение вышло: вернуться в идущую игру можно в течение {RoomHelper.ReconnectWindowSeconds} секунд",
+                    method: method)),
+                JoinRefusal.Full => Conflict(new CommonErrorResponse(
+                    message: "Мест больше нет: комната заполнена",
+                    method: method)),
+                // формы нет, заняты ник и все его варианты с номером
+                JoinRefusal.NicknameTaken => Conflict(new CommonErrorResponse(
+                    message: "Ник занят — откройте ту же ссылку и выберите другой",
+                    method: method)),
+                JoinRefusal.Busy => Conflict(new CommonErrorResponse(
+                    message: "Не получилось перейти — попробуйте ещё раз",
+                    method: method)),
+                _ => NotFound(new CommonErrorResponse(
+                    message: "Комната не найдена",
                     method: method)),
             };
         }
@@ -332,10 +440,10 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                 message: conflict,
                 method: HttpContext.GetMethodWithPath())),
             LobbyChangeResult.Concurrent => Conflict(new CommonErrorResponse(
-                message: "Комната изменилась одновременно с вами, повторите",
+                message: "Кто-то успел изменить комнату раньше вас. Попробуйте ещё раз",
                 method: HttpContext.GetMethodWithPath())),
             _ => NotFound(new CommonErrorResponse(
-                message: "Комната, команда или игрок не найдены, либо вы не в комнате",
+                message: "Не нашли — состав уже изменился. Обновите страницу",
                 method: HttpContext.GetMethodWithPath())),
         };
     }

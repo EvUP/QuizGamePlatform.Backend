@@ -1,0 +1,69 @@
+@* Связь с хабом пропала, клиент переподключается сам. Сервер держит место 5 + 40 с. *@
+<div class="overlay" role="alertdialog" aria-modal="true" aria-labelledby="reconnect-title" aria-describedby="reconnect-text">
+    <div class="card">
+        <div class="spinner" aria-hidden="true">
+            <svg class="spin" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" class="track" />
+                <path d="M60 6a54 54 0 0 1 54 54" class="arc" />
+            </svg>
+            <span class="icon"><Icon Name="IconName.WifiOff" Size="44" StrokeWidth="2" /></span>
+        </div>
+
+        <h2 id="reconnect-title">Связь пропала</h2>
+        <p id="reconnect-text" role="status">Переподключаемся сами — нажимать ничего не нужно.</p>
+
+        @if (Since is { } since)
+        {
+            @* шаблон внутри CountdownText: на нуле секунд текст меняется, «держим ещё 0 с» не показываем *@
+            <CountdownText EndsAtUtc="since.AddSeconds(HoldSeconds)" Context="left">
+                @if (left > 0)
+                {
+                    <div class="hold">
+                        <div class="hold-line">
+                            <span>Ваше место держим ещё</span>
+                            <span class="hold-seconds">@left с</span>
+                        </div>
+                        <span class="hold-note">@HoldNote</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="hold">
+                        <div class="hold-line">
+                            <span>Место больше не держим</span>
+                        </div>
+                        <span class="hold-note">@ExpiredNote</span>
+                    </div>
+                }
+            </CountdownText>
+        }
+    </div>
+</div>
+
+@code {
+    private const int HoldSeconds = GameRules.DisconnectGraceSeconds + GameRules.ReturnWindowSeconds;
+
+    [Parameter]
+    public DateTime? Since { get; set; }
+
+    [Parameter]
+    public bool InMatch { get; set; }
+
+    [Parameter]
+    public bool IsTeamGame { get; set; }
+
+    private string HoldNote => (InMatch, IsTeamGame) switch
+    {
+        (true, true) => "Успеете вернуться — продолжите игру в своей команде. Очки, которые вы уже принесли команде, останутся за ней.",
+        (true, false) => "Успеете вернуться — продолжите с текущего вопроса. Не успеете — ваш результат в этой игре обнулится.",
+        (false, true) => "Успеете вернуться — останетесь в своей команде.",
+        _ => "Успеете вернуться — останетесь в лобби."
+    };
+
+    private string ExpiredNote => (InMatch, IsTeamGame) switch
+    {
+        (true, true) => "Когда связь вернётся, игру можно будет досмотреть, но уже без ответов. Очки, которые вы принесли, останутся за командой.",
+        (true, false) => "Когда связь вернётся, игру можно будет досмотреть, но уже без ответов. Результат в этой игре — 0.",
+        _ => "Когда связь вернётся, откройте ссылку ещё раз — пустим, если есть места."
+    };
+}

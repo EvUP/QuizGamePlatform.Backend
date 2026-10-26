@@ -11,7 +11,7 @@ namespace QuizGamePlatform.Backend.Application.Abstractions
         // матч стартовал, сменил вопрос или завершился
         void MatchUpdated(MatchStateResponse match);
 
-        // игрок ответил, ведущий видит, когда ответили все
+        // игрок ответил, без самого ответа
         void PlayerAnswered(PlayerAnsweredEvent answer);
     }
 }

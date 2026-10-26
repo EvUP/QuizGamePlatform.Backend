@@ -1,0 +1,278 @@
+/* Боковая панель ведущего: на десктопе от 1280×720 помещается целиком.
+   Прокрутка и липкая «Начать игру» только страховка для совсем низких окон. */
+.settings {
+    /* ширина, при которой 12 тем с длинными названиями встают по 2–3 в строку */
+    flex: 0 0 clamp(360px, 28vw, 400px);
+    min-width: 0;
+    position: relative;
+    min-height: 0;
+    max-height: 100%;
+    align-self: flex-start;
+    overflow-y: auto;
+    padding: clamp(14px, 2.2vh, 22px) clamp(16px, 1.5vw, 22px) 0;
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.7vh, 18px);
+}
+
+    .settings > *, .settings ::deep .error-banner {
+        flex: none;
+    }
+
+h2 {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+}
+
+.group {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.8vh, 8px);
+}
+
+    legend, .group-label, .count-head label {
+        padding: 0;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--qg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+/* строка заголовка тем: слева «Темы · 2 из 12», справа «Выбрать все» */
+legend {
+    width: 100%;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    min-height: clamp(30px, 4.2vh, 36px);
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1.5px solid var(--qg-line-strong);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: 13.5px;
+}
+
+    .chip:hover {
+        color: var(--qg-text);
+        border-color: var(--qg-text-2);
+    }
+
+    .chip.selected {
+        background: var(--qg-text);
+        border-color: var(--qg-text);
+        color: var(--qg-on-accent);
+    }
+
+/* текстовая кнопка в строке заголовка: обычный регистр, без капса легенды */
+.link-button {
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--qg-accent);
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* «Вопросов», слайдер и число одной строкой, подсказка под ней */
+.count {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 2.2em;
+    align-items: center;
+    column-gap: 12px;
+}
+
+.count-head {
+    display: contents;
+}
+
+.count-value {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 20px;
+}
+
+input[type=range] {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    height: 22px;
+    accent-color: var(--qg-accent);
+}
+
+.count .muted {
+    grid-column: 1 / -1;
+}
+
+.muted {
+    font-size: 12.5px;
+    line-height: 1.35;
+    text-wrap: pretty;
+    color: var(--qg-subtle);
+}
+
+.modes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.mode {
+    padding: clamp(6px, 1vh, 10px) 12px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    background: var(--qg-surface-2);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+    .mode.checked {
+        border-color: var(--qg-accent);
+    }
+
+.mode-title {
+    font-weight: 800;
+}
+
+.mode-desc {
+    font-size: 12.5px;
+    color: var(--qg-muted);
+}
+
+.checks {
+    margin: 0;
+    padding: clamp(8px, 1.2vh, 12px) 12px;
+    list-style: none;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-surface-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+    .checks li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .checks .met {
+        color: var(--qg-accent);
+    }
+
+    .checks .unmet {
+        color: var(--qg-danger-soft);
+    }
+
+.launch {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: auto;
+    padding-bottom: clamp(14px, 2.2vh, 22px);
+    background: var(--qg-surface);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.3vh, 14px);
+}
+
+/* темы, уходящие под блок старта, гаснут, а не срезаются краем */
+.launch::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(to bottom, transparent, var(--qg-surface));
+    pointer-events: none;
+}
+
+.start {
+    min-height: clamp(46px, 6.6vh, 56px);
+    border: 0;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 5px 0 var(--qg-accent-shadow);
+}
+
+    .start:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+    .start ::deep svg path {
+        fill: currentColor;
+    }
+
+    /* недоступна: нейтральная кнопка, потому что opacity 0.4 из app.css на лайме даёт грязно-оливковый цвет */
+    .start:disabled {
+        opacity: 1;
+        background: var(--qg-surface-3);
+        color: var(--qg-subtle);
+        box-shadow: inset 0 0 0 1.5px var(--qg-line-strong);
+    }
+
+/* низкое окно десктопа (1280×720, ноутбук): заголовок панели только для скринридера, подсказки скрыты, место темам, темпу и кнопке */
+@media (min-width: 900px) and (max-height: 760px) {
+    h2 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .muted {
+        display: none;
+    }
+}
+
+@media (max-width: 899px) {
+    .settings {
+        flex: 0 1 auto;
+        align-self: stretch;
+        max-height: 46%;
+    }
+}
+
+/* «Подставили настройки прошлой игры» сразу под заголовком панели */
+.prefilled {
+    margin-top: -4px;
+}

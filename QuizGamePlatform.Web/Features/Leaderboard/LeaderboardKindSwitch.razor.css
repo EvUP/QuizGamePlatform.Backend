@@ -1,0 +1,43 @@
+.switch {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    border-radius: 14px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+.option {
+    flex: 1;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--qg-radius-s);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+    .option:hover {
+        color: var(--qg-text);
+    }
+
+    .option.selected {
+        background: var(--qg-text);
+        color: var(--qg-on-accent);
+    }
+
+.large {
+    border-radius: var(--qg-radius-m);
+}
+
+    .large .option {
+        min-height: 46px;
+        padding: 0 16px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 15px;
+    }

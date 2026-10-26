@@ -1,0 +1,35 @@
+.error-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-danger-bg);
+    border: 1px solid var(--qg-danger);
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+}
+
+.error-icon {
+    display: flex;
+    color: var(--qg-danger);
+}
+
+.error-text {
+    flex: 1 1 200px;
+}
+
+.retry {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid var(--qg-danger-soft);
+    background: transparent;
+    color: var(--qg-text);
+    font-weight: 700;
+}
+
+    .retry:hover {
+        background: rgba(255, 180, 163, 0.12);
+    }

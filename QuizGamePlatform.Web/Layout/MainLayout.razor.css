@@ -1,0 +1,155 @@
+/* Каркас «шапка, main, футер» ровно в высоту окна: страница не прокручивается, прокрутка внутри блоков */
+.shell {
+    /* Chrome умножает vh на zoom, поэтому делим обратно */
+    height: calc(100vh / var(--qg-zoom, 1));
+    height: calc(100dvh / var(--qg-zoom, 1));
+    max-width: var(--qg-content-width);
+    margin: 0 auto;
+    padding: 0 var(--qg-gutter);
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-section);
+}
+
+.header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: clamp(10px, 2.2vh, 24px);
+}
+
+.logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--qg-text);
+    text-decoration: none;
+}
+
+.logo-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.logo-text {
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+}
+
+.nav {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+    .nav ::deep .nav-link {
+        padding: 10px 14px;
+        border-radius: 12px;
+        color: var(--qg-text);
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .nav ::deep .nav-link:hover {
+            background: var(--qg-surface);
+        }
+
+        .nav ::deep .nav-link.active {
+            background: var(--qg-surface);
+            color: var(--qg-accent);
+        }
+
+/* main забирает всё, что осталось; страница сама раскладывает блоки внутри.
+   overflow: страховка для совсем низких окон, тогда прокручивается main, а не документ */
+.content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    /* полосу прокрутки (если она появится) уносим в боковое поле: содержимое остаётся ровно в ширину шапки */
+    margin-inline: calc(-1 * var(--qg-gutter));
+    padding-inline: var(--qg-gutter);
+}
+
+/* в Chromium/Safari полоса своя, постоянная, 9px (app.css) и встаёт между полем и краем:
+   место под неё держим всегда и на столько же ужимаем правое поле */
+@supports selector(::-webkit-scrollbar) {
+    .content {
+        scrollbar-gutter: stable;
+        padding-right: calc(var(--qg-gutter) - 9px);
+    }
+}
+
+.footer {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding: 10px 0 12px;
+    border-top: 1px solid var(--qg-line);
+    color: var(--qg-faint);
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+/* низкое окно ноутбука: футер убираем, высоту отдаём содержимому */
+@media (max-height: 800px) {
+    .footer {
+        display: none;
+    }
+
+    .content {
+        padding-bottom: clamp(10px, 2vh, 16px);
+    }
+}
+
+@media (max-width: 599px) {
+    .shell {
+        gap: 12px;
+    }
+
+    .logo-mark {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    .logo-text {
+        font-size: 17px;
+    }
+
+    .nav {
+        gap: 4px;
+    }
+
+        .nav ::deep .nav-link {
+            padding: 10px;
+        }
+
+    /* на телефоне футер не нужен, экран отдаём содержимому */
+    .footer {
+        display: none;
+    }
+
+    .content {
+        padding-bottom: 12px;
+    }
+}

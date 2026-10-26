@@ -57,6 +57,9 @@ namespace QuizGamePlatform.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -76,6 +79,10 @@ namespace QuizGamePlatform.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<List<Guid>>("CategoryIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
                     b.Property<int>("CurrentQuestionIndex")
                         .HasColumnType("integer");
 
@@ -86,6 +93,9 @@ namespace QuizGamePlatform.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("RequestedQuestionCount")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
@@ -135,6 +145,9 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.Property<Guid>("MatchId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
@@ -220,15 +233,24 @@ namespace QuizGamePlatform.Backend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<int>("GameNumber")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("HostUserId")
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsTeamGame")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("PreviousRoomId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RoomCode")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -244,8 +266,16 @@ namespace QuizGamePlatform.Backend.Migrations
 
                     b.HasIndex("HostUserId");
 
+                    b.HasIndex("PreviousRoomId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousRoomId\" IS NOT NULL");
+
                     b.HasIndex("RoomCode")
                         .IsUnique();
+
+                    b.HasIndex("SeriesId", "GameNumber")
+                        .IsUnique()
+                        .HasFilter("\"SeriesId\" IS NOT NULL");
 
                     b.ToTable("Rooms");
                 });
@@ -275,6 +305,9 @@ namespace QuizGamePlatform.Backend.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid?>("OriginRoomPlayerId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");
 
@@ -297,6 +330,10 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.HasIndex("RoomId", "Nickname")
                         .IsUnique()
                         .HasFilter("\"UserId\" IS NULL");
+
+                    b.HasIndex("RoomId", "OriginRoomPlayerId")
+                        .IsUnique()
+                        .HasFilter("\"OriginRoomPlayerId\" IS NOT NULL");
 
                     b.HasIndex("RoomId", "UserId")
                         .IsUnique();
@@ -443,6 +480,11 @@ namespace QuizGamePlatform.Backend.Migrations
                     b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.UserEntity", "HostUser")
                         .WithMany()
                         .HasForeignKey("HostUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuizGamePlatform.Backend.DataAccess.Entities.RoomEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousRoomId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("HostUser");

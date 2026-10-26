@@ -1,0 +1,73 @@
+.account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 14px 6px 6px;
+    border-radius: 999px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+.avatar {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--qg-team-4);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.account-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.account-check {
+    display: flex;
+    color: var(--qg-accent);
+}
+
+.nav-button {
+    flex: none;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: var(--qg-text);
+    font-weight: 600;
+}
+
+    .nav-button:hover {
+        background: var(--qg-surface);
+    }
+
+.login {
+    border: 2px solid var(--qg-text);
+    font-weight: 700;
+}
+
+/* на телефоне только аватар, имя видно в подсказке */
+@media (max-width: 599px) {
+    .account {
+        padding: 4px 8px 4px 4px;
+        gap: 6px;
+    }
+
+    .account-name {
+        display: none;
+    }
+
+    .nav-button {
+        padding: 0 10px;
+    }
+}

@@ -1,0 +1,68 @@
+.loading {
+    padding: clamp(24px, 8vh, 64px) 0;
+    color: var(--qg-muted);
+    font-weight: 600;
+}
+
+/* экран ошибки по центру свободного места, а не прижат к верху */
+.failed {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: clamp(20px, 5vh, 40px) 0;
+    text-align: center;
+}
+
+    /* сам текст ошибки рядом с иконкой читается слева направо */
+    .failed ::deep .error-banner {
+        text-align: left;
+    }
+
+/* «На главную» как на странице входа по ссылке: контурная кнопка на всю ширину блока */
+.home {
+    align-self: stretch;
+    min-height: clamp(46px, 6.4vh, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--qg-radius-m);
+    border: 2px solid var(--qg-text);
+    color: var(--qg-text);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+    .home:hover {
+        background: var(--qg-surface);
+    }
+
+/* «Вернуться в игру» на экране «Вы вышли»: главная кнопка, как «Начать игру» */
+.return {
+    min-height: 48px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow: 0 4px 0 var(--qg-accent-shadow);
+}
+
+    .return:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+    .return:disabled {
+        opacity: 0.6;
+    }
+
+.return-error {
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+}

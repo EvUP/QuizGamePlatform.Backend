@@ -1,0 +1,470 @@
+/* Строка истории: «тип | две строки текста | итог | действие», итог и действие фиксированной ширины.
+   Раскладка зависит от ширины самой строки (container query), а не окна. */
+.row {
+    container-type: inline-size;
+    background: var(--qg-surface);
+}
+
+    .row + .row {
+        border-top: 1px solid var(--qg-line);
+    }
+
+.main {
+    position: relative;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 104px 112px;
+    align-items: center;
+    column-gap: 14px;
+    min-height: 58px;
+    padding: 8px 16px;
+    transition: background-color 0.15s ease;
+}
+
+    .main:hover {
+        background: var(--qg-surface-2);
+    }
+
+.mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+    background: var(--qg-team-1);
+}
+
+.team .mark {
+    background: var(--qg-team-3);
+}
+
+.info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* строка 1: заголовок сжимается многоточием, метки остаются целиком */
+.line {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.title {
+    min-width: 0;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tag, .chip {
+    flex: none;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* «ведущий: имя»: длинное имя сжимается многоточием вместе с заголовком */
+.tag {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 60%;
+    background: var(--qg-surface-3);
+    color: var(--qg-text-2);
+}
+
+.tag-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* чип серии в первой строке, во второй только на телефоне */
+.chip-bottom {
+    display: none;
+}
+
+/* чип серии: кнопка поверх ссылки строки */
+.chip {
+    position: relative;
+    z-index: 1;
+    gap: 3px;
+    padding-right: 5px;
+    border: 1px solid var(--qg-line-strong);
+    background: transparent;
+    color: var(--qg-text-2);
+    cursor: pointer;
+}
+
+    .chip:hover {
+        border-color: var(--qg-subtle);
+        color: var(--qg-text);
+    }
+
+    .chip[aria-expanded="true"] {
+        border-color: var(--qg-accent);
+        color: var(--qg-accent);
+    }
+
+    /* стрелка вниз из ChevronLeft, раскрыто вверх */
+    .chip ::deep .icon {
+        transform: rotate(-90deg);
+        transition: transform 0.2s ease;
+    }
+
+    .chip[aria-expanded="true"] ::deep .icon {
+        transform: rotate(90deg);
+    }
+
+/* строка 2: дата и роль одной строкой */
+.meta {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--qg-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* итог */
+
+.result {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.result-main {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--qg-text);
+}
+
+.result-sub {
+    font-family: var(--qg-font-mono);
+    font-size: 12px;
+    color: var(--qg-subtle);
+}
+
+.win .result-main {
+    font-family: var(--qg-font-body);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--qg-accent);
+}
+
+.left .result-main {
+    color: var(--qg-faint);
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.lobby .pill {
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+}
+
+.live .pill {
+    background: var(--qg-danger-bg);
+    color: var(--qg-danger-soft);
+}
+
+    .live .pill::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--qg-danger);
+        animation: live-pulse 1.6s ease-in-out infinite;
+    }
+
+.finished .pill {
+    background: var(--qg-surface-3);
+    color: var(--qg-text-2);
+}
+
+.stale .pill {
+    box-shadow: inset 0 0 0 1px var(--qg-line-strong);
+    color: var(--qg-faint);
+}
+
+@keyframes live-pulse {
+    50% {
+        opacity: 0.35;
+        transform: scale(0.7);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live .pill::before {
+        animation: none;
+    }
+}
+
+/* действие: одна ссылка, растянутая на всю строку */
+
+.action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.open {
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+    .open::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+    }
+
+    .main:hover .open {
+        color: var(--qg-accent-hover);
+    }
+
+    /* фокус рамкой по всей строке, а не вокруг слова */
+    .open:focus-visible {
+        outline: none;
+    }
+
+        .open:focus-visible::after {
+            outline: 3px solid var(--qg-info);
+            outline-offset: -3px;
+            border-radius: 4px;
+        }
+
+/* копирование ссылки иконкой; «Ссылка скопирована» всплывает слева от кнопки и не двигает строку */
+.action ::deep .copy-mini {
+    position: relative;
+    z-index: 1;
+    width: 32px;
+    min-height: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: var(--qg-radius-s);
+}
+
+    .action ::deep .copy-mini .copy-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .action ::deep .copy-mini.done .copy-text, .action ::deep .copy-mini.failed .copy-text {
+        top: 50%;
+        right: calc(100% + 8px);
+        width: auto;
+        height: auto;
+        clip: auto;
+        padding: 5px 10px;
+        border-radius: 8px;
+        transform: translateY(-50%);
+        background: var(--qg-success-bg);
+        box-shadow: inset 0 0 0 1.5px var(--qg-accent);
+        font-size: 12px;
+    }
+
+    .action ::deep .copy-mini.failed .copy-text {
+        background: var(--qg-danger-bg);
+        box-shadow: inset 0 0 0 1.5px var(--qg-danger);
+    }
+
+/* прошлые игры серии: по строчке на игру */
+
+.past {
+    margin: -4px 16px 10px 68px;
+    padding: 2px 12px;
+    list-style: none;
+    border-radius: 12px;
+    background: var(--qg-surface-2);
+}
+
+    .past li + li {
+        border-top: 1px solid var(--qg-line);
+    }
+
+    .past a {
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--qg-text-2);
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+        .past a:hover {
+            color: var(--qg-text);
+        }
+
+.past-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+    .past-text b {
+        color: var(--qg-text);
+    }
+
+.past-go {
+    flex: none;
+    font-weight: 700;
+    color: var(--qg-accent);
+}
+
+/* строка в колонку главной: плотнее, чип серии уходит во вторую строку */
+
+@container (max-width: 799px) {
+    .main {
+        grid-template-columns: 34px minmax(0, 1fr) 96px 112px;
+        column-gap: 12px;
+        padding-inline: 14px;
+    }
+
+    .mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+    }
+
+    .past {
+        margin-left: 60px;
+    }
+
+    .chip-top {
+        display: none;
+    }
+
+    .chip-bottom {
+        display: inline-flex;
+    }
+}
+
+/* телефон и планшет: от действия остаётся стрелка */
+
+@container (max-width: 599px) {
+    .main {
+        grid-template-columns: 28px minmax(0, 1fr) 74px auto;
+        column-gap: 8px;
+        min-height: 58px;
+        padding: 8px 12px;
+    }
+
+    .mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+    }
+
+        .mark ::deep .icon {
+            width: 16px;
+            height: 16px;
+        }
+
+    .title {
+        font-size: 13.5px;
+    }
+
+    /* «Командная · 3 команды»: слово «игра» уступает место меткам */
+    .team .title-word {
+        display: none;
+    }
+
+    .line {
+        gap: 6px;
+    }
+
+    .tag, .chip {
+        height: 20px;
+        padding-inline: 6px;
+        font-size: 11px;
+    }
+
+    .chip {
+        padding-right: 3px;
+    }
+
+    .meta {
+        font-size: 12.5px;
+    }
+
+    .result-main {
+        font-size: 13px;
+    }
+
+    .win .result-main {
+        font-size: 14px;
+    }
+
+    .result-sub {
+        font-size: 11px;
+    }
+
+    .pill {
+        height: 22px;
+        padding: 0 7px;
+        font-size: 11px;
+    }
+
+    .open-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .open {
+        font-size: 16px;
+    }
+
+    /* кнопка копирования сдвигала бы итог у строки лобби; ссылка есть в самом лобби */
+    .action ::deep .copy-mini {
+        display: none;
+    }
+
+    .past {
+        margin: -4px 12px 9px 48px;
+        padding-inline: 10px;
+    }
+}

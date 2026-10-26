@@ -1,0 +1,5 @@
+.redirect {
+    padding: 64px 0;
+    color: var(--qg-muted);
+    font-weight: 600;
+}

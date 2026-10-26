@@ -1,0 +1,12 @@
+@* Номер места; у 1–3 призовые цвета *@
+<span class="place @MedalClass @(Large ? "large" : null)" aria-label="@($"{Place} место")">@Place</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Place { get; set; }
+
+    [Parameter]
+    public bool Large { get; set; }
+
+    private string? MedalClass => Place is >= 1 and <= 3 ? $"medal-{Place}" : null;
+}

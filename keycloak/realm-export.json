@@ -1,7 +1,11 @@
 {
   "realm": "quizgame",
   "enabled": true,
-  "displayName": "Quiz Game Platform",
+  "displayName": "QuizGame",
+  "loginTheme": "keycloak.v2",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["ru"],
+  "defaultLocale": "ru",
   "sslRequired": "none",
   "registrationAllowed": true,
   "registrationEmailAsUsername": false,
@@ -29,14 +33,19 @@
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "https://localhost:53506/swagger/oauth2-redirect.html",
-        "http://localhost:53507/swagger/oauth2-redirect.html"
+        "http://localhost:53507/swagger/oauth2-redirect.html",
+        "http://localhost:5200/authentication/*",
+        "https://localhost:7200/authentication/*"
       ],
       "webOrigins": [
         "https://localhost:53506",
-        "http://localhost:53507"
+        "http://localhost:53507",
+        "http://localhost:5200",
+        "https://localhost:7200"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://localhost:53506/swagger/index.html##http://localhost:53507/swagger/index.html##http://localhost:5200/authentication/*##https://localhost:7200/authentication/*"
       },
       "protocolMappers": [
         {

@@ -20,10 +20,13 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public bool IsActive { get; set; } = true;
         public ExitReason? ExitReason { get; set; }
 
-        // null в обычной комнате и у вышедших до старта
+        // null в обычной комнате, у ушедших и убранных до старта
         public int? TeamNumber { get; set; }
 
         // капитан тот, кто раньше всех в команде
         public DateTime? TeamJoinedAt { get; set; }
+
+        // первое участие человека в серии, следующие игры ссылаются на него; по нему гость находит себя в новой игре
+        public Guid? OriginRoomPlayerId { get; set; }
     }
 }

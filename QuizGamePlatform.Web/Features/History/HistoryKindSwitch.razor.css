@@ -1,0 +1,43 @@
+/* как крупный LeaderboardKindSwitch на странице рейтинга */
+.switch {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+.option {
+    flex: 1;
+    min-height: 46px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.2;
+}
+
+    .option:hover {
+        color: var(--qg-text);
+    }
+
+    .option.selected {
+        background: var(--qg-text);
+        color: var(--qg-on-accent);
+    }
+
+@media (max-width: 599px) {
+    .switch {
+        width: 100%;
+    }
+
+    .option {
+        min-height: 42px;
+        padding: 0 10px;
+        font-size: 14px;
+    }
+}

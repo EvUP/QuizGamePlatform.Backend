@@ -1,0 +1,176 @@
+@page "/leaderboard"
+@implements IDisposable
+@inject LeaderboardApiClient LeaderboardApi
+@inject NavigationManager Navigation
+
+<PageTitle>Рейтинг · QuizGame</PageTitle>
+
+<div class="leaderboard">
+    <div class="heading">
+        <h1>Рейтинг</h1>
+        <LeaderboardKindSwitch Value="kind" ValueChanged="SwitchKind" Large="true" />
+    </div>
+    <p class="caption">
+        @(kind == LeaderboardKind.TeamGames
+            ? "Очко за каждый верный ответ в командных играх. Счёт личный, команды здесь не соревнуются."
+            : "Очко за каждый верный ответ в обычных играх.")
+        В рейтинг попадают только игроки с аккаунтом.
+    </p>
+
+    @if (error is not null)
+    {
+        <ErrorBanner Message="@error.Message" OnRetry="LoadAsync" />
+    }
+    else if (rows is null)
+    {
+        <div class="podium" aria-busy="true">
+            <span class="visually-hidden" role="status">Загружаем рейтинг</span>
+            @for (var i = 0; i < 3; i++)
+            {
+                <div class="skeleton card-skeleton"></div>
+            }
+        </div>
+    }
+    else if (rows.Count == 0)
+    {
+        <div class="empty">
+            <p>Пьедестал пока пустует — займите его первым.</p>
+            <a href="rooms/new">Создать комнату</a>
+        </div>
+    }
+    else
+    {
+        <div class="podium">
+            @foreach (var row in rows.Take(3))
+            {
+                var mine = row.IsMine(myName);
+                <article class="top-card medal-@row.Place @(mine ? "mine" : null)">
+                    <div class="top-card-head">
+                        <PlaceBadge Place="row.Place" Large="true" />
+                        @if (mine)
+                        {
+                            <span class="you-tag">вы</span>
+                        }
+                        <span class="top-score">@row.Entry.Score</span>
+                    </div>
+                    <span class="top-name" title="@row.Entry.UserName">@row.Entry.UserName</span>
+                    <span class="top-meta">
+                        @RussianPlural.Format(row.Entry.MatchesPlayed, "игра", "игры", "игр") · точность @row.Entry.AccuracyPercent%
+                    </span>
+                </article>
+            }
+        </div>
+
+        @if (rows.Count > 3)
+        {
+            <div class="table-box">
+                <table>
+                    <caption class="visually-hidden">Остальные места</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="col-place">#</th>
+                            <th scope="col" class="col-name">Игрок</th>
+                            <th scope="col" class="num">Очки</th>
+                            <th scope="col" class="num">Игр</th>
+                            <th scope="col" class="col-accuracy">Точность</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows.Skip(3))
+                        {
+                            var mine = row.IsMine(myName);
+                            <tr class="@(mine ? "mine" : null)">
+                                <td class="col-place">@row.Place</td>
+                                <td class="name" title="@row.Entry.UserName">
+                                    @row.Entry.UserName
+                                    @if (mine)
+                                    {
+                                        <span class="you">· вы</span>
+                                    }
+                                </td>
+                                <td class="num score">@row.Entry.Score</td>
+                                <td class="num muted">@row.Entry.MatchesPlayed</td>
+                                <td class="col-accuracy">
+                                    <div class="accuracy">
+                                        <div class="bar"><div class="bar-fill" style="width: @(row.Entry.AccuracyPercent)%"></div></div>
+                                        <span>@row.Entry.AccuracyPercent%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private const string TeamGamesTab = "team";
+
+    /// <summary>?tab=team: командные игры, без параметра обычные</summary>
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? myName;
+
+    private readonly LatestRequest request = new();
+    private LeaderboardKind kind;
+    private LeaderboardKind? loadedKind;
+    private List<LeaderboardRow>? rows;
+    private ApiError? error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // свою строку подсвечиваем по логину, вход и выход меняют AuthState
+        myName = await LeaderboardRow.MyNameAsync(AuthState);
+        kind = Tab == TeamGamesTab ? LeaderboardKind.TeamGames : LeaderboardKind.Regular;
+
+        if (kind != loadedKind)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        loadedKind = kind;
+        rows = null;
+        error = null;
+        var ct = request.Next();
+
+        try
+        {
+            var result = await LeaderboardApi.GetAsync(kind, ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                rows = LeaderboardRow.Rank(result.Value);
+            }
+            else
+            {
+                error = result.Error;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // переключили вкладку или ушли со страницы
+        }
+    }
+
+    // вкладка живёт в адресе: ссылкой можно поделиться, «назад» не плодит историю
+    private void SwitchKind(LeaderboardKind value)
+        => Navigation.NavigateTo(
+            Navigation.GetUriWithQueryParameter("tab", value == LeaderboardKind.TeamGames ? TeamGamesTab : null),
+            replace: true);
+
+    public void Dispose() => request.Dispose();
+}

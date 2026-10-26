@@ -1,0 +1,1016 @@
+/* Создание комнаты: один столбец на всю ширину, полоса «Итого» под ним; на десктопе столбец по центру высоты окна. */
+.create {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+/* шапка как у лобби: «назад» + заголовок того же размера */
+
+.top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.back {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .back:hover {
+        color: var(--qg-text);
+        border-color: var(--qg-line-strong);
+    }
+
+h1 {
+    font-size: clamp(22px, min(3vw, 4.2vh), 30px);
+}
+
+h2 {
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+}
+
+/* один столбец по содержимому: сверху выбор и состав, снизу полоса «Итого»;
+   не влезает в окно, значит прокручивается список команд, а не страница */
+.body {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stage {
+    flex: 0 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* выбор типа игры */
+
+.modes {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.mode {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "icon text"
+        "preview preview";
+    align-items: start;
+    gap: clamp(10px, 1.6vh, 16px) 14px;
+    padding: clamp(12px, 2vh, 20px) clamp(14px, 1.6vw, 20px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 2px solid var(--qg-line);
+    text-align: left;
+    transition: border-color 0.15s ease;
+}
+
+    .mode:hover {
+        border-color: var(--qg-line-strong);
+    }
+
+    /* выбранный: лаймовая рамка и лёгкий лаймовый отсвет, как у приглашения в лобби */
+    .mode.checked {
+        border-color: var(--qg-accent);
+        background:
+            linear-gradient(135deg, rgba(200, 240, 74, 0.09), transparent 60%),
+            var(--qg-surface);
+    }
+
+.mode-icon {
+    grid-area: icon;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+}
+
+    /* модификаторы is-*, потому что класс .team занят строкой команды */
+    .mode-icon.is-simple {
+        background: var(--qg-team-1);
+    }
+
+    .mode-icon.is-team {
+        background: var(--qg-team-3);
+    }
+
+.mode-text {
+    grid-area: text;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mode-title {
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: clamp(16px, 2.4vh, 19px);
+    line-height: 1.2;
+}
+
+.mode-desc {
+    color: var(--qg-muted);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* мини-лобби: обычная 10 мест (первое ваше), командная 5 колонок команд в их цветах */
+.mode-preview {
+    grid-area: preview;
+    display: grid;
+    gap: 6px;
+    height: 14px;
+}
+
+.seats {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+}
+
+.squads {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.seat, .squad {
+    border-radius: 5px;
+    border: 1.5px dashed var(--qg-line-strong);
+}
+
+    .seat.me {
+        border: 0;
+        background: var(--qg-accent);
+    }
+
+    .squad.on {
+        border: 0;
+        background: var(--squad);
+    }
+
+/* невыбранный тип: превью серое, при выборе загорается цветами */
+.mode:not(.checked) .seat.me, .mode:not(.checked) .squad.on {
+    background: var(--qg-line-strong);
+}
+
+/* карточки слева: «Как это работает» и «Команды» */
+
+.card {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: clamp(14px, 2.4vh, 20px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.count {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+/* обычная: «Что будет в игре», справка о том, что настраивается в лобби; по содержимому,
+   а если окно ниже, прокручивается внутри карточки */
+.info {
+    --tile-pad-y: clamp(12px, 2.3vh, 24px);
+    flex: 0 1 auto;
+    overflow-y: auto;
+}
+
+    .info .card-head {
+        flex-wrap: wrap;
+        gap: 4px 16px;
+    }
+
+.hint {
+    color: var(--qg-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* плитки как раньше у шагов: светлее карточки, тонкая рамка */
+.tile {
+    min-width: 0;
+    padding: var(--tile-pad-y) clamp(14px, 1.4vw, 22px);
+    border-radius: 16px;
+    background: var(--qg-surface-2);
+    border: 1px solid var(--qg-line);
+}
+
+/* крупные числа в стиле итога (.total-number), но меньше */
+.info-number {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: var(--topics-number);
+    line-height: 1;
+    color: var(--qg-accent);
+}
+
+    .info-number.small {
+        font-size: clamp(22px, 3.6vh, 36px);
+        color: var(--qg-text);
+    }
+
+.info-caption {
+    color: var(--qg-muted);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.topics {
+    --chip-height: clamp(30px, 4.2vh, 40px);
+    --topics-number: clamp(30px, 5vh, 50px);
+    --topics-gap: clamp(8px, 1.4vh, 12px);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--topics-gap);
+}
+
+    /* пока темы грузятся: высота как у числа и двух рядов чипов */
+    .topics.loading {
+        min-height: calc(2 * var(--tile-pad-y) + 2px + var(--topics-number) + var(--topics-gap) + 2 * var(--chip-height) + 6px);
+    }
+
+.topics-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+/* чипы тем как в настройках лобби, только без нажатия */
+.chips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    min-height: var(--chip-height);
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1.5px solid var(--qg-line-strong);
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: clamp(13.5px, 1.6vh, 15px);
+    display: inline-flex;
+    align-items: center;
+}
+
+.topics-line {
+    display: none;
+    color: var(--qg-text-2);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+/* темп, показ ответа, разбор: три плитки в ряд */
+.facts-row {
+    flex: none;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+    .facts-row .tile {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(6px, 1vh, 10px);
+        font-size: 15px;
+    }
+
+.info-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--qg-subtle);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+    .info-label ::deep .icon {
+        flex: none;
+        color: var(--qg-accent);
+    }
+
+/* командная: под списком одна строка о настройках лобби, пока команд мало */
+.lobby-note {
+    flex: none;
+    margin: 0;
+    padding: clamp(10px, 1.6vh, 14px) clamp(14px, 1.6vw, 20px);
+    border-radius: 16px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    color: var(--qg-text-2);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.lobby-note-lead {
+    color: var(--qg-muted);
+}
+
+/* командная: карточка по содержимому, список прокручивается внутри, «Добавить команду» всегда под ним */
+.teams-card {
+    flex: 0 1 auto;
+}
+
+.team-list {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .team-list > * {
+        flex: none;
+    }
+
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: clamp(8px, 1.2vh, 12px) 12px clamp(8px, 1.2vh, 12px) 14px;
+    border-radius: 16px;
+    background: var(--qg-surface-2);
+    border: 1px solid var(--qg-line);
+}
+
+.team-number {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--qg-on-accent);
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+}
+
+.team-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+    .team-name label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--qg-subtle);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .team-name input {
+        width: 100%;
+        min-width: 0;
+        height: 36px;
+        padding: 0;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+        .team-name input:hover {
+            border-bottom-color: var(--qg-line-strong);
+        }
+
+        .team-name input:focus {
+            border-bottom-color: var(--qg-accent);
+            outline: none;
+        }
+
+.stepper {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 14px;
+    background: var(--qg-surface-3);
+}
+
+    .stepper button {
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: var(--qg-radius-s);
+        background: transparent;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+        .stepper button:hover:not(:disabled) {
+            background: var(--qg-line);
+        }
+
+.stepper-value {
+    min-width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.stepper-number {
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.stepper-caption {
+    font-size: 11px;
+    color: var(--qg-subtle);
+}
+
+.remove {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--qg-text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .remove:hover:not(:disabled) {
+        background: var(--qg-danger-bg);
+        color: var(--qg-danger-soft);
+    }
+
+.add-team {
+    flex: none;
+    min-height: 48px;
+    border-radius: 16px;
+    border: 2px dashed var(--qg-line-strong);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+    .add-team:hover:not(:disabled) {
+        border-color: var(--qg-text-2);
+        color: var(--qg-text);
+    }
+
+/* полоса «Итого» внизу столбца: слева итог и полоса, в середине факты, справа кнопка */
+
+.summary {
+    flex: none;
+    min-width: 0;
+    padding: clamp(14px, 2.2vh, 22px) clamp(16px, 1.8vw, 28px);
+    border-radius: var(--qg-radius-l);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    display: grid;
+    grid-template-columns: fit-content(340px) minmax(0, 1fr) auto;
+    /* пустые ряды 1fr сверху и снизу: если факты выше, итог стоит по центру, а не расползается по рядам */
+    grid-template-rows: 1fr auto auto auto 1fr;
+    grid-template-areas:
+        ".     facts start"
+        "title facts start"
+        "total facts start"
+        "meter facts start"
+        ".     facts start";
+    align-items: center;
+    gap: 0 clamp(16px, 2vw, 32px);
+}
+
+    .summary h2 {
+        grid-area: title;
+        font-size: 18px;
+    }
+
+/* на десктопе .launch без своей коробки: его части встают в ячейки полосы; до 899px это липкая плашка */
+.launch {
+    display: contents;
+}
+
+.total {
+    grid-area: total;
+    order: 1;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+.total-number {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: clamp(36px, 6vh, 52px);
+    line-height: 1;
+    color: var(--qg-accent);
+}
+
+    .total-number.over {
+        color: var(--qg-danger);
+    }
+
+.total-text {
+    color: var(--qg-muted);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* полоса как у счётчика игроков в лобби */
+.meter {
+    grid-area: meter;
+    order: 2;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--qg-surface-3);
+    overflow: hidden;
+}
+
+    .meter span {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--qg-accent), #7EE3B0);
+        transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+        .meter span.over {
+            background: var(--qg-danger);
+        }
+
+/* факты в ряд между итогом и кнопкой: три в строку, четыре сеткой 2×2, узко по одному */
+.facts {
+    --fact-gap: clamp(16px, 2vw, 28px);
+    grid-area: facts;
+    order: 3;
+    margin: 0;
+    padding: 0 clamp(16px, 2vw, 32px);
+    border-inline: 1px solid var(--qg-line);
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(max(150px, (100% - 2 * var(--fact-gap)) / 3), 1fr));
+    gap: 10px var(--fact-gap);
+    color: var(--qg-text-2);
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+    .facts:has(> li:nth-child(4)) {
+        grid-template-columns: repeat(auto-fit, minmax(max(150px, (100% - var(--fact-gap)) / 2), 1fr));
+    }
+
+    .facts li {
+        padding-left: 28px;
+        position: relative;
+    }
+
+        .facts li::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: 5px;
+            width: 12px;
+            height: 7px;
+            border-left: 3px solid var(--qg-accent);
+            border-bottom: 3px solid var(--qg-accent);
+            transform: rotate(-45deg);
+        }
+
+/* предупреждение и ошибка отдельной строкой под полосой, только когда они есть */
+.validation {
+    grid-column: 1 / -1;
+    order: 4;
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.launch ::deep .error-banner {
+    grid-column: 1 / -1;
+    order: 5;
+}
+
+/* главное действие как «Начать игру» в лобби и «Создать комнату» на главной */
+.start {
+    grid-area: start;
+    order: 6;
+    min-width: clamp(220px, 17vw, 260px);
+    min-height: clamp(46px, 6.6vh, 56px);
+    padding: 0 28px;
+    margin-bottom: 5px;
+    border: 0;
+    border-radius: 18px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 5px 0 var(--qg-accent-shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+    .start:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+    .start:active:not(:disabled) {
+        transform: translateY(3px);
+        box-shadow: 0 2px 0 var(--qg-accent-shadow);
+    }
+
+/* низкое окно десктопа (1280×720 и ниже): превью-места убираем, темы одной строкой, строку о лобби прячем */
+@media (min-width: 900px) and (max-height: 760px) {
+    .mode-preview, .chips, .lobby-note {
+        display: none;
+    }
+
+    .topics-line {
+        display: block;
+    }
+
+    .topics.loading {
+        min-height: calc(2 * var(--tile-pad-y) + 2px + var(--topics-number) + var(--topics-gap) + 1.35em);
+    }
+}
+
+/* десктоп: столбец по центру высоты окна */
+@media (min-width: 900px) {
+    .create {
+        justify-content: center;
+    }
+
+    /* в полосе подпись итога в две строки рядом с числом, место отдаём фактам */
+    .total {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .total-text {
+        max-width: 11em;
+    }
+
+    /* ряды полосы без gap, поэтому отступы у самих частей */
+    .summary h2 {
+        margin-bottom: clamp(4px, 0.8vh, 8px);
+    }
+
+    .meter {
+        margin-top: clamp(8px, 1.2vh, 12px);
+    }
+
+    .validation, .launch ::deep .error-banner {
+        margin-top: 12px;
+    }
+}
+
+/* планшет и телефон: одна колонка, страница прокручивается целиком, итог и «Создать комнату» прилипают к низу экрана */
+@media (max-width: 899px) {
+    .create {
+        flex: 1 0 auto;
+        min-height: auto;
+    }
+
+    /* колонки и панель растворяются: их части становятся прямыми элементами .create, порядок как в разметке */
+    .body, .stage, .summary {
+        display: contents;
+    }
+
+    .modes, .card {
+        flex: none;
+    }
+
+    .team-list, .info {
+        overflow: visible;
+    }
+
+    /* заголовок «Итого» не нужен: число стоит в липкой плашке рядом с кнопкой */
+    .summary h2 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .facts {
+        order: 0;
+        display: flex;
+        flex-direction: column;
+        border: 0;
+        /* отступ, чтобы липкая плашка в конце прокрутки не налезала на последний факт */
+        margin: 0 0 16px;
+        padding: 0 4px;
+        font-size: 14px;
+        gap: 8px;
+    }
+
+    .launch {
+        position: sticky;
+        bottom: 12px;
+        z-index: 2;
+        margin-top: auto;
+        padding: 12px 14px 14px;
+        border-radius: var(--qg-radius-l);
+        background: var(--qg-surface);
+        border: 1px solid var(--qg-line-strong);
+        /* тень вверх прячет прокручиваемый под плашкой текст */
+        box-shadow: 0 -16px 24px -8px rgba(16, 14, 26, 0.9);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .total {
+        flex-wrap: nowrap;
+        gap: 10px;
+    }
+
+    .total-number {
+        font-size: 30px;
+    }
+
+    .total-text {
+        font-size: 14px;
+    }
+
+    .meter {
+        height: 6px;
+    }
+
+    .start {
+        margin-bottom: 5px;
+    }
+}
+
+@media (max-width: 599px) {
+    .top {
+        gap: 12px;
+    }
+
+    .back {
+        width: 40px;
+        height: 40px;
+    }
+
+    .modes {
+        gap: 8px;
+    }
+
+    /* тип игры: иконка и название в строку, описание под ними; превью на телефоне не нужно */
+    .mode {
+        grid-template-areas:
+            "icon title"
+            "desc desc";
+        align-items: center;
+        gap: 6px 8px;
+        padding: 10px;
+    }
+
+    .mode-text {
+        display: contents;
+    }
+
+    /* «Командная» должна влезть в полкарточки рядом с иконкой */
+    .mode-title {
+        grid-area: title;
+        font-size: 15px;
+    }
+
+    .mode-desc {
+        grid-area: desc;
+        font-size: 12.5px;
+        line-height: 1.35;
+    }
+
+    .mode-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+    }
+
+        .mode-icon ::deep svg {
+            width: 18px;
+            height: 18px;
+        }
+
+    .mode-preview {
+        display: none;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    .card {
+        padding: 14px 12px 12px;
+        gap: 10px;
+    }
+
+    .count {
+        font-size: 15px;
+    }
+
+    .hint {
+        font-size: 13px;
+    }
+
+    .info {
+        --tile-pad-y: 12px;
+    }
+
+    .topics {
+        --topics-number: 30px;
+    }
+
+    .info-number.small {
+        font-size: 22px;
+    }
+
+    /* темы одной строкой, плитки столбиком */
+    .chips {
+        display: none;
+    }
+
+    .topics-line {
+        display: block;
+        font-size: 14px;
+    }
+
+    .topics.loading {
+        min-height: calc(2 * var(--tile-pad-y) + 2px + var(--topics-number) + var(--topics-gap) + 1.35em);
+    }
+
+    .facts-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+        .facts-row .tile {
+            font-size: 14px;
+        }
+
+    .lobby-note {
+        font-size: 14px;
+    }
+
+    /* строка команды в одну линию: номер · название · степпер · корзина */
+    .team-row {
+        gap: 6px;
+        padding: 6px 4px 6px 8px;
+        border-radius: 14px;
+    }
+
+    .team-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        font-size: 14px;
+    }
+
+    /* подпись «Название» только для скринридера, место отдаём самому названию */
+    .team-name label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .team-name input {
+        height: 40px;
+        /* 16px: iOS не зумит страницу при фокусе */
+        font-size: 16px;
+    }
+
+    .stepper {
+        padding: 2px;
+        gap: 0;
+        border-radius: 12px;
+    }
+
+        .stepper button {
+            width: 36px;
+            height: 40px;
+            font-size: 20px;
+        }
+
+    .stepper-value {
+        min-width: 40px;
+    }
+
+    .stepper-number {
+        font-size: 17px;
+    }
+
+    .stepper-caption {
+        font-size: 10px;
+    }
+
+    .remove {
+        width: 36px;
+        height: 40px;
+    }
+
+    .add-team {
+        min-height: 44px;
+        border-radius: 14px;
+    }
+}
+
+/* Затухание у краёв списка команд, пока есть что прокрутить: scroll-driven анимация, без JS */
+@supports (animation-timeline: scroll()) {
+    .team-list, .info {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+
+    @media (max-width: 899px) {
+        .team-list, .info {
+            animation: none;
+        }
+    }
+}
+
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

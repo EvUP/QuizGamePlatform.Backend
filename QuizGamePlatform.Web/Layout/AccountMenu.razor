@@ -1,0 +1,24 @@
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized>
+        <span class="account" title="@context.User.Identity?.Name">
+            <span class="avatar" aria-hidden="true">@Initials(context.User.Identity?.Name)</span>
+            <span class="account-name">@context.User.Identity?.Name</span>
+            <span class="account-check"><Icon Name="IconName.CheckCircle" Size="18" StrokeWidth="2.5" Label="аккаунт" /></span>
+        </span>
+        <button type="button" class="nav-button" @onclick="LogOut">Выйти</button>
+    </Authorized>
+    <NotAuthorized>
+        <button type="button" class="nav-button login" @onclick="LogIn">Войти</button>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private void LogIn() => Navigation.NavigateToLogin("authentication/login");
+
+    private void LogOut() => Navigation.NavigateToLogout("authentication/logout", "/");
+
+    private static string Initials(string? name)
+        => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..Math.Min(2, name.Trim().Length)].ToUpperInvariant();
+}

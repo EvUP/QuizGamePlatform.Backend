@@ -1,0 +1,574 @@
+/* Вопрос во всю высоту окна: вопрос сверху, варианты забирают остаток, кнопка ведущего внизу колонки.
+   Справа колонка «кто ответил» той же высоты. */
+.match {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--qg-space-block);
+}
+
+/* верхняя строка: номер вопроса, прогресс, режим/команда, выход */
+.top {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 20px;
+}
+
+.counter {
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: 20px;
+    white-space: nowrap;
+}
+
+    .counter span {
+        color: var(--qg-faint);
+    }
+
+.steps {
+    flex: 1 1 200px;
+    display: flex;
+    gap: 6px;
+}
+
+.step {
+    flex: 1;
+    max-width: 120px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--qg-surface-3);
+}
+
+    .step.done {
+        background: var(--qg-accent);
+    }
+
+    .step.current {
+        background: var(--qg-text);
+    }
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+    .chips:empty {
+        display: none;
+    }
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 240px;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: var(--qg-surface-2);
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+    .chip.blitz {
+        background: color-mix(in srgb, var(--qg-warning) 16%, var(--qg-surface-2));
+        color: var(--qg-warning);
+    }
+
+.swatch {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--team-color);
+}
+
+.team-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ghost {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid var(--qg-line);
+    background: transparent;
+    color: var(--qg-text-2);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.leave {
+    margin-left: auto;
+    border-color: #5A3A40;
+    color: var(--qg-danger-soft);
+}
+
+    .leave:hover {
+        background: var(--qg-danger-bg);
+    }
+
+.confirm {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.danger {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--qg-danger);
+    color: var(--qg-on-accent);
+    font-weight: 800;
+}
+
+/* основная область */
+.body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.main {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6vh, 16px);
+}
+
+    .main > *, .main ::deep .error-banner {
+        flex: none;
+    }
+
+.question {
+    display: flex;
+    align-items: center;
+    gap: clamp(16px, 2.4vw, 32px);
+    padding: clamp(14px, 2.6vh, 30px) clamp(16px, 2.4vw, 32px);
+    border-radius: var(--qg-radius-xl);
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+}
+
+    /* кольцо таймера меньше на низком окне (размер задан компонентом инлайном, перекрываем) */
+    .question ::deep .ring {
+        --size: clamp(68px, 15vh, 132px) !important;
+    }
+
+    .question h1 {
+        min-width: 0;
+        font-weight: 700;
+        font-size: clamp(20px, min(2.6vw, 4.6vh), 38px);
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
+    }
+
+/* строка состояния: всегда на месте, меняется только содержимое */
+.status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    min-height: 48px;
+    padding: clamp(8px, 1.4vh, 12px) 18px;
+    border-radius: 18px;
+    font-weight: 700;
+}
+
+.prompt {
+    color: var(--qg-subtle);
+    border: 1px dashed var(--qg-line);
+}
+
+.accepted {
+    background: var(--qg-success-bg);
+    border: 1px solid var(--qg-accent);
+    color: var(--qg-accent-hover);
+}
+
+.status-count {
+    margin-left: auto;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--qg-text-2);
+}
+
+/* показ ответа: одна большая плашка для всех */
+.reveal {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: 2px 14px;
+    background: var(--qg-success-bg);
+    border: 2px solid var(--qg-accent);
+    color: var(--qg-text-2);
+    animation: reveal-in 0.3s ease-out;
+}
+
+.status-label {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--qg-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.status-title {
+    min-width: 0;
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    font-size: clamp(17px, 2.8vh, 30px);
+    line-height: 1.2;
+    color: var(--qg-text);
+    overflow-wrap: anywhere;
+}
+
+.status-note {
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.muted {
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-muted);
+}
+
+/* варианты: забирают всю оставшуюся высоту, но не раздуваются на очень высоких экранах */
+.main > .options {
+    flex: 1 1 auto;
+}
+
+/* min-height не обнуляем: на низком окне ряды не сжимаются меньше минимума, колонка прокрутится */
+.options {
+    max-height: 560px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(clamp(64px, 11vh, 96px), 1fr);
+    gap: clamp(10px, 1.6vh, 16px);
+}
+
+/* пульт ведущего: внизу колонки, на одной линии с низом правой панели */
+.host-bar {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    padding: clamp(10px, 1.6vh, 14px) clamp(14px, 1.6vw, 20px);
+    border-radius: 20px;
+    background: var(--qg-surface);
+    border: 1px solid var(--qg-line);
+    color: var(--qg-text-2);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+    .host-bar.ready {
+        border-color: var(--qg-accent);
+    }
+
+.host-text {
+    flex: 1 1 260px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+}
+
+.host-label {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--qg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* пока не все ответили, кнопка спокойная; когда все ответили, лаймовая с тенью и мягким пульсом */
+.next {
+    min-height: clamp(44px, 6.6vh, 52px);
+    padding: 0 22px;
+    border-radius: 14px;
+    border: 2px solid var(--qg-accent);
+    background: transparent;
+    color: var(--qg-accent);
+    font-weight: 800;
+    font-size: 16px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+    .next:hover:not(:disabled) {
+        background: var(--qg-success-bg);
+    }
+
+.ready .next {
+    border-color: transparent;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    box-shadow: 0 4px 0 var(--qg-accent-shadow);
+    animation: next-pulse 1.6s ease-in-out infinite;
+}
+
+    .ready .next:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+    }
+
+/* правая колонка */
+.side {
+    flex: 0 0 clamp(270px, 25vw, 400px);
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+    /* «Ответили» по высоте содержимого, но не выше колонки: при длинном списке прокручивается только он */
+    .side ::deep .panel {
+        flex: 0 1 auto;
+    }
+
+@keyframes reveal-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes next-pulse {
+    0%, 100% {
+        box-shadow: 0 4px 0 var(--qg-accent-shadow), 0 0 0 0 rgba(200, 240, 74, 0.35);
+    }
+
+    50% {
+        box-shadow: 0 4px 0 var(--qg-accent-shadow), 0 0 0 8px rgba(200, 240, 74, 0);
+    }
+}
+
+/* широкий экран (трансляция): подписи крупнее, на 1280×720 без изменений */
+@media (min-width: 1400px) and (min-height: 800px) {
+    .chip, .ghost, .confirm {
+        font-size: 15px;
+    }
+
+    .status {
+        font-size: 18px;
+    }
+
+    .status-label, .host-label {
+        font-size: 15px;
+    }
+
+    .status-note {
+        font-size: 18px;
+    }
+
+    .host-bar {
+        font-size: 18px;
+    }
+}
+
+/* планшет: панель под вопросом и забирает остаток высоты */
+@media (max-width: 899px) {
+    .body {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .main {
+        flex: none;
+        overflow: visible;
+    }
+
+    .main > .options {
+        flex: none;
+    }
+
+    .host-bar {
+        margin-top: 0;
+    }
+
+    .side {
+        flex: 1 1 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        align-items: start;
+        align-content: start;
+    }
+
+        .side ::deep .panel {
+            flex: none;
+        }
+}
+
+/* телефон: счётчик и «Выйти» в строку, полоска вопросов под ними;
+   «Ответили» под вариантами; кнопка ведущего прилипает к низу экрана */
+@media (max-width: 599px) {
+    .top {
+        gap: 8px 12px;
+        justify-content: space-between;
+    }
+
+    .counter {
+        font-size: 17px;
+    }
+
+    .steps {
+        order: 3;
+        flex-basis: 100%;
+    }
+
+    .step {
+        max-width: none;
+        height: 6px;
+    }
+
+    /* режим виден по кольцу, а чип своей команды оставляем */
+    .chips {
+        flex: 1 1 0;
+    }
+
+    .chip.mode {
+        display: none;
+    }
+
+    .chip {
+        max-width: 100%;
+        min-height: 28px;
+        padding: 0 10px;
+        font-size: 13px;
+    }
+
+    .leave, .confirm {
+        margin-left: 0;
+    }
+
+    .confirm {
+        order: 2;
+        font-size: 13px;
+    }
+
+    .body {
+        gap: 10px;
+    }
+
+    /* колонка «растворяется»: «Ответили» идёт после вариантов */
+    .side {
+        display: contents;
+    }
+
+        .side ::deep .panel {
+            order: 1;
+        }
+
+    .question {
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: var(--qg-radius-l);
+    }
+
+        .question ::deep .ring {
+            --size: 60px !important;
+        }
+
+        .question ::deep .ring .caption {
+            margin-top: 2px;
+            font-size: 10px;
+        }
+
+        .question h1 {
+            font-size: clamp(15px, 2vh, 17px);
+        }
+
+    .options {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: auto;
+        gap: 8px;
+    }
+
+    .status {
+        min-height: 40px;
+        padding: 8px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+    }
+
+    .reveal {
+        grid-template-columns: 1fr;
+    }
+
+    .status-note {
+        font-size: 13px;
+    }
+
+    .host-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        padding: 10px 12px;
+        gap: 8px;
+        font-size: 13px;
+        line-height: 1.35;
+        box-shadow: 0 -12px 24px var(--qg-bg);
+    }
+
+    .host-text {
+        flex-basis: 100%;
+    }
+
+    .next {
+        flex: 1;
+        min-height: 48px;
+    }
+}
+
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
+@supports (animation-timeline: scroll()) {
+    .main, .side {
+        animation: qg-scroll-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+@keyframes qg-scroll-fade {
+    0% {
+        -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    }
+
+    3%, 97% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 32px), transparent);
+    }
+
+    100% {
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+        mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    }
+}

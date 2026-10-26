@@ -1,0 +1,17 @@
+@* Ошибка запроса: текст с сервера и, если передан OnRetry, кнопка повтора *@
+<div class="error-banner" role="alert">
+    <span class="error-icon"><Icon Name="IconName.Alert" Size="22" StrokeWidth="2.4" /></span>
+    <span class="error-text">@Message</span>
+    @if (OnRetry.HasDelegate)
+    {
+        <button type="button" class="retry" @onclick="OnRetry">Повторить</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = "";
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+}

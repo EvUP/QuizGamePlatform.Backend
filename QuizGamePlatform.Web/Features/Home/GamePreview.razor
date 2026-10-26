@@ -1,0 +1,121 @@
+@implements IDisposable
+
+@* Декоративная иллюстрация на главной: мини-сценарий игры по кругу на данных-примерах, скрыт от скринридеров. *@
+<figure class="preview" aria-hidden="true">
+    <div class="preview-head">
+        <span class="preview-label">Так выглядит игра · вопрос @(FirstQuestionNumber + index) из 10</span>
+        <span class="preview-timer @(revealed ? "done" : null)">0:@seconds.ToString("00")</span>
+    </div>
+
+    <div class="stage">
+        <div class="card @(leaving ? "leaving" : null)" @key="index">
+            <p class="preview-question"><span>@Current.Text</span></p>
+            <div class="preview-options">
+                @for (var i = 0; i < Current.Options.Length; i++)
+                {
+                    var isCorrect = i == Current.Correct;
+                    <div class="preview-option @(revealed ? (isCorrect ? "correct" : "dimmed") : null)" style="--i: @i">
+                        <span class="letter" style="background: var(--qg-team-@(i + 1))">@Letters[i]</span>
+                        <span class="option-text">@Current.Options[i]</span>
+                        @if (revealed && isCorrect)
+                        {
+                            <span class="mark"><Icon Name="IconName.Check" Size="14" StrokeWidth="3" /></span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</figure>
+
+@code {
+    private const string Letters = "ABCD";
+    private const int FirstQuestionNumber = 3;
+
+    // шаг сценария полсекунды; на вопрос 14 шагов (7 с)
+    private static readonly TimeSpan Step = TimeSpan.FromMilliseconds(500);
+    private const int RevealStep = 8;   // 4 с вопрос, таймер 0:12 → 0:09
+    private const int LeaveStep = 12;   // 2 с показ ответа
+    private const int NextStep = 13;    // поворот карточки
+
+    // вопросы и верные ответы из Seed/quiz_seed.json
+    private static readonly DemoQuestion[] Questions =
+    [
+        new("Big Floppa, он же Большой Шлёпа, — какой зверь?", ["Каракал", "Рысь", "Сервал", "Манул"], 0),
+        new("Кто бежит через пустыню в Chrome, когда пропал интернет?", ["Кот", "Тираннозавр", "Пингвин", "Кролик"], 1),
+        new("Как зовут верную кобылу Геральта в «Ведьмаке»?", ["Карась", "Буцефал", "Плотва", "Звёздочка"], 2),
+        new("Сколько сердец у осьминога?", ["Одно", "Два", "Восемь", "Три"], 3),
+        new("Какой год Excel до сих пор ошибочно считает високосным?", ["2000", "1900", "1800", "2100"], 1),
+        new("Какой художник придумал логотип леденцов Chupa Chups?", ["Пабло Пикассо", "Энди Уорхол", "Сальвадор Дали", "Жоан Миро"], 2)
+    ];
+
+    private readonly CancellationTokenSource cts = new();
+    private int index;
+    private int step;
+    private int seconds = 12;
+    private bool revealed;
+    private bool leaving;
+
+    private DemoQuestion Current => Questions[index];
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ = RunAsync(cts.Token);
+        }
+    }
+
+    private async Task RunAsync(CancellationToken ct)
+    {
+        // один лёгкий таймер; во вкладке в фоне браузер сам притормаживает таймеры, CSS-анимации не идут
+        using var timer = new PeriodicTimer(Step);
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                Advance();
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // ушли с главной
+        }
+    }
+
+    private void Advance()
+    {
+        step++;
+
+        if (step < RevealStep)
+        {
+            seconds = 12 - step / 2;
+        }
+        else if (step == RevealStep)
+        {
+            revealed = true;
+        }
+        else if (step == LeaveStep)
+        {
+            leaving = true;
+        }
+        else if (step >= NextStep)
+        {
+            index = (index + 1) % Questions.Length;
+            step = 0;
+            seconds = 12;
+            revealed = false;
+            leaving = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
+    }
+
+    private sealed record DemoQuestion(string Text, string[] Options, int Correct);
+}

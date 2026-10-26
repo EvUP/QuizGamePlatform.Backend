@@ -1,0 +1,404 @@
+/* Дизайн-токены QuizGame: тёмная тема «гейм-шоу» */
+:root {
+    --qg-bg: #100E1A;
+    --qg-surface: #1B1828;
+    --qg-surface-2: #252137;
+    --qg-surface-3: #2A2540;
+    --qg-line: #34304A;
+    --qg-line-strong: #4A4566;
+
+    --qg-text: #F4F1FF;
+    --qg-text-2: #CFC9E6;
+    --qg-muted: #B8B2D1;
+    --qg-subtle: #A9A3C2;
+    --qg-faint: #8F89AA;
+
+    --qg-accent: #C8F04A;
+    --qg-accent-hover: #E2FF8A;
+    --qg-accent-shadow: #7E9A22;
+    --qg-on-accent: #14121F;
+
+    --qg-danger: #FF7A59;
+    --qg-danger-soft: #FFB4A3;
+    --qg-danger-bg: #3A1E22;
+    --qg-warning: #FFC94D;
+    --qg-info: #5CC8FF;
+    --qg-success-bg: #26301A;
+
+    /* Цвета команд по номеру 1–5 и вариантов ответа A–D */
+    --qg-team-1: #C8F04A;
+    --qg-team-2: #FF7A59;
+    --qg-team-3: #5CC8FF;
+    --qg-team-4: #B49CFF;
+    --qg-team-5: #FFC94D;
+
+    /* Призовые места в рейтингах */
+    --qg-medal-1: #FFC94D;
+    --qg-medal-2: #D9D4EC;
+    --qg-medal-3: #E39A6B;
+
+    --qg-font-display: 'Unbounded', sans-serif;
+    --qg-font-body: 'Manrope', sans-serif;
+    --qg-font-mono: 'JetBrains Mono', monospace;
+
+    --qg-radius-s: 10px;
+    --qg-radius-m: 16px;
+    --qg-radius-l: 24px;
+    --qg-radius-xl: 28px;
+
+    --qg-gutter: clamp(16px, 4vw, 40px);
+    --qg-content-width: 1320px;
+    --qg-game-width: 1440px;
+
+    /* Отступы между крупными блоками экрана: сжимаются на низких окнах, чтобы экран помещался без прокрутки */
+    --qg-space-section: clamp(10px, 2vh, 24px);
+    --qg-space-block: clamp(10px, 1.8vh, 20px);
+
+    /* Внутренние поля карточек правой колонки главной (превью игры и рейтинг): общие, чтобы содержимое стояло на одной линии */
+    --qg-side-card-pad-y: clamp(14px, 2.6vh, 28px);
+    --qg-side-card-pad-x: clamp(16px, 2.2vw, 28px);
+
+    color-scheme: dark;
+}
+
+/* Большой экран (показ на проекторе): всё крупнее, чтобы читалось издалека; ступени подобраны так, что выше ступени главная начинает прокручиваться */
+:root { --qg-zoom: 1; }
+@media (min-width: 1700px) and (min-height: 1000px) { :root { --qg-zoom: 1.1; } }
+@media (min-width: 2000px) and (min-height: 1150px) { :root { --qg-zoom: 1.25; } }
+@media (min-width: 2400px) and (min-height: 1350px) { :root { --qg-zoom: 1.4; } }
+html { zoom: var(--qg-zoom); }
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+    color: var(--qg-text);
+    font-family: var(--qg-font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Фон игры на чистом CSS: html даёт цвет, точечную сетку и зерно, body::before/::after
+   дают «аврору» из бледных пятен, которые плывут только через transform под контентом. */
+html {
+    background:
+        url("../images/noise.svg"),
+        radial-gradient(ellipse 75% 65% at 50% 38%, transparent 0%, var(--qg-bg) 72%),
+        radial-gradient(rgba(244, 241, 255, 0.085) 1px, transparent 1.6px) 0 0 / 28px 28px,
+        var(--qg-bg);
+}
+
+body {
+    background: transparent;
+}
+
+    body::before, body::after, html::before {
+        content: "";
+        position: fixed;
+        inset: -30%;
+        z-index: -1;
+        pointer-events: none;
+        will-change: transform;
+        transition: opacity 1.2s ease;
+    }
+
+    /* лайм и фиолетовый плывут по своей траектории (22 с) */
+    body::before {
+        background:
+            radial-gradient(closest-side, rgba(200, 240, 74, 0.17), transparent),
+            radial-gradient(closest-side, rgba(180, 156, 255, 0.15), transparent);
+        background-size: 44% 44%, 46% 46%;
+        background-repeat: no-repeat;
+        background-position: 22% 20%, 80% 82%;
+        animation: qg-aurora-a 22s ease-in-out infinite alternate;
+    }
+
+    /* голубой и коралловый бледнее, другая траектория и период (26 с), поэтому слои не качаются синхронно */
+    body::after {
+        background:
+            radial-gradient(closest-side, rgba(92, 200, 255, 0.12), transparent),
+            radial-gradient(closest-side, rgba(255, 122, 89, 0.075), transparent);
+        background-size: 40% 40%, 36% 36%;
+        background-repeat: no-repeat;
+        background-position: 82% 18%, 18% 84%;
+        opacity: 0.9;
+        animation: qg-aurora-b 26s ease-in-out infinite alternate;
+    }
+
+/* блик: мягкая светлая полоса медленно проходит по диагонали (19 с) */
+html::before {
+    background: linear-gradient(115deg, transparent 38%, rgba(244, 241, 255, 0.035) 47%, rgba(200, 240, 74, 0.03) 52%, transparent 61%);
+    animation: qg-glint 19s ease-in-out infinite alternate;
+}
+
+@keyframes qg-aurora-a {
+    0% {
+        transform: translate3d(-12vw, -8vh, 0) rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: translate3d(10vw, 6vh, 0) rotate(8deg) scale(1.1);
+    }
+
+    100% {
+        transform: translate3d(-3vw, 14vh, 0) rotate(-4deg) scale(0.95);
+    }
+}
+
+@keyframes qg-aurora-b {
+    0% {
+        transform: translate3d(11vw, 8vh, 0) rotate(0deg) scale(1.05);
+    }
+
+    50% {
+        transform: translate3d(-13vw, -4vh, 0) rotate(-7deg) scale(1.1);
+    }
+
+    100% {
+        transform: translate3d(4vw, -13vh, 0) rotate(5deg) scale(0.96);
+    }
+}
+
+@keyframes qg-glint {
+    from {
+        transform: translate3d(-30vw, -18vh, 0);
+    }
+
+    to {
+        transform: translate3d(30vw, 18vh, 0);
+    }
+}
+
+/* во время вопроса фон чуть «теплеет» к лайму: холодный слой притухает (только opacity) */
+body:has(.match)::after {
+    opacity: 0.45;
+}
+
+body:has(.match)::before {
+    opacity: 1;
+}
+
+body::before {
+    opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before, body::after, html::before {
+        animation: none;
+    }
+}
+
+h1, h2, h3 {
+    margin: 0;
+    font-family: var(--qg-font-display);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: var(--qg-accent);
+}
+
+    a:hover {
+        color: var(--qg-accent-hover);
+    }
+
+button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+    }
+
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid var(--qg-info);
+    outline-offset: 2px;
+}
+
+/* Полосы прокрутки: тонкие и всегда видимые (на macOS системные прячутся).
+   Ореол ползунка сделан вторым слоем фона, потому что box-shadow у ползунка в Chromium не работает. */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+::-webkit-scrollbar-track {
+    margin: 12px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: rgba(74, 69, 102, 0.35) padding-box;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background:
+        linear-gradient(180deg, rgba(200, 240, 74, 0.5), rgba(126, 227, 176, 0.46) 55%, rgba(92, 200, 255, 0.42)) padding-box,
+        linear-gradient(180deg, rgba(200, 240, 74, 0.16), rgba(92, 200, 255, 0.14)) border-box;
+}
+
+    ::-webkit-scrollbar-thumb:horizontal {
+        background:
+            linear-gradient(90deg, rgba(200, 240, 74, 0.5), rgba(126, 227, 176, 0.46) 55%, rgba(92, 200, 255, 0.42)) padding-box,
+            linear-gradient(90deg, rgba(200, 240, 74, 0.16), rgba(92, 200, 255, 0.14)) border-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active {
+        background:
+            linear-gradient(180deg, #C8F04A, #7EE3B0 55%, #5CC8FF) padding-box,
+            linear-gradient(180deg, rgba(200, 240, 74, 0.32), rgba(92, 200, 255, 0.28)) border-box;
+    }
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox не знает ::-webkit-scrollbar. В Chromium свойства ниже отключили бы стили выше, поэтому только там, где их нет */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(200, 240, 74, 0.6) transparent;
+    }
+}
+
+/* Узкая шапка с аккаунтом: логотип без подписи, иначе меню переносится на вторую строку
+   (правило глобальное: :has() через границу компонентов в scoped CSS не работает) */
+@media (max-width: 479px) {
+    .header:has(.account) .logo-text {
+        display: none;
+    }
+}
+
+/* FocusOnNavigate ставит фокус на h1 для скринридеров, рамка не нужна (как в шаблоне Microsoft) */
+h1:focus {
+    outline: none;
+}
+
+input::placeholder {
+    color: #7D7799;
+}
+
+.visually-hidden {
+    position: absolute;
+    /* без координат элемент встаёт на своё место в потоке, и внутри прокручиваемых списков это удлиняло страницу */
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* скрытый iframe тихого входа (OIDC) добавляется в конец body и на 4 px удлинял страницу */
+body > iframe[width="0"][height="0"] {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Загрузка приложения (до старта Blazor) */
+/* свой блочный контекст: отступ индикатора не выпадает за #app и не удлиняет страницу */
+#app {
+    display: flow-root;
+}
+
+.loading-progress {
+    position: relative;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    margin: 20vh auto 1rem auto;
+}
+
+    .loading-progress circle {
+        fill: none;
+        stroke: var(--qg-surface-3);
+        stroke-width: 0.6rem;
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+
+        .loading-progress circle:last-child {
+            stroke: var(--qg-accent);
+            stroke-linecap: round;
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray 0.05s ease-in-out;
+        }
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+    .loading-progress-text:after {
+        content: var(--blazor-load-percentage-text, "Загрузка");
+    }
+
+/* Непойманная ошибка Blazor */
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 1000;
+    padding: 14px var(--qg-gutter);
+    background: var(--qg-danger-bg);
+    border-top: 1px solid var(--qg-danger);
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+}
+
+    #blazor-error-ui .reload {
+        margin-left: 12px;
+        font-weight: 800;
+    }
+
+    #blazor-error-ui .dismiss {
+        position: absolute;
+        right: var(--qg-gutter);
+        top: 12px;
+        cursor: pointer;
+    }
+
+.blazor-error-boundary {
+    padding: 16px 20px;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-danger-bg);
+    border: 1px solid var(--qg-danger);
+    color: var(--qg-danger-soft);
+    font-weight: 600;
+}
+
+    .blazor-error-boundary::after {
+        content: "Что-то пошло не так. Обновите страницу.";
+    }

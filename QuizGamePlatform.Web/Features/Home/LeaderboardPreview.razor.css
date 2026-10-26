@@ -1,0 +1,89 @@
+/* топ-5: только целые строки, сколько влезает (3–5). Лишние переносятся во вторую колонку,
+   а она обрезана, поэтому половины строки на краю не бывает. */
+.list {
+    flex: 1 1 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 6px 200px;
+    overflow: hidden;
+}
+
+.row {
+    flex: none;
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px 6px 8px;
+    border-radius: 14px;
+    background: var(--qg-surface);
+}
+
+.name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* своя строка: как «· вы» в итогах. Селектор сильнее, чем фон строк из карточки рейтинга главной */
+.list .row.mine {
+    background: var(--qg-surface-3);
+    box-shadow: inset 0 0 0 1.5px var(--qg-accent);
+}
+
+    /* метка сразу за именем, а не у очков */
+    .row.mine .name {
+        flex: 0 1 auto;
+    }
+
+.you {
+    flex: none;
+    margin: 0 auto 0 -6px;
+    font-weight: 700;
+    color: var(--qg-accent);
+    white-space: nowrap;
+}
+
+.accuracy {
+    flex: none;
+    font-size: 13px;
+    color: var(--qg-muted);
+}
+
+.score {
+    width: 44px;
+    text-align: right;
+    font-family: var(--qg-font-mono);
+    font-weight: 700;
+    font-size: 17px;
+}
+
+.empty {
+    padding: 18px;
+    border-radius: var(--qg-radius-m);
+    border: 1px dashed var(--qg-line-strong);
+    color: var(--qg-text-2);
+    text-align: center;
+    font-weight: 600;
+}
+
+.skeleton {
+    height: 44px;
+    animation: qg-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes qg-pulse {
+    50% {
+        opacity: 0.5;
+    }
+}
