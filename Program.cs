@@ -7,6 +7,9 @@ using QuizGamePlatform.Backend.DataAccess.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// логи, трассировка и метрики в дашборд Aspire; без Aspire ничего не отправляется
+builder.AddServiceDefaults();
+
 builder.Services.AddApplicationDbContext(builder.Configuration);
 builder.Services.AddRedisCache(builder.Configuration);
 
