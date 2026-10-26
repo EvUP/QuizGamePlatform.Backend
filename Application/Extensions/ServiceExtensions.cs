@@ -190,7 +190,8 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            services.AddSignalR()
+            // пинг чаще, чтобы клиент с ServerTimeout 10 с быстро замечал обрыв
+            services.AddSignalR(options => options.KeepAliveInterval = TimeSpan.FromSeconds(5))
                 // статусы строками, как в REST
                 .AddJsonProtocol(options =>
                     options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()))

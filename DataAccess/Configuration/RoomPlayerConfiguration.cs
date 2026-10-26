@@ -24,6 +24,11 @@ namespace QuizGamePlatform.Backend.DataAccess.Configuration
             builder.HasIndex(rp => new { rp.RoomId, rp.UserId })
                 .IsUnique();
 
+            // гость переходит в следующую игру один раз, повтор найдёт своё участие
+            builder.HasIndex(rp => new { rp.RoomId, rp.OriginRoomPlayerId })
+                .IsUnique()
+                .HasFilter("\"OriginRoomPlayerId\" IS NOT NULL");
+
             builder.Property(rp => rp.ExitReason)
                 .HasConversion<string>();
 

@@ -23,7 +23,6 @@ public static class MatchHelper
     {
         return roomMode switch
         {
-            RoomMode.Simple => 30,
             RoomMode.Fastest => 15,
             _ => 30
         };

@@ -20,7 +20,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
             await db.Database.MigrateAsync(cancellationToken);
             var changed = await DbSeeder.SeedAsync(db, env.ContentRootPath, cancellationToken);
 
-            // кэш тем скользящий и сам не истечёт, пока к нему ходят — сбрасываем после досева
+            // кэш тем скользящий и сам не истечёт, пока к нему ходят, сбрасываем после досева
             if (changed.Count > 0)
             {
                 var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();

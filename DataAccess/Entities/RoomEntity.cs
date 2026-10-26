@@ -1,4 +1,3 @@
-
 using QuizGamePlatform.Backend.Application.Enums;
 
 namespace QuizGamePlatform.Backend.DataAccess.Entities
@@ -16,6 +15,14 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
 
         // режим задаётся при создании и потом не меняется
         public bool IsTeamGame { get; set; }
+
+        // «Сыграть ещё»: прошлая игра серии, у первой null
+        public Guid? PreviousRoomId { get; set; }
+
+        // Id первой игры серии, null пока не переигрывали
+        public Guid? SeriesId { get; set; }
+
+        public int GameNumber { get; set; } = 1;
 
         // системный xmin postgres, меняется при каждом обновлении строки
         public uint Version { get; set; }

@@ -11,7 +11,7 @@ namespace QuizGamePlatform.Backend.Application.Services
     {
         public async Task SendTeamLinksAsync(string to, string roomCode, List<TeamLinkResponse> teams, CancellationToken ct)
         {
-            // одна команда — её добавили в лобби, несколько — комнату только что создали.
+            // одна команда: её добавили в лобби, несколько: комнату только что создали.
             // Код комнаты в письмо не пишем: на экране его нет, вход только по ссылке.
             var single = teams.Count == 1;
 

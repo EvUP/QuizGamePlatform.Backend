@@ -47,6 +47,15 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
             return null;
         }
 
+        public async Task<RoomPlayerEntity?> FindByOriginAsync(Guid roomId, Guid originRoomPlayerId, CancellationToken ct)
+            => await context.RoomParticipations
+                .FirstOrDefaultAsync(rp => rp.RoomId == roomId && rp.OriginRoomPlayerId == originRoomPlayerId, ct);
+
+        public async Task<int> CountActiveNonHostAsync(Guid roomId, Guid? hostUserId, CancellationToken ct)
+            => await context.RoomParticipations
+                .CountAsync(rp => rp.RoomId == roomId && rp.IsActive
+                    && (rp.UserId == null || rp.UserId != hostUserId), ct);
+
         // ник хранится как ввели, занятость без учёта регистра: «Марина» и «марина» один ник
         public async Task<bool> IsNicknameTaken(Guid roomId, string nickname, CancellationToken ct)
         {
@@ -78,6 +87,21 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .ToListAsync(ct);
         }
 
+        // то же правило, что у состава команды на итогах и в рейтинге
+        public async Task<Dictionary<Guid, HashSet<int>>> GetPlayedTeamNumbersAsync(IReadOnlyCollection<Guid> roomIds, CancellationToken ct)
+        {
+            var played = await context.RoomParticipations
+                .Where(rp => roomIds.Contains(rp.RoomId) && rp.TeamNumber != null)
+                .Where(rp => rp.IsActive || context.Matches.Any(m => m.RoomId == rp.RoomId && rp.FinishedAt >= m.StartedAt))
+                .Select(rp => new { rp.RoomId, Number = rp.TeamNumber!.Value })
+                .Distinct()
+                .ToListAsync(ct);
+
+            return played
+                .GroupBy(x => x.RoomId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Number).ToHashSet());
+        }
+
         public async Task<List<GlobalLeaderboardEntry>> GetLeaderboard(bool teamGames, CancellationToken ct)
         {
             return await context.RoomParticipations
@@ -99,7 +123,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                     Score = g.Sum(x => x.Score),
                     Matches = g.Count(),
                     Questions = g.Sum(x => x.Questions),
-                    // когда набрал нынешние очки: последняя игра с очками, без очков — первая сыгранная
+                    // когда набрал нынешние очки: последняя игра с очками, без очков первая сыгранная
                     ReachedAt = g.Max(x => x.Score > 0 ? x.FinishedAt : null) ?? g.Min(x => x.FinishedAt)
                 })
                 // мест не делим: очки, потом точность, потом кто набрал раньше
@@ -111,6 +135,5 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                     e.UserName, e.Score, e.Matches, e.Questions == 0 ? 0 : e.Score * 100 / e.Questions))
                 .ToListAsync(ct);
         }
-    };
-
+    }
 }

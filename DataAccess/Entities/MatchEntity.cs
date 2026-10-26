@@ -11,6 +11,10 @@ namespace QuizGamePlatform.Backend.DataAccess.Entities
         public RoomEntity Room { get; set; } = null!;
         public RoomMode RoomMode { get; set; }
 
+        // настройки старта, их подставляем в следующую игру серии; у старых матчей пусто и 0
+        public List<Guid> CategoryIds { get; set; } = [];
+        public int RequestedQuestionCount { get; set; }
+
         public MatchStatus Status { get; set; } = MatchStatus.QuestionActive;
         public int CurrentQuestionIndex { get; set; }
 

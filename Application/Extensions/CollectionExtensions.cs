@@ -1,4 +1,3 @@
-
 using QuizGamePlatform.Backend.Api.Hubs;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.BackgroundServices;

@@ -17,6 +17,17 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .FirstOrDefaultAsync(m => m.Id == matchId, ct);
         }
 
+        public async Task<HashSet<Guid>> GetQuestionIdsOfSeriesAsync(Guid seriesId, CancellationToken ct)
+        {
+            var roomIds = context.Rooms.Where(r => r.SeriesId == seriesId).Select(r => r.Id);
+
+            return (await context.MatchQuestions
+                .Where(mq => roomIds.Contains(mq.Match.RoomId))
+                .Select(mq => mq.QuestionId)
+                .ToListAsync(ct))
+                .ToHashSet();
+        }
+
         public async Task<MatchQuestionEntity?> GetMatchQuestionAsync(Guid matchId, int order, CancellationToken ct)
         {
             return await context.MatchQuestions
@@ -81,12 +92,6 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 .AnyAsync(m => m.Id == matchId
                     && m.Room.HostUser!.KeycloakSubject == keycloakSubject
                     && m.Room.Players.Any(p => p.UserId == m.Room.HostUserId && p.IsActive), ct);
-        }
-
-        public async Task<int> CountActiveAnswers(Guid matchQuestionId, CancellationToken ct)
-        {
-            return await context.PlayerAnswers
-                .CountAsync(a => a.MatchQuestionId == matchQuestionId && a.RoomPlayer.IsActive, ct);
         }
 
         public async Task AddAnswerAsync(PlayerAnswerEntity answer, CancellationToken ct)
