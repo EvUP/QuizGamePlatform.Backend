@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.Backend.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.Web", "QuizGamePlatform.Web\QuizGamePlatform.Web.csproj", "{D56D9420-1EE0-43D9-861C-767A786A7195}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.AppHost", "QuizGamePlatform.AppHost\QuizGamePlatform.AppHost.csproj", "{02B684FB-16B1-4211-B7C2-FA5143186B5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGamePlatform.ServiceDefaults", "QuizGamePlatform.ServiceDefaults\QuizGamePlatform.ServiceDefaults.csproj", "{D62D5AEB-F40D-421C-9168-1E914EA15164}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{D56D9420-1EE0-43D9-861C-767A786A7195}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D56D9420-1EE0-43D9-861C-767A786A7195}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D56D9420-1EE0-43D9-861C-767A786A7195}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02B684FB-16B1-4211-B7C2-FA5143186B5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02B684FB-16B1-4211-B7C2-FA5143186B5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02B684FB-16B1-4211-B7C2-FA5143186B5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02B684FB-16B1-4211-B7C2-FA5143186B5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D62D5AEB-F40D-421C-9168-1E914EA15164}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D62D5AEB-F40D-421C-9168-1E914EA15164}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D62D5AEB-F40D-421C-9168-1E914EA15164}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D62D5AEB-F40D-421C-9168-1E914EA15164}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

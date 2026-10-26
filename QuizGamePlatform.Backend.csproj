@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <DefaultItemExcludes>$(DefaultItemExcludes);QuizGamePlatform.Backend.Tests/**;QuizGamePlatform.Web/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);QuizGamePlatform.Backend.Tests/**;QuizGamePlatform.Web/**;QuizGamePlatform.AppHost/**;QuizGamePlatform.ServiceDefaults/**;QuizGamePlatform.Bots/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="QuizGamePlatform.ServiceDefaults\QuizGamePlatform.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
