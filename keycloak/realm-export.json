@@ -1,7 +1,11 @@
 {
   "realm": "quizgame",
   "enabled": true,
-  "displayName": "Quiz Game Platform",
+  "displayName": "QuizGame",
+  "loginTheme": "keycloak.v2",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["ru"],
+  "defaultLocale": "ru",
   "sslRequired": "none",
   "registrationAllowed": true,
   "registrationEmailAsUsername": false,
