@@ -2,7 +2,7 @@
 .leaderboard {
     flex: 1;
     min-height: 0;
-    /* ширина = контейнер шапки: левый край заголовка совпадает с логотипом, правый — с кнопками шапки */
+    /* ширина = контейнер шапки: левый край заголовка совпадает с логотипом, правый с кнопками шапки */
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -62,6 +62,37 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+/* своя карточка и строка: фон как у своей строки в итогах, метка «вы» */
+.top-card.mine {
+    background: var(--qg-surface-3);
+}
+
+.you-tag {
+    flex: none;
+    margin: 0 auto 0 10px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+tr.mine td {
+    background: var(--qg-surface-3);
+}
+
+    tr.mine td:first-child {
+        box-shadow: inset 4px 0 0 var(--qg-accent);
+    }
+
+.you {
+    font-weight: 700;
+    color: var(--qg-accent);
+    white-space: nowrap;
 }
 
 .top-score {
@@ -144,8 +175,21 @@ th.col-place {
     font-family: inherit;
 }
 
+/* колонка игрока не шире clamp: очки и игры стоят рядом с именем, остаток ширины забирает точность */
+.col-name {
+    width: clamp(240px, 24vw, 460px);
+}
+
+th.num:nth-child(3) {
+    width: 110px;
+}
+
+th.num:nth-child(4) {
+    width: 80px;
+}
+
 .col-accuracy {
-    width: 220px;
+    padding-left: 32px;
 }
 
 .num {
@@ -179,6 +223,7 @@ th.col-place {
         text-align: right;
     }
 
+/* полоса забирает всю колонку точности: справа от процентов не остаётся пустоты */
 .bar {
     flex: 1;
     height: 8px;
@@ -253,7 +298,13 @@ th.col-place {
         font-size: 20px;
     }
 
-    /* логин целиком — в две строки вместо многоточия */
+    .you-tag {
+        margin-left: 6px;
+        padding: 2px 7px;
+        font-size: 11px;
+    }
+
+    /* логин целиком в две строки вместо многоточия */
     .top-name {
         font-size: 14px;
         line-height: 1.25;
@@ -300,6 +351,10 @@ th.col-place {
         width: 40px;
     }
 
+    .col-name {
+        width: auto;
+    }
+
     th.num:nth-child(3) {
         width: 52px;
     }
@@ -310,6 +365,7 @@ th.col-place {
 
     .col-accuracy {
         width: 64px;
+        padding-left: 4px;
         text-align: right;
     }
 
@@ -323,7 +379,7 @@ th.col-place {
         font-size: 15px;
     }
 
-    /* полоса точности не влезает — оставляем проценты */
+    /* полоса точности не влезает, оставляем проценты */
     .bar {
         display: none;
     }
@@ -337,8 +393,7 @@ th.col-place {
         }
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
-   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
 @supports (animation-timeline: scroll()) {
     .table-box {
         animation: qg-scroll-fade linear both;
@@ -346,7 +401,7 @@ th.col-place {
     }
 }
 
-/* у таблицы прилипающая шапка — затухание только снизу, иначе гасла бы шапка */
+/* у таблицы прилипающая шапка, поэтому затухание только снизу */
 @keyframes qg-scroll-fade {
     0%, 97% {
         -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);

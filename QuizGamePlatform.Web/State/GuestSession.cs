@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
+using QuizGamePlatform.Web.Api.Contracts;
 
 namespace QuizGamePlatform.Web.State;
 
@@ -26,7 +27,11 @@ public sealed class GuestSession(IJSRuntime js)
     private GuestToken? token;
 
     /// <summary>Действующий токен или null, если его нет или он истёк</summary>
-    public GuestToken? Current => token is not null && token.ExpiresAtUtc - ExpirySkew > DateTime.UtcNow ? token : null;
+    // запас прибавляем к «сейчас», а не вычитаем из срока: у забытого токена срок DateTime.MinValue, и вычитание падает
+    public GuestToken? Current => token is not null && token.ExpiresAtUtc > DateTime.UtcNow + ExpirySkew ? token : null;
+
+    /// <summary>Ник последнего гостевого входа, в том числе из истёкшего токена: форму входа заполняем им</summary>
+    public string? LastNickname => token?.Nickname;
 
     /// <summary>Вызывается один раз при старте приложения</summary>
     public async Task LoadAsync()
@@ -38,7 +43,7 @@ public sealed class GuestSession(IJSRuntime js)
         }
         catch (Exception ex) when (ex is JSException or JsonException)
         {
-            // приватный режим или испорченная запись — просто без гостевой сессии
+            // приватный режим или испорченная запись: просто без гостевой сессии
             token = null;
         }
     }
@@ -53,7 +58,26 @@ public sealed class GuestSession(IJSRuntime js)
         }
         catch (JSException)
         {
-            // хранилище недоступно — токен останется в памяти до перезагрузки
+            // хранилище недоступно: токен останется в памяти до перезагрузки
+        }
+    }
+
+    /// <summary>Запомнить гостевой токен из ответа входа или перехода в следующую игру (аккаунту токен не выдают)</summary>
+    public async Task SaveFromJoinAsync(JoinToRoomResponse joined)
+    {
+        if (joined.GuestAccessToken is { } accessToken && joined.GuestTokenExpiresAtUtc is { } expiresAt)
+        {
+            await SaveAsync(new GuestToken(
+                accessToken, expiresAt, joined.Room.RoomId, joined.Room.RoomPlayerLinkId, joined.Room.PlayerName));
+        }
+    }
+
+    /// <summary>Комнату токена удалили (ведущий отменил игру): токен больше не действует, ник для формы входа оставляем</summary>
+    public async Task ForgetRoomAsync(Guid roomId)
+    {
+        if (token is { } current && current.RoomId == roomId && Current is not null)
+        {
+            await SaveAsync(current with { ExpiresAtUtc = DateTime.MinValue });
         }
     }
 

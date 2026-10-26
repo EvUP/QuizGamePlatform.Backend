@@ -6,7 +6,7 @@
 <PageTitle>QuizGame — квиз для офиса и друзей</PageTitle>
 
 @* Две колонки на всю высоту окна: слева герой, режимы и «Мои комнаты», справа превью игры и топ рейтинга.
-   Списки прокручиваются внутри своих блоков, страница — нет. *@
+   Списки прокручиваются внутри своих блоков, страница нет. *@
 <div class="home">
     <div class="col col-main">
         <section class="hero">
@@ -28,13 +28,25 @@
         </section>
 
         <section class="modes" aria-label="Типы игр">
+            @* карточки игр ведут в создание комнаты; гостя страница сама уводит на вход, как и «Создать комнату» *@
             @foreach (var mode in Modes)
             {
-                <article class="mode">
-                    <span class="mode-icon" style="background: @mode.Color"><Icon Name="mode.Icon" Size="20" /></span>
-                    <h2>@mode.Title</h2>
-                    <p>@mode.Text</p>
-                </article>
+                @if (mode.Href is { } href)
+                {
+                    <a class="mode mode-link" href="@href" aria-label="@($"Создать комнату: {mode.Title.ToLowerInvariant()}")">
+                        <span class="mode-icon" style="background: @mode.Color"><Icon Name="mode.Icon" Size="20" /></span>
+                        <h2>@mode.Title</h2>
+                        <p>@mode.Text</p>
+                    </a>
+                }
+                else
+                {
+                    <article class="mode">
+                        <span class="mode-icon" style="background: @mode.Color"><Icon Name="mode.Icon" Size="20" /></span>
+                        <h2>@mode.Title</h2>
+                        <p>@mode.Text</p>
+                    </article>
+                }
             }
         </section>
 
@@ -69,9 +81,12 @@
     private static readonly ModeCard[] Modes =
     [
         new(IconName.User, "var(--qg-team-1)", "Обычная игра",
-            "До десяти игроков вместе с ведущим и одна ссылка на всех. Каждый сам за себя: верный ответ — очко."),
+            "До десяти игроков вместе с ведущим и одна ссылка на всех. Каждый сам за себя: очко за верный ответ.",
+            "rooms/new"),
+        // ?type=team уже понимает CreateRoomPage
         new(IconName.Users, "var(--qg-team-3)", "Командная игра",
-            "От двух до пяти команд, у каждой своя ссылка. Чем больше своих ответили верно, тем больше очков у команды."),
+            "От двух до пяти команд, у каждой своя ссылка. За вопрос команде до 100 очков — по доле верных ответов.",
+            "rooms/new?type=team"),
         new(IconName.Link, "var(--qg-team-2)", "Вход без регистрации и СМС",
             "Гостю хватит ссылки и ника. Войдёте с аккаунтом — очки попадут в общий рейтинг.")
     ];
@@ -117,5 +132,6 @@
 
     public void Dispose() => request.Dispose();
 
-    private sealed record ModeCard(IconName Icon, string Color, string Title, string Text);
+    // Href null: карточка только поясняет, без ссылки
+    private sealed record ModeCard(IconName Icon, string Color, string Title, string Text, string? Href = null);
 }

@@ -54,14 +54,36 @@ h1 {
     font-size: clamp(22px, min(3vw, 4.2vh), 30px);
 }
 
+/* статус нейтральный: лаймовой в лобби остаётся только «Начать игру» */
 .status-chip {
     padding: 6px 14px;
     border-radius: 999px;
-    background: var(--qg-accent);
-    color: var(--qg-on-accent);
+    background: var(--qg-surface-2);
+    color: var(--qg-text-2);
+    box-shadow: inset 0 0 0 1px var(--qg-line);
     font-weight: 800;
     font-size: 14px;
 }
+
+/* чип ведущего при собранном составе: по умолчанию «Выберите темы», без :has тоже он */
+.status-chip .chip-ready {
+    display: none;
+}
+
+/* в чек-листе MatchSettings нет невыполненных пунктов: старт возможен, чип контуром, без заливки */
+.lobby:not(:has(.settings .checks .unmet)) .status-chip.by-checks {
+    background: var(--qg-success-bg);
+    color: var(--qg-accent);
+    box-shadow: inset 0 0 0 1.5px var(--qg-accent);
+}
+
+    .lobby:not(:has(.settings .checks .unmet)) .status-chip.by-checks .chip-wait {
+        display: none;
+    }
+
+    .lobby:not(:has(.settings .checks .unmet)) .status-chip.by-checks .chip-ready {
+        display: inline;
+    }
 
 .top-actions {
     display: flex;
@@ -116,11 +138,6 @@ h1 {
     font-weight: 700;
 }
 
-.danger-text {
-    border-color: #5A3A40;
-    color: var(--qg-danger-soft);
-}
-
 .confirm {
     display: flex;
     align-items: center;
@@ -156,7 +173,7 @@ h1 {
     gap: 12px;
 }
 
-/* шаг 1 — пригласить: заметная полоса с иконкой, подсказкой и одной кнопкой */
+/* шаг 1, пригласить: заметная полоса с иконкой, подсказкой и одной кнопкой */
 .invite {
     flex: none;
     display: flex;
@@ -216,14 +233,14 @@ h1 {
         background: var(--qg-accent-hover);
     }
 
-    /* только что скопировали — подтверждение, а не снова яркий призыв */
+    /* только что скопировали: подтверждение, а не снова яркий призыв */
     .invite ::deep .invite-copy.done {
         background: var(--qg-success-bg);
         color: var(--qg-accent);
         box-shadow: inset 0 0 0 1.5px var(--qg-accent);
     }
 
-    /* уже копировали — главное сделано, кнопка вторичная: «Скопировать ещё раз» */
+    /* уже копировали: главное сделано, кнопка вторичная: «Скопировать ещё раз» */
     .invite ::deep .invite-copy.was-copied:not(.done):not(.failed) {
         background: transparent;
         color: var(--qg-text-2);
@@ -241,7 +258,24 @@ h1 {
         box-shadow: inset 0 0 0 1.5px var(--qg-danger);
     }
 
-/* до и после копирования — разные заголовок, подсказка и значок; переключает класс was-copied у кнопки */
+/* лобби игры N>1: под приглашением строка «Из прошлой игры уже здесь» */
+.invite.rematch {
+    flex-wrap: wrap;
+}
+
+    .invite.rematch .returned {
+        flex-basis: 100%;
+    }
+
+.returned {
+    flex: none;
+    margin: 0;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--qg-text-2);
+}
+
+/* до и после копирования разные заголовок, подсказка и значок; переключает класс was-copied у кнопки */
 .after-copy {
     display: none;
 }
@@ -272,7 +306,7 @@ h1 {
     display: none;
 }
 
-/* колонки команд сеткой: на широком окне все в один ряд, уже — в два ряда; высоту делят поровну */
+/* базовая сетка состава; командное лобби на десктопе и планшет с телефоном переопределяют её ниже */
 .roster {
     flex: 1 1 0;
     min-width: 0;
@@ -318,6 +352,41 @@ h1 {
         border-color: var(--qg-text-2);
         color: var(--qg-text);
     }
+
+/* командное лобби на десктопе (от 900px): карточки команд не уже 250px, высота по содержимому;
+   если не влезает, прокручивается весь блок команд, а не каждая колонка */
+@media (min-width: 900px) {
+    .team-game .roster {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
+        /* max-content, а не auto: у карточек overflow: hidden, и auto-ряды на невысоком окне сжимали их, обрезая игроков */
+        grid-auto-rows: max-content;
+        align-content: start;
+        overflow-y: auto;
+        /* запас под рамку фокуса у крайних карточек, иначе её срежет прокрутка */
+        margin: -3px;
+        padding: 3px;
+    }
+
+    /* вид игрока без «Добавить команду»: колонки команд растягиваются на всю ширину, без пустой колонки справа */
+    .team-game:not(:has(.add-team)) .roster {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .team-game .add-team {
+        min-height: 112px;
+        padding: 16px 12px;
+        gap: 4px;
+        font-size: 15px;
+    }
+
+    /* вид игрока: «Ждём ведущего» карточкой по содержимому сверху, а не пустая колонна на всю высоту */
+    .waiting {
+        align-self: flex-start;
+        justify-content: flex-start;
+    }
+}
 
 .players-card {
     grid-column: 1 / -1;
@@ -375,7 +444,7 @@ h1 {
         transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-/* шаг 2 — состав: сетка мест на всю вместимость (5 × 2 на широком окне), занятые — карточки, свободные — пунктир */
+/* шаг 2, состав: сетка мест на всю вместимость (5 × 2 на широком окне), занятые карточками, свободные пунктиром */
 .players-list {
     flex: 0 1 auto;
     min-height: 0;
@@ -399,9 +468,10 @@ h1 {
         min-width: 0;
         flex-direction: column;
         flex-wrap: nowrap;
+        /* по центру высокой карточки; аватары в ряду на одной высоте за счёт одинаковой высоты блока имени */
         justify-content: center;
         gap: 8px;
-        padding: 14px 10px 12px;
+        padding: 12px 6px;
         border-radius: 16px;
         background: var(--qg-surface-2);
         border: 1px solid var(--qg-line);
@@ -424,12 +494,22 @@ h1 {
     .players-list ::deep .info {
         flex: none;
         width: 100%;
+        /* две строки имени и «гость» под ними: блок одной высоты во всех карточках ряда */
+        min-height: 3.9em;
+        justify-content: flex-start;
         align-items: center;
     }
 
     .players-list ::deep .name-line {
         justify-content: center;
     }
+
+/* на 1280 логин в узкой карточке рвался посреди слова: шрифт имени чуть меньше на средних ширинах */
+@media (min-width: 600px) {
+    .players-list ::deep .name {
+        font-size: clamp(13px, 1.05vw, 16px);
+    }
+}
 
     .players-list ::deep .kick {
         position: absolute;
@@ -460,7 +540,7 @@ h1 {
     border: 1.5px dashed var(--qg-line-strong);
 }
 
-    /* первое свободное место мягко «дышит» — сюда сядет следующий */
+    /* первое свободное место мягко «дышит»: сюда сядет следующий */
     .players-list ::deep .player + .slot-empty .slot-avatar {
         animation: qg-breathe 2.4s ease-in-out infinite;
     }
@@ -507,7 +587,7 @@ h1 {
         color: var(--qg-danger-soft);
     }
 
-/* вид игрока: справа крупное «ждём ведущего» на всю высоту, без пустот */
+/* вид игрока: справа крупное «ждём ведущего»; на десктопе карточкой по содержимому (см. выше) */
 .waiting {
     flex: 0 0 clamp(280px, 24vw, 340px);
     min-width: 0;
@@ -618,7 +698,7 @@ h1 {
         font-size: 13px;
     }
 
-    /* шапка в две строки максимум: «Удалить комнату» — только иконка справа от статуса */
+    /* шапка в две строки максимум: «Удалить комнату» только иконкой справа от статуса */
     .top {
         flex-wrap: nowrap;
         align-items: flex-start;
@@ -637,6 +717,17 @@ h1 {
         flex-wrap: wrap;
         justify-content: flex-end;
         font-size: 13px;
+    }
+
+    /* подтверждение длиннее иконки: уходит отдельной строкой под заголовок и переносится в её ширине */
+    .top:has(.confirm) {
+        flex-wrap: wrap;
+    }
+
+    .top-actions:has(.confirm) {
+        flex: 1 1 100%;
+        min-width: 0;
+        justify-content: flex-end;
     }
 
     .ghost, .danger {
@@ -678,7 +769,7 @@ h1 {
         gap: 4px 12px;
     }
 
-    /* телефон: места списком в одну колонку — имя читается целиком */
+    /* телефон: места списком в одну колонку, чтобы имя читалось целиком */
     .players-list {
         grid-template-columns: minmax(0, 1fr);
         grid-auto-rows: minmax(52px, auto);
@@ -700,6 +791,8 @@ h1 {
 
         .players-list ::deep .info {
             flex: 1;
+            /* в строке списка высота по содержимому, иначе имя прилипает к верхнему краю */
+            min-height: 0;
             align-items: flex-start;
         }
 
@@ -714,16 +807,30 @@ h1 {
     }
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
-   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+/* Широкий экран трансляции (тот же порог, что zoom 1.25 в app.css): лобби по центру высоты, а не прижато к верху.
+   Тело и состав по содержимому; если не влезают, сжимаются до окна и листаются внутри, как раньше */
+@media (min-width: 2000px) and (min-height: 1150px) {
+    .lobby {
+        justify-content: center;
+    }
+
+    .body {
+        flex: 0 1 auto;
+    }
+
+    .roster {
+        flex: 0 1 auto;
+    }
+}
+
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
 @supports (animation-timeline: scroll()) {
-    .players-list, .waiting {
+    .players-list, .waiting, .team-game .roster {
         animation: qg-scroll-fade linear both;
         animation-timeline: scroll(self);
     }
 }
 
-/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
 @keyframes qg-scroll-fade {
     0% {
         -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);

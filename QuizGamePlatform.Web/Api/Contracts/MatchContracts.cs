@@ -26,7 +26,7 @@ public record PlayerAnsweredEvent(
     int QuestionIndex,
     Guid RoomPlayerLinkId);
 
-// правильный вариант только после закрытия вопроса; QuestionEndsAt в показе ответа — конец паузы
+// правильный вариант только после закрытия вопроса; QuestionEndsAt в показе ответа означает конец паузы
 public record CurrentQuestionResponse(
     Guid MatchId,
     MatchStatus Status,
@@ -52,6 +52,6 @@ public record QuestionReview(
     string Text,
     List<AnswerOptionView> Options,
     Guid? CorrectOptionId,
-    Guid? MyAnswerOptionId,        // null — не отвечали
+    Guid? MyAnswerOptionId,        // null, если не отвечали
     int AnsweredCount,
     int CorrectCount);

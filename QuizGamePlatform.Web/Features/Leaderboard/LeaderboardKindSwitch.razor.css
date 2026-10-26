@@ -18,6 +18,7 @@
     font-weight: 700;
     font-size: 14px;
     line-height: 1.2;
+    white-space: nowrap;
 }
 
     .option:hover {
@@ -35,7 +36,7 @@
 
     .large .option {
         min-height: 46px;
-        padding: 0 20px;
+        padding: 0 16px;
         border-radius: 12px;
         font-weight: 800;
         font-size: 15px;

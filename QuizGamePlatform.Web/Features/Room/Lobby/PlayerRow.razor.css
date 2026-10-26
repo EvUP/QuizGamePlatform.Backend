@@ -49,7 +49,7 @@
     min-width: 0;
 }
 
-/* длинный ник — в две строки, полностью в подсказке */
+/* длинный ник в две строки, полностью в подсказке */
 .name {
     min-width: 0;
     font-weight: 700;
@@ -57,7 +57,7 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-    hyphens: auto;
+    hyphens: manual;
     overflow-wrap: anywhere;
 }
 

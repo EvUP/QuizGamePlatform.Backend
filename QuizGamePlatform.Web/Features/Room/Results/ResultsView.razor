@@ -3,13 +3,11 @@
 @inject GameSession Session
 @inject MatchApiClient MatchApi
 
-@*
-    Итоги: командная игра — только команды, обычная — игроки по верным ответам (вышедший до финиша получает 0).
-    Места считает сервер, без дележа: равные очки разбиты по времени верных ответов — его и показываем у равных.
-*@
+@* Итоги: места считает сервер без дележа, равные очки разбиты по времени верных ответов.
+   У равных показываем среднее время. *@
 <div class="results">
     <div class="hero">
-        <span class="chip">Игра окончена@(TotalQuestions is { } total ? $" · {RussianPlural.Format(total, "вопрос", "вопроса", "вопросов")}" : "")</span>
+        <span class="chip">@(Room.GameNumber > 1 ? $"Игра {Room.GameNumber} окончена" : "Игра окончена")@(TotalQuestions is { } total ? $" · {RussianPlural.Format(total, "вопрос", "вопроса", "вопросов")}" : "")</span>
         <h1>@Headline</h1>
         @if (Subline is not null)
         {
@@ -19,26 +17,39 @@
 
     @if (entries.Count > 0)
     {
-        @* пьедестал и таблица — одна «сцена»: рядом на широком окне, друг под другом на узком *@
+        @* пьедестал и таблица образуют одну «сцену»: рядом на широком окне, друг под другом на узком *@
         <div class="stage">
             <div class="podium">
                 @foreach (var entry in PodiumOrder)
                 {
-                    <div class="pillar">
+                    @* класс места на колонке задаёт очередь вырастания: 3, 2, 1; при ничьей обе «1» вместе *@
+                    <div class="pillar place-@entry.Place">
                         <span class="pillar-name" title="@entry.Name">@entry.Name</span>
-                        <span class="pillar-points">@entry.Points @PointsWord(entry.Points)</span>
+                        <span class="pillar-points">@entry.Points @PointsWord(entry.Points)@if (TieTime(entry) is { } podiumTime){<span class="pillar-time" title="@TimeHint">@podiumTime</span>}</span>
                         <div class="block place-@entry.Place" style="--block-color: @entry.Color">
                             <span class="block-place">@entry.Place</span>
                             <span>место</span>
+                            @* конфетти над первым местом, если очки есть: при ничьей 0:0 праздновать нечего *@
+                            @if (entry.Place == 1 && entry.Points > 0)
+                            {
+                                <span class="confetti" aria-hidden="true">
+                                    @foreach (var bit in ConfettiBits)
+                                    {
+                                        <i style="--x: @(bit.X)px; --h: @(bit.H)px; --f: @(bit.F)px; --r: @(bit.R)deg; --j: @(bit.J)ms; --c: var(--qg-@(bit.Color))"></i>
+                                    }
+                                </span>
+                            }
                         </div>
                     </div>
                 }
             </div>
 
-            <ol class="table">
+            @* больше 6 строк: компактные строки, чтобы на большом экране все места были видны без прокрутки *@
+            @{ var anyTime = entries.Any(e => TieTime(e) is not null); }
+            <ol class="table @(entries.Count > 6 ? "compact" : null)">
                 @foreach (var entry in entries)
                 {
-                    <li class="@(entry.IsMine ? "mine" : null)">
+                    <li class="@(entry.IsMine ? "mine" : null) @LeftClass(entry)">
                         <PlaceBadge Place="entry.Place" Large="true" />
                         <span class="info">
                             <span class="name" title="@entry.Name">@entry.Name@(entry.IsMine ? (Room.IsTeamGame ? " · ваша команда" : " · вы") : "")</span>
@@ -47,8 +58,19 @@
                                 <span class="note">@entry.Note</span>
                             }
                         </span>
-                        <span class="bar"><span style="width: @(entry.Percent)%; background: @entry.Color"></span></span>
-                        <span class="points">@entry.Points@if (TieTime(entry) is { } time){<span class="time" title="@TimeHint">@($" · {time}")</span>}</span>
+                        <span class="points">
+                            @entry.Points
+                            @* пустая строка времени только если время есть хоть у кого-то: очки во всех строках на одной высоте;
+                               без времени очки по центру строки *@
+                            @if (TieTime(entry) is { } time)
+                            {
+                                <span class="time" title="@TimeHint">в ср. @time</span>
+                            }
+                            else if (anyTime)
+                            {
+                                <span class="time" aria-hidden="true">&nbsp;</span>
+                            }
+                        </span>
                     </li>
                 }
             </ol>
@@ -56,28 +78,32 @@
 
         <p class="rule">
             @(Room.IsTeamGame
-                ? "За вопрос команда получает столько очков, сколько процентов её игроков ответили верно. При равных очках выше команда, которая в среднем быстрее отвечала верно."
-                : "Очко за каждый верный ответ. Кто ушёл до финала, получает 0. При равных очках выше тот, кто быстрее отвечал верно.")
+                ? $"{GameRules.TeamScoringText} {GameRules.TeamExitText}"
+                : $"{GameRules.SimpleScoringText} {GameRules.SimpleExitText}")
         </p>
     }
 
+    <RematchActions @ref="rematch" Room="Room" ReviewOpen="reviewOpen" PendingChanged="StateHasChanged" />
+
+    @* тихие ссылки одним рядом; другой состав или тип игры через «Новую комнату» *@
     <div class="actions">
         @if (Session.IsHost)
         {
-            <a class="primary" href="rooms/new@(Room.IsTeamGame ? "?type=team" : "")">Сыграть ещё</a>
+            <a class="link" href="rooms/new@(Room.IsTeamGame ? "?type=team" : "")">Новая комната</a>
         }
-        <a class="secondary" href="leaderboard@(Room.IsTeamGame ? "?tab=team" : "")">Рейтинг</a>
         @if (Room.MatchId is not null)
         {
             <button type="button" class="link review" aria-haspopup="dialog" @ref="reviewButton" @onclick="OpenReviewAsync">Разбор вопросов</button>
         }
+        <a class="link" href="leaderboard@(Room.IsTeamGame ? "?tab=team" : "")">Рейтинг</a>
         <a class="link" href="">На главную</a>
     </div>
 </div>
 
 @if (reviewOpen)
 {
-    <MatchReview Review="review" Error="reviewError" OnRetry="LoadReviewAsync" OnClose="CloseReviewAsync" />
+    <MatchReview Review="review" Error="reviewError" OnRetry="LoadReviewAsync" OnClose="CloseReviewAsync"
+                 Notice="@(rematch?.PendingAfterReview is { } next ? $"Ведущий собрал игру {next} — закройте разбор, и перейдём" : null)" />
 }
 
 @code {
@@ -88,6 +114,7 @@
     public int? TotalQuestions { get; set; }
 
     private List<ResultEntry> entries = [];
+    private RematchActions? rematch;
 
     // разбор грузим по кнопке и держим, пока открыты итоги
     private readonly LatestRequest reviewRequest = new();
@@ -99,6 +126,7 @@
     private string Headline => entries.FirstOrDefault(e => e.Place == 1) switch
     {
         null => "Итоги игры",
+        _ when Room.IsDraw => "Ничья!",
         // имя без кавычек: в нём могут быть свои «»
         { } winner when Room.IsTeamGame => $"Побеждает {winner.Name}!",
         { } winner => $"{winner.Name} забирает первое место!"
@@ -110,21 +138,40 @@
         {
             var mine = entries.FirstOrDefault(e => e.IsMine);
 
+            // ушедших из лобби сервер в итоги обычной игры не включает: смотрят со стороны
             if (mine is null)
             {
-                return null;
+                return Session.Me is null && !Room.IsTeamGame ? "Вы вышли до начала игры" : null;
             }
 
-            // «на 2-м месте» — окончание одно для любого числа
+            // делит первенство (поровну очков и времени верных, или верных не было вовсе): победителем не называем
+            if (IsTiedWithLeader(mine))
+            {
+                return Room.IsTeamGame
+                    ? "Очков поровну — победителя нет"
+                    : $"Победителя нет · {RussianPlural.Format(mine.Points, "верный ответ", "верных ответа", "верных ответов")}";
+            }
+
+            // «на 2-м месте»: окончание одно для любого числа
             var place = mine.Place == 1
                 ? (Room.IsTeamGame ? "Ваша команда победила!" : "Вы победили")
                 : (Room.IsTeamGame ? $"Ваша команда на {mine.Place}-м месте" : $"Вы на {mine.Place}-м месте");
 
+            // первое место решило время: говорим прямо, иначе непонятно, почему при равных очках разные места
+            var bySpeed = !Room.IsDraw && entries.Count > 1 && entries[0].Points > 0 && entries[1].Points == entries[0].Points
+                ? "Очков поровну — первое место решила скорость · "
+                : "";
+
             return Room.IsTeamGame
-                ? place
-                : $"{place} · {RussianPlural.Format(mine.Points, "верный ответ", "верных ответа", "верных ответов")}";
+                ? bySpeed + place
+                : $"{bySpeed}{place} · {RussianPlural.Format(mine.Points, "верный ответ", "верных ответа", "верных ответов")}";
         }
     }
+
+    // сервер места не делит, ничью (Room.IsDraw) решает сам: у двух первых претендентов поровну очков и времени, включая 0:0.
+    // первенство делит каждый, у кого очки и время как у лидера
+    private bool IsTiedWithLeader(ResultEntry entry)
+        => Room.IsDraw && entry.Points == entries[0].Points && entry.TimeMs == entries[0].TimeMs;
 
     // пьедестал слева направо: 2, 1, 3
     private IEnumerable<ResultEntry> PodiumOrder
@@ -141,13 +188,31 @@
         }
     }
 
-    protected override void OnParametersSet() => entries = Room.IsTeamGame ? TeamEntries() : PlayerEntries();
+    protected override void OnParametersSet()
+    {
+        entries = Room.IsTeamGame ? TeamEntries() : PlayerEntries();
+
+        // ничья только на экране: все, кто делит первенство, стоят на 1-м месте в таблице и на пьедестале
+        if (Room.IsDraw && entries.Count > 0)
+        {
+            entries = entries
+                .Select(e => IsTiedWithLeader(e) && e.Place != 1
+                    ? e with { Place = 1, Color = Room.IsTeamGame ? e.Color : MedalColor(1) }
+                    : e)
+                .ToList();
+        }
+    }
+
+    // вышедший до финала приглушён, но делящий первенство нет
+    private string? LeftClass(ResultEntry entry)
+        => entry.IsActive ? null : IsTiedWithLeader(entry) ? "left tied" : "left";
+
+    private static string MedalColor(int place) => place <= 3 ? $"var(--qg-medal-{place})" : "var(--qg-info)";
 
     private List<ResultEntry> TeamEntries()
     {
         var myTeam = Session.Me?.TeamNumber;
         var teams = (Room.Teams ?? []).Where(t => t.Members > 0).OrderBy(t => t.Place ?? int.MaxValue).ToList();
-        var max = Math.Max(1, TotalQuestions is { } total ? total * 100 : teams.Max(t => t.Points ?? 0));
 
         return teams.Select(t => new ResultEntry(
                 t.Name,
@@ -156,16 +221,15 @@
                 $"var(--qg-team-{t.Number})",
                 t.Number == myTeam,
                 RussianPlural.Format(t.Members, "игрок", "игрока", "игроков"),
-                Math.Min(100, (t.Points ?? 0) * 100 / max),
-                t.AvgCorrectTimeMs))
+                t.AvgCorrectTimeMs,
+                true))
             .ToList();
     }
 
     private List<ResultEntry> PlayerEntries()
     {
-        // места с сервера; без них (старый сервер) — просто по порядку
+        // места с сервера; без них (старый сервер) просто по порядку
         var players = Room.Players.OrderBy(p => p.Place ?? int.MaxValue).ToList();
-        var max = Math.Max(1, TotalQuestions ?? players.Max(p => p.Score ?? 0));
 
         return players.Select((player, i) =>
             {
@@ -176,11 +240,11 @@
                     player.PlayerName,
                     score,
                     place,
-                    place <= 3 ? $"var(--qg-medal-{place})" : "var(--qg-info)",
+                    MedalColor(place),
                     player.RoomPlayerLinkId == Room.MyRoomPlayerLinkId,
                     player.IsActive ? (player.IsGuest ? "гость" : null) : "выход до финала",
-                    Math.Min(100, score * 100 / max),
-                    player.CorrectTimeMs);
+                    player.CorrectTimeMs,
+                    player.IsActive);
             })
             .ToList();
     }
@@ -244,18 +308,42 @@
     // в обычной игре очко = верный ответ, поэтому подпись одна
     private static string PointsWord(int points) => RussianPlural.Choose(points, "очко", "очка", "очков");
 
-    // время нужно только тем, у кого очки равны с кем-то ещё: по нему их и рассадили
+    // время нужно только тем, у кого очки (не ноль) равны с кем-то ещё: по нему их и рассадили.
+    // в обычной игре сервер отдаёт сумму по верным, показываем среднее, как в командной (порядок мест тот же)
     private string? TieTime(ResultEntry entry)
-        => entry.TimeMs is { } ms && entries.Count(e => e.Points == entry.Points) > 1 ? Seconds(ms) : null;
+        => entry.Points > 0 && entry.TimeMs is { } ms && entries.Count(e => e.Points == entry.Points) > 1
+            ? Seconds(Room.IsTeamGame ? ms : ms / entry.Points)
+            : null;
 
-    private string TimeHint => Room.IsTeamGame ? "Среднее время верного ответа" : "Сколько времени ушло на верные ответы";
+    private const string TimeHint = "Среднее время верного ответа";
 
-    // «17,0 с» — запятую ставим сами, не завися от данных культуры в WebAssembly
+    // «17,0 с»: запятую ставим сами, не завися от данных культуры в WebAssembly
     private static string Seconds(long ms)
     {
         var tenths = (ms + 50) / 100;
         return $"{tenths / 10},{tenths % 10} с";
     }
 
-    private sealed record ResultEntry(string Name, int Points, int Place, string Color, bool IsMine, string? Note, int Percent, long? TimeMs);
+    // частицы конфетти: сдвиг вбок, высота взлёта, глубина падения, поворот, сдвиг старта и цвет-токен
+    private static readonly ConfettiBit[] ConfettiBits =
+    [
+        new(-118, 64, 46, 320, 0, "accent"),
+        new(-96, 88, 70, -260, 60, "medal-1"),
+        new(-72, 52, 34, 410, 120, "team-3"),
+        new(-50, 86, 62, -380, 30, "medal-3"),
+        new(-30, 70, 80, 280, 180, "team-4"),
+        new(-12, 90, 40, -300, 90, "team-2"),
+        new(10, 84, 72, 360, 0, "medal-2"),
+        new(28, 58, 50, -420, 150, "accent"),
+        new(48, 84, 30, 300, 60, "medal-1"),
+        new(70, 66, 76, -340, 210, "team-3"),
+        new(92, 86, 44, 390, 30, "team-2"),
+        new(116, 60, 64, -280, 120, "medal-3"),
+        new(-84, 76, 90, 250, 240, "team-4"),
+        new(82, 74, 86, -250, 180, "accent")
+    ];
+
+    private sealed record ConfettiBit(int X, int H, int F, int R, int J, string Color);
+
+    private sealed record ResultEntry(string Name, int Points, int Place, string Color, bool IsMine, string? Note, long? TimeMs, bool IsActive);
 }

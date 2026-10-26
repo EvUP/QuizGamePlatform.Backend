@@ -2,7 +2,7 @@ namespace QuizGamePlatform.Web.Infrastructure;
 
 /// <summary>
 /// Короткие даты по-русски в часовом поясе браузера: «сегодня, 14:20», «вчера, 09:05», «13 октября».
-/// Месяцы вручную — не зависим от того, какие данные культуры загрузил WebAssembly.
+/// Месяцы вручную, чтобы не зависеть от того, какие данные культуры загрузил WebAssembly.
 /// </summary>
 public static class RussianDates
 {

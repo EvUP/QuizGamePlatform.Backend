@@ -1,0 +1,124 @@
+@* Строка истории для «Моих комнат» и «Всей истории»: вся строка ведёт в комнату, чип серии раскрывает прошлые игры. *@
+<li class="row @(Room.IsTeamGame ? "team" : "simple") @OutcomeClass">
+    <div class="main">
+        <span class="mark" aria-hidden="true">
+            <Icon Name="@(Room.IsTeamGame ? IconName.Users : IconName.User)" />
+        </span>
+
+        <span class="info">
+            <span class="line">
+                <span class="title" title="@RoomHistory.Title(Room)">
+                    @(Room.IsTeamGame ? "Командная" : "Обычная")<span class="title-word"> игра</span>@RoomHistory.TeamsSuffix(Room)
+                </span>
+                @* метка только в чужой игре; корону не ставим, она читалась бы как «вы ведущий» *@
+                @if (RoomHistory.HostTag(Room) is { } host)
+                {
+                    <span class="tag" title="@host"><span class="tag-text">@host</span></span>
+                }
+                @SeriesChip("chip-top")
+            </span>
+            @* в узкой строке чип серии переезжает во вторую строку, первая остаётся заголовку *@
+            <span class="line">
+                @SeriesChip("chip-bottom")
+                <span class="meta" title="@Meta">@Meta</span>
+            </span>
+        </span>
+
+        <span class="result" title="@RoomHistory.Winner(Room)">
+            @switch (cell.Outcome)
+            {
+                case RoomOutcome.Win or RoomOutcome.Place or RoomOutcome.Left:
+                    <span class="result-main">@cell.Main</span>
+                    @if (cell.Sub is not null)
+                    {
+                        <span class="result-sub">@cell.Sub</span>
+                    }
+                    @* третья строка удлиняла строку истории: при очках «вы вышли» уходит во вторую строку слева (Meta) *@
+                    @if (cell.Note is not null && cell.Sub is null)
+                    {
+                        <span class="result-sub">@cell.Note</span>
+                    }
+                    break;
+                default:
+                    <span class="pill">@cell.Main</span>
+                    break;
+            }
+        </span>
+
+        <span class="action">
+            @* ссылка обычной игры одна на всех, ведущему удобно скопировать её прямо отсюда *@
+            @if (Room is { Status: RoomStatus.Waiting, IsHost: true, IsTeamGame: false, JoinLink: { } link })
+            {
+                <CopyLinkButton Url="@link" Class="copy-mini" />
+            }
+            <a class="open" href="room/@Room.Id" aria-label="@RoomHistory.AriaLabel(Room)">
+                <span class="open-text">@RoomHistory.ActionText(Room)</span> →
+            </a>
+        </span>
+    </div>
+
+    @if (expanded)
+    {
+        <ul class="past" id="@PastId">
+            @foreach (var game in Series.Past)
+            {
+                <li>
+                    <a href="room/@game.Id" aria-label="@RoomHistory.AriaLabel(game)">
+                        <span class="past-text">
+                            <b>Игра @game.GameNumber</b> · @PastTime(game) · @RoomHistory.ShortResult(game)
+                        </span>
+                        <span class="past-go">@RoomHistory.ActionText(game) →</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public RoomSeries Series { get; set; } = default!;
+
+    /// <summary>Во второй строке только время: день уже в заголовке группы</summary>
+    [Parameter]
+    public bool TimeOnly { get; set; }
+
+    private bool expanded;
+    private RoomResultCell cell = default!;
+
+    private MyRoomResponse Room => Series.Last;
+
+    private string PastId => $"past-{Room.Id:N}";
+
+    private string GamesText => RussianPlural.Format(Series.Games.Count, "игра", "игры", "игр");
+
+    private string Meta
+    {
+        get
+        {
+            var date = TimeOnly ? RoomHistory.Time(Room.CreatedAt) : RussianDates.Short(Room.CreatedAt);
+            var meta = RoomHistory.Role(Room) is { } role ? $"{date} · {role}" : date;
+            return cell.Sub is not null && cell.Note is not null ? $"{meta} · {cell.Note}" : meta;
+        }
+    }
+
+    private RenderFragment SeriesChip(string place) => @<text>
+        @if (Series.Games.Count > 1)
+        {
+            <button type="button" class="chip @place" aria-expanded="@(expanded ? "true" : "false")" aria-controls="@PastId"
+                    aria-label="@($"Серия: {GamesText}. {(expanded ? "Скрыть" : "Показать")} прошлые игры")" @onclick="() => expanded = !expanded">
+                @GamesText<Icon Name="IconName.ChevronLeft" Size="14" StrokeWidth="2.6" />
+            </button>
+        }
+    </text>;
+
+    private string OutcomeClass => cell.Outcome.ToString().ToLowerInvariant();
+
+    protected override void OnParametersSet() => cell = RoomHistory.Result(Room);
+
+    // игры серии обычно в один вечер, тогда хватит времени
+    private string PastTime(MyRoomResponse game)
+        => RoomHistory.Local(game.CreatedAt).Date == RoomHistory.Local(Room.CreatedAt).Date
+            ? RoomHistory.Time(game.CreatedAt)
+            : RussianDates.Short(game.CreatedAt);
+}

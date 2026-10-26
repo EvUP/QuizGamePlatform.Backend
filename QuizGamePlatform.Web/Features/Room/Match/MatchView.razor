@@ -1,11 +1,9 @@
+@implements IDisposable
 @inject GameSession Session
-@inject NavigationManager Navigation
+@inject ServerClock Clock
 
-@*
-    Вопрос и показ верного ответа — для всех (ведущий тоже играет).
-    Вопрос заканчивается по таймеру или кнопкой ведущего; затем все видят ответ, отвечать уже нельзя.
-*@
-<div class="match">
+@* Вопрос и показ правильного ответа для всех, ведущий тоже играет. Вопрос закрывается по таймеру или кнопкой ведущего. *@
+<div class="match @(IsReveal ? "is-reveal" : null)">
     <header class="top">
         <div class="counter">Вопрос @(Question.QuestionOrder + 1) <span>из @Question.TotalQuestions</span></div>
         <div class="steps" aria-hidden="true">
@@ -14,12 +12,25 @@
                 <span class="step @StepClass(i)"></span>
             }
         </div>
+        <div class="chips">
+            @if (questionSeconds is { } seconds)
+            {
+                <span class="chip mode @(IsBlitz ? "blitz" : null)">@(IsBlitz ? "Блиц" : "Спокойный") · @seconds с</span>
+            }
+            @if (MyTeam is { } team)
+            {
+                <span class="chip team" style="--team-color: var(--qg-team-@team.Number)" title="@team.Name">
+                    <span class="swatch" aria-hidden="true"></span>
+                    <span class="team-name">@team.Name</span>
+                </span>
+            }
+        </div>
         @if (CanAnswer)
         {
             @if (confirmLeave)
             {
                 <span class="confirm" role="group" aria-label="Подтверждение выхода">
-                    <span>@(Session.IsHost ? "Выйти? Игра пойдёт дальше по таймеру" : "Выйти? Вернуться можно по ссылке, но только в первые 40 секунд")</span>
+                    <span>@LeaveWarning</span>
                     <button type="button" class="danger" disabled="@busy" @onclick="LeaveAsync">Выйти</button>
                     <button type="button" class="ghost" @onclick="() => confirmLeave = false">Остаться</button>
                 </span>
@@ -45,26 +56,13 @@
                 <h1>@Question.Text</h1>
             </section>
 
-            <div class="options">
-                @for (var i = 0; i < orderedOptions.Count; i++)
-                {
-                    var option = orderedOptions[i];
-                    var index = i;
-                    <AnswerOptionButton @key="option.Id"
-                                        Letter="@Letters[index % Letters.Length].ToString()"
-                                        Text="@option.Text"
-                                        ColorNumber="index % 4 + 1"
-                                        State="StateOf(option)"
-                                        Disabled="!CanPick"
-                                        OnClick="() => AnswerAsync(option.Id)" />
-                }
-            </div>
-
+            @* строка состояния есть всегда, чтобы варианты не прыгали, когда она меняется *@
             @if (IsReveal)
             {
                 <div class="status reveal" role="status">
-                    <span class="status-title">Верный ответ: @CorrectText</span>
-                    <span>
+                    <span class="status-label">Правильный ответ</span>
+                    <span class="status-title">@CorrectText</span>
+                    <span class="status-note">
                         @(IsLastQuestion ? "Итоги" : "Следующий вопрос") через
                         <CountdownText @key="RevealKey" EndsAtUtc="Question.QuestionEndsAt" /> с
                     </span>
@@ -74,49 +72,76 @@
             {
                 <div class="status accepted" role="status">
                     <Icon Name="IconName.Check" StrokeWidth="2.8" />
-                    Ответ принят, ждём остальных
+                    <span>@AcceptedText</span>
+                    <span class="status-count">@AnsweredCount из @InGameCount</span>
                 </div>
             }
             else if (!CanAnswer)
             {
                 <div class="status muted" role="status">
                     @(Session.MyExitReason == ExitReason.Disconnected
-                        ? "Вас не было дольше 40 секунд — отвечать уже нельзя, но досмотреть игру можно"
+                        ? $"Вас не было дольше {GameRules.ReturnWindowSeconds} секунд — отвечать уже нельзя, но досмотреть игру можно"
                         : "Вы в этой игре зритель — смотрите до конца")
                 </div>
             }
+            else
+            {
+                <div class="status prompt">Выберите ответ — поменять его не получится</div>
+            }
+
+            <div class="options">
+                @for (var i = 0; i < orderedOptions.Count; i++)
+                {
+                    var option = orderedOptions[i];
+                    <AnswerOptionButton @key="option.Id"
+                                        Letter="@Letters[i % Letters.Length].ToString()"
+                                        Text="@option.Text"
+                                        ColorNumber="i % 4 + 1"
+                                        State="StateOf(option)"
+                                        Mine="option.Id == MyAnswer"
+                                        Disabled="!CanPick"
+                                        OnClick="() => AnswerAsync(option.Id)" />
+                }
+            </div>
 
             @if (error is not null)
             {
                 <ErrorBanner Message="@error" />
             }
 
-            @if (Session.IsHost)
+            @* вышедший ведущий вопрос не закроет: сервер пускает только активного *@
+            @if (Session.IsHost && CanAnswer)
             {
-                <div class="host-bar">
-                    <span>
+                <div class="host-bar @(AllAnswered && !IsReveal ? "ready" : null)">
+                    <span class="host-text">
+                        <span class="host-label">Вы ведущий</span>
                         @if (IsReveal)
                         {
-                            @("Все видят верный ответ. Дальше игра пойдёт сама.")
+                            @("Все видят правильный ответ. Дальше игра пойдёт сама.")
+                        }
+                        else if (AllAnswered)
+                        {
+                            @("Все ответили — можно показывать правильный ответ.")
                         }
                         else
                         {
-                            @("Все ответили? Не ждите таймер: покажем верный ответ и пойдём дальше.")
+                            @($"Ответили {AnsweredCount} из {InGameCount}. Можно не ждать таймер — покажите ответ, когда решите.")
                         }
                     </span>
-                    <button type="button" class="next" disabled="@(IsReveal || busy)" @onclick="CloseAsync">
-                        Следующий вопрос
-                    </button>
+                    @* на показе ответа кнопка не нужна, остаётся только текст *@
+                    @if (!IsReveal)
+                    {
+                        <button type="button" class="next" disabled="@busy" @onclick="CloseAsync">
+                            Показать ответ
+                        </button>
+                    }
                 </div>
             }
         </main>
 
+        @* счёт команд во время игры не показываем, он только на итогах *@
         <aside class="side">
-            <AnsweredPanel Room="Room" Answered="Answered" />
-            @if (Room.IsTeamGame && Room.Teams is { } teams)
-            {
-                <TeamScoreboard Teams="teams" MyTeamNumber="Session.Me?.TeamNumber" />
-            }
+            <AnsweredPanel Room="Room" Answered="Answered" Closed="IsReveal" />
         </aside>
     </div>
 </div>
@@ -141,32 +166,120 @@
     private string? error;
     private int? shownOrder;
 
+    // длительность вопроса (15 блиц, 30 спокойный); в показе ответа StageSeconds означает длину показа, поэтому запоминаем
+    private int? questionSeconds;
+
     private List<AnswerOptionView> orderedOptions = [];
 
     private bool IsReveal => Question.Status != MatchStatus.QuestionActive;
 
     private bool IsLastQuestion => Question.QuestionOrder + 1 >= Question.TotalQuestions;
 
+    private bool IsBlitz => questionSeconds is <= 15;
+
     // отвечает только тот, кто сейчас в игре
     private bool CanAnswer => Session.Me?.IsActive == true;
 
-    private bool CanPick => !IsReveal && CanAnswer && MyAnswer is null && !busy;
+    private bool CanPick => !IsReveal && CanAnswer && MyAnswer is null && !busy && !TimeUp;
 
-    // новый ключ — новый отсчёт: показ ответа начинается с полного кольца
+    // последние доли секунды ответ уже не успеет до сервера: варианты гасим заранее, по часам сервера
+    private static readonly TimeSpan AnswerCutoff = TimeSpan.FromMilliseconds(300);
+
+    private DateTime QuestionEndsUtc => DateTime.SpecifyKind(Question.QuestionEndsAt, DateTimeKind.Utc);
+
+    private bool TimeUp => QuestionEndsUtc - Clock.UtcNow <= AnswerCutoff;
+
+    private CancellationTokenSource? cutoffTimer;
+    private DateTime? cutoffFor;
+    private bool shownReveal;
+
+    // ведущему: игра без него идёт по таймеру; в командной очки, принесённые команде, остаются за ней
+    private string LeaveWarning
+        => "Выйти? "
+           + (Session.IsHost ? "Игра пойдёт дальше по таймеру. " : "")
+           + (Room.IsTeamGame
+               ? $"Вернуться можно в течение {GameRules.ReturnWindowSeconds} секунд. Очки, которые вы уже принесли команде, останутся за ней"
+               : $"Вернуться можно в течение {GameRules.ReturnWindowSeconds} секунд, иначе очки за эту игру сгорят");
+
+    // новый ключ даёт новый отсчёт: показ ответа начинается с полного кольца
     private string RevealKey => $"reveal-{Question.QuestionOrder}";
 
     private string? CorrectText => Question.Options.FirstOrDefault(o => o.Id == Question.CorrectOptionId)?.Text;
+
+    // те же цифры, что в «Ответили»: только игроки, которые сейчас в игре
+    private int InGameCount => Room.Players.Count(p => p.IsActive);
+
+    private int AnsweredCount => Room.Players.Count(p => p.IsActive && Answered.Contains(p.RoomPlayerLinkId));
+
+    private bool AllAnswered => InGameCount > 0 && AnsweredCount >= InGameCount;
+
+    // ведущему ждать некого, ответ показывает он сам
+    private string AcceptedText => !AllAnswered
+        ? "Ответ принят — ждём остальных"
+        : Session.IsHost ? "Все ответили" : "Все ответили — ждём ведущего";
+
+    private TeamResponse? MyTeam => Room.IsTeamGame && Session.Me?.TeamNumber is { } number
+        ? Room.Teams?.Find(t => t.Number == number)
+        : null;
 
     protected override void OnParametersSet()
     {
         orderedOptions = Question.Options.OrderBy(o => o.Position).ToList();
 
-        // ошибка прошлого вопроса к новому не относится
-        if (shownOrder != Question.QuestionOrder)
+        if (Question.Status == MatchStatus.QuestionActive)
+        {
+            questionSeconds = Question.StageSeconds;
+        }
+
+        // ошибка прошлого вопроса к новому не относится, «Ответ не принят» к показу ответа тоже
+        if (shownOrder != Question.QuestionOrder || IsReveal && !shownReveal)
         {
             error = null;
             shownOrder = Question.QuestionOrder;
         }
+
+        shownReveal = IsReveal;
+        ScheduleCutoff();
+    }
+
+    // перерисовать, когда варианты пора гасить: сам MatchView по таймеру не обновляется
+    private void ScheduleCutoff()
+    {
+        if (IsReveal || cutoffFor == QuestionEndsUtc)
+        {
+            return;
+        }
+
+        cutoffTimer?.Cancel();
+        cutoffTimer?.Dispose();
+        cutoffTimer = new CancellationTokenSource();
+        cutoffFor = QuestionEndsUtc;
+
+        var delay = QuestionEndsUtc - AnswerCutoff - Clock.UtcNow;
+
+        if (delay > TimeSpan.Zero)
+        {
+            _ = RerenderAfterAsync(delay, cutoffTimer.Token);
+        }
+    }
+
+    private async Task RerenderAfterAsync(TimeSpan delay, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(delay, ct);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // вопрос сменился или ушли со страницы
+        }
+    }
+
+    public void Dispose()
+    {
+        cutoffTimer?.Cancel();
+        cutoffTimer?.Dispose();
     }
 
     private string StepClass(int index) => index < Question.QuestionOrder
@@ -198,11 +311,14 @@
 
         busy = true;
         error = null;
+        var order = Question.QuestionOrder;
 
         try
         {
             var result = await Session.SubmitAnswerAsync(optionId);
-            error = result.IsSuccess ? null : result.Error.Message;
+
+            // отказ опоздал: вопрос уже закрыт, на показе ответа ошибка не нужна
+            error = result.IsSuccess || IsReveal || order != Question.QuestionOrder ? null : result.Error.Message;
         }
         finally
         {
@@ -210,7 +326,7 @@
         }
     }
 
-    // сам вышел — автоматически не вернёт, только по ссылке в течение 40 с (в отличие от обрыва связи)
+    // сам вышел: автоматически не вернёт (в отличие от обрыва связи), страница комнаты покажет «Вы вышли» и кнопку возврата
     private async Task LeaveAsync()
     {
         busy = true;
@@ -222,7 +338,6 @@
 
             if (result.IsSuccess)
             {
-                Navigation.NavigateTo("");
                 return;
             }
 

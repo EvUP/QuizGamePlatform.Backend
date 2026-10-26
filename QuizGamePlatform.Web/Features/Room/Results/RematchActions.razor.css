@@ -1,0 +1,123 @@
+/* «Сыграть ещё»: одна колонка по центру над рядом тихих ссылок */
+.rematch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.primary {
+    min-height: clamp(46px, 7vh, 56px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px;
+    border: 0;
+    border-radius: var(--qg-radius-m);
+    background: var(--qg-accent);
+    color: var(--qg-on-accent);
+    box-shadow: 0 5px 0 var(--qg-accent-shadow);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 17px;
+}
+
+    .primary:hover:not(:disabled) {
+        background: var(--qg-accent-hover);
+        color: var(--qg-on-accent);
+    }
+
+    .primary:disabled {
+        opacity: 0.7;
+    }
+
+/* строка ожидания и баннер следующей игры как «ждём ведущего» в лобби, но компактнее */
+/* точки в строку с текстом: при переносе остаются перед первой строкой, а не отдельно у края */
+.line {
+    font-family: var(--qg-font-display);
+    font-weight: 700;
+    font-size: clamp(16px, 2.4vh, 20px);
+    line-height: 1.25;
+    color: var(--qg-text);
+    text-wrap: balance;
+}
+
+.caption {
+    color: var(--qg-muted);
+    font-size: 14px;
+}
+
+.go {
+    font-weight: 800;
+}
+
+.dots {
+    display: inline-flex;
+    gap: 5px;
+    margin-right: 12px;
+    vertical-align: 0.1em;
+}
+
+    .dots span {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--qg-accent);
+        animation: qg-dot 1.2s ease-in-out infinite;
+    }
+
+        .dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+@keyframes qg-dot {
+    0%, 100% {
+        opacity: 0.25;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dots span {
+        animation: none;
+        opacity: 0.7;
+    }
+}
+
+/* телефон: главная кнопка на всю ширину, подпись в одну строку */
+@media (max-width: 599px) {
+    .rematch {
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .primary {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 16px;
+    }
+
+    .line {
+        font-size: 15px;
+    }
+
+    .dots {
+        margin-right: 8px;
+    }
+
+    .caption {
+        font-size: 13px;
+    }
+
+    .rematch ::deep .error-banner {
+        text-align: left;
+    }
+}

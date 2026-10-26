@@ -17,5 +17,6 @@ public enum IconName
     Copy,
     Play,
     ChevronLeft,
-    WifiOff
+    WifiOff,
+    Clock
 }

@@ -17,7 +17,7 @@ builder.Services.AddOidcAuthentication(options =>
     options.ProviderOptions.ResponseType = "code";
     options.ProviderOptions.DefaultScopes.Add("email");
 
-    // в игре аккаунт виден под логином — так же показываем его в шапке
+    // в игре аккаунт виден под логином, так же показываем его в шапке
     options.UserOptions.NameClaim = "preferred_username";
 });
 builder.Services.AddCascadingAuthenticationState();

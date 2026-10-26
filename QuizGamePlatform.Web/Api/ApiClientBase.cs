@@ -96,7 +96,7 @@ public abstract class ApiClientBase(HttpClient http)
     {
         var status = (int)response.StatusCode;
 
-        // 5xx отдают технический текст исключения — пользователю его не показываем
+        // 5xx отдают технический текст исключения, пользователю его не показываем
         if (status < 500 && response.Content.Headers.ContentType?.MediaType == "application/json")
         {
             try
@@ -110,7 +110,7 @@ public abstract class ApiClientBase(HttpClient http)
             }
             catch (JsonException)
             {
-                // тело не в нашем формате — ниже общий текст по коду
+                // тело не в нашем формате, ниже общий текст по коду
             }
         }
 
