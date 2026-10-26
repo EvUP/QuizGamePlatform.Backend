@@ -32,9 +32,10 @@ public class SwaggerAuthorizationTests
             new[]
             {
                 "/api/Auth/me", "/api/Match/start", "/api/Match/{matchId}/answer",
-                "/api/Match/{matchId}/close-question", "/api/Match/{matchId}/current-question", "/api/Match/{matchId}/next",
+                "/api/Match/{matchId}/close-question", "/api/Match/{matchId}/current-question", "/api/Match/{matchId}/next", "/api/Match/{matchId}/review",
                 "/api/Room", "/api/Room/my", "/api/Room/{id}", "/api/Room/{id}", "/api/Room/join", "/api/Room/leave",
                 "/api/Room/{id}/players/{linkId}", "/api/Room/{id}/players/{linkId}/team", "/api/Room/{id}/teams", "/api/Room/{id}/teams/{number}", "/api/Room/{id}/teams/{number}",
+                "/api/Room/{id}/rematch", "/api/Room/{id}/follow",
             }.Order().ToArray(),
             protectedOperations.Select(item => item.Key).Order().ToArray());
         var protectedOperation = protectedOperations.Single(item => item.Key == "/api/Auth/me");

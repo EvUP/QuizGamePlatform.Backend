@@ -28,8 +28,12 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             this RoomEntity room,
             string? joinLink,
             List<TeamLinkResponse>? teams,
-            MyRoomResult? result)
+            MyRoomResult? result,
+            bool isHost)
         {
+            // в Players репозиторий кладёт только моё участие
+            var me = room.Players.FirstOrDefault();
+
             return new MyRoomResponse(
                 Id: room.Id,
                 RoomCode: room.RoomCode,
@@ -38,25 +42,44 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                 IsTeamGame: room.IsTeamGame,
                 JoinLink: joinLink,
                 Teams: teams,
-                Result: result
+                Result: result,
+                GameNumber: room.GameNumber,
+                SeriesId: room.SeriesId ?? room.Id,
+                IsHost: isHost,
+                HostName: room.HostUser?.UserName,
+                MyTeamNumber: me?.TeamNumber,
+                IsActive: me?.IsActive ?? false,
+                MyExitReason: me?.ExitReason
             );
         }
 
-        // итог из состояния комнаты: места уже посчитаны, как на экране итогов
-        public static MyRoomResult ToMyRoomResult(this RoomStateResponse state)
+        // итог из состояния комнаты: места и ничья уже посчитаны, как на экране итогов; не игравшему в матче места нет
+        public static MyRoomResult ToMyRoomResult(this RoomStateResponse state, bool played)
         {
-            var me = state.Players.FirstOrDefault(p => p.RoomPlayerLinkId == state.MyRoomPlayerLinkId);
+            var me = played ? state.Players.FirstOrDefault(p => p.RoomPlayerLinkId == state.MyRoomPlayerLinkId) : null;
 
             if (state.IsTeamGame)
             {
-                var teams = state.Teams ?? [];
+                var teams = (state.Teams ?? []).Where(t => t.Members > 0).ToList();
                 var myTeam = teams.FirstOrDefault(t => t.Number == me?.TeamNumber);
 
-                return new MyRoomResult(myTeam?.Place, myTeam?.Points, teams.FirstOrDefault(t => t.Place == 1)?.Name);
+                return new MyRoomResult(myTeam?.Place, myTeam?.Points, state.IsDraw ? null : teams.FirstOrDefault(t => t.Place == 1)?.Name, state.IsDraw);
             }
 
-            return new MyRoomResult(me?.Place, me?.Score, state.Players.FirstOrDefault(p => p.Place == 1)?.PlayerName);
+            return new MyRoomResult(me?.Place, me?.Score, state.IsDraw ? null : state.Players.FirstOrDefault(p => p.Place == 1)?.PlayerName, state.IsDraw);
         }
+
+        // у двух первых по месту поровну очков и времени верных (в том числе все по 0), победителя нет
+        public static bool LeadersTied(List<(int Points, long? TimeMs)> byPlace)
+            => byPlace.Count > 1 && byPlace[1] == byPlace[0];
+
+        // сыграл матч: остался до конца или вышел уже после старта, как в рейтинге
+        public static bool PlayedMatch(RoomPlayerEntity player, DateTime startedAt)
+            => player.IsActive || player.FinishedAt >= startedAt;
+
+        // очки сохраняются у активного и у того, чьё окно возврата к финишу ещё не истекло
+        public static bool KeepsScore(RoomPlayerEntity player, DateTime finishedAt)
+            => player.IsActive || player.FinishedAt >= finishedAt.AddSeconds(-RoomHelper.ReconnectWindowSeconds);
 
         public static RoomResponse ToJoinRoomResponse(this RoomPlayerEntity playerEntity)
         {
@@ -104,15 +127,19 @@ namespace QuizGamePlatform.Backend.Application.Mappers
             List<RoomPlayerEntity> players,
             Func<List<RoomPlayerEntity>, int>? points,
             Func<List<RoomPlayerEntity>, long?>? averageTime,
-            Func<RoomTeamEntity, string?> joinLink)
+            Func<RoomTeamEntity, string?> joinLink,
+            DateTime? startedAt = null)
         {
             var result = new List<TeamResponse>();
 
             foreach (var team in teams)
             {
-                // в лобби считаем активных, после старта состав зафиксирован
+                // в лобби считаем активных, после старта состав зафиксирован;
+                // оборвавший связь до старта в составе, только если вернулся
                 var members = players
-                    .Where(p => p.TeamNumber == team.Number && (status != RoomStatus.Waiting || p.IsActive))
+                    .Where(p => p.TeamNumber == team.Number && (status == RoomStatus.Waiting
+                        ? p.IsActive
+                        : startedAt is not { } started || PlayedMatch(p, started)))
                     .ToList();
 
                 // пустая команда не играла
@@ -132,7 +159,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
                     joinLink(team),
                     points?.Invoke(members),
                     null,
-                    points is null ? null : averageTime?.Invoke(members)));
+                    averageTime?.Invoke(members)));
             }
 
             if (points is null)
@@ -201,7 +228,7 @@ namespace QuizGamePlatform.Backend.Application.Mappers
         }
 
         // за вопрос до 100: доля верных среди тех, кто был в игре на этом вопросе
-        // ушедший не тянет команду вниз на вопросах, закрытых без него
+        // ушедший до открытия вопроса не тянет команду вниз
         public static int TeamPoints(
             List<RoomPlayerEntity> members,
             ICollection<MatchQuestionEntity> questions,

@@ -30,6 +30,29 @@ namespace QuizGamePlatform.Backend.DataAccess.Repositories
                 && r.HostUser!.KeycloakSubject == keycloakSubject
                 && r.Players.Any(p => p.UserId == r.HostUserId && p.IsActive), ct);
 
+        // «Сыграть ещё» может и ведущий, ушедший посреди игры
+        public async Task<bool> IsOwner(Guid roomId, string keycloakSubject, CancellationToken ct)
+            => await context.Rooms.AnyAsync(r => r.Id == roomId
+                && r.HostUser!.KeycloakSubject == keycloakSubject, ct);
+
+        public async Task<RoomEntity?> GetNextRoomAsync(Guid roomId, CancellationToken ct)
+            => await context.Rooms.FirstOrDefaultAsync(r => r.PreviousRoomId == roomId, ct);
+
+        public async Task<RoomEntity?> GetLatestInSeriesAsync(Guid seriesId, CancellationToken ct)
+            => await context.Rooms
+                .Where(r => r.SeriesId == seriesId)
+                .OrderByDescending(r => r.GameNumber)
+                .FirstOrDefaultAsync(ct);
+
+        // транзакция только через стратегию: при включённых повторах иначе EF не даст её открыть
+        public async Task InTransactionAsync(Func<CancellationToken, Task> work, CancellationToken ct)
+            => await context.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                await using var tx = await context.Database.BeginTransactionAsync(ct);
+                await work(ct);
+                await tx.CommitAsync(ct);
+            });
+
         public async Task<RoomEntity?> GetRoomByIdAsync(Guid id, CancellationToken ct)
             => await context.Rooms.FirstOrDefaultAsync(r => r.Id == id, ct);
 

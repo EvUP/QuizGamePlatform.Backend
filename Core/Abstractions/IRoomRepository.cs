@@ -13,6 +13,22 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// </summary>
         Task<bool> IsHost(Guid roomId, string keycloakSubject, CancellationToken ct);
         /// <summary>
+        /// Владелец ли пользователь комнаты, даже если сам из неё вышел
+        /// </summary>
+        Task<bool> IsOwner(Guid roomId, string keycloakSubject, CancellationToken ct);
+        /// <summary>
+        /// Следующая игра серии после этой комнаты, если ведущий нажал «Сыграть ещё»
+        /// </summary>
+        Task<RoomEntity?> GetNextRoomAsync(Guid roomId, CancellationToken ct);
+        /// <summary>
+        /// Последняя игра серии (с наибольшим номером)
+        /// </summary>
+        Task<RoomEntity?> GetLatestInSeriesAsync(Guid seriesId, CancellationToken ct);
+        /// <summary>
+        /// Выполнить в транзакции; work перезапускаемый: сначала ForgetChanges и перечитать данные
+        /// </summary>
+        Task InTransactionAsync(Func<CancellationToken, Task> work, CancellationToken ct);
+        /// <summary>
         /// Найти комнату по ID
         /// </summary>
         Task<RoomEntity?> GetRoomByIdAsync(Guid Id, CancellationToken ct);
@@ -58,5 +74,5 @@ namespace QuizGamePlatform.Backend.Core.Abstractions
         /// Состав комнаты меняется: при сохранении растёт её версия и параллельное изменение получит конфликт
         /// </summary>
         void MarkChanged(RoomEntity room);
-    };
+    }
 }

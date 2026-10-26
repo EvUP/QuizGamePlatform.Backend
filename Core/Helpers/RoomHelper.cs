@@ -6,6 +6,7 @@ public class RoomHelper : IRoomHelper
 {
     private const string AllowedChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     public const int ReconnectWindowSeconds = 40;
+    public const int GuestNicknameMaxLength = 25;
 
     public string GenerateRoomCode(int length = 8)
     {

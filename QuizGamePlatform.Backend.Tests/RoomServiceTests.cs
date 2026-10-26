@@ -9,6 +9,7 @@ using System.Security.Claims;
 using QuizGamePlatform.Backend.Api.Controllers;
 using QuizGamePlatform.Backend.Application.Abstractions;
 using QuizGamePlatform.Backend.Application.Auth;
+using QuizGamePlatform.Backend.Application.Contracts.Enums;
 using QuizGamePlatform.Backend.Application.Contracts.Room;
 using QuizGamePlatform.Backend.Application.Enums;
 using QuizGamePlatform.Backend.Application.Mappers;
@@ -37,7 +38,7 @@ namespace QuizGamePlatform.Backend.Tests
 
         public RoomServiceTests()
         {
-            // Сохранение без БД.
+            // сохранение без БД
             var options = new DbContextOptionsBuilder<ApplicationDbContext>().Options;
             _context = new Mock<ApplicationDbContext>(options);
             _context.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -236,25 +237,25 @@ namespace QuizGamePlatform.Backend.Tests
 
         // вход нового игрока
 
-        [Fact]
-        public async Task Join_RoomNotFound_ReturnsNull()
+        [Theory]
+        [InlineData(null, JoinRefusal.NotFound)] // комнаты нет
+        [InlineData(RoomStatus.Finished, JoinRefusal.Finished)]
+        public async Task Join_RoomNotFoundOrFinished_Refused(RoomStatus? status, JoinRefusal expected)
         {
-            _roomRepo.Setup(r => r.GetRoomByRoomCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((RoomEntity?)null);
+            if (status is { } existing)
+            {
+                Setup(existing);
+            }
+            else
+            {
+                _roomRepo.Setup(r => r.GetRoomByRoomCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((RoomEntity?)null);
+            }
 
-            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
+            var (result, refusal) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
 
             Assert.Null(result);
-        }
-
-        [Fact]
-        public async Task Join_RoomFinished_ReturnsNull()
-        {
-            Setup(RoomStatus.Finished);
-
-            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
-
-            Assert.Null(result);
+            Assert.Equal(expected, refusal);
         }
 
         // ник без пробелов по краям, регистр как ввёл гость
@@ -289,7 +290,7 @@ namespace QuizGamePlatform.Backend.Tests
         }
 
         [Fact]
-        public async Task Join_NewPlayer_MatchInProgress_NotFoundEvenIfNicknameTaken()
+        public async Task Join_NewPlayer_MatchInProgress_StartedEvenIfNicknameTaken()
         {
             var room = Setup(RoomStatus.InProgress);
             _participationRepo.Setup(r => r.IsNicknameTaken(room.Id, "bob", It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -297,7 +298,7 @@ namespace QuizGamePlatform.Backend.Tests
             var (result, refusal) = await _sut.JoinToRoomByRoomCodeAsync("bob", "CODE", CancellationToken.None);
 
             Assert.Null(result);
-            Assert.NotEqual(JoinRefusal.NicknameTaken, refusal);
+            Assert.Equal(JoinRefusal.Started, refusal);
         }
 
         [Theory]
@@ -411,9 +412,8 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.FindParticipant(room.Id, null, "registered-subject", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(left);
 
-            var (result, refusal) = await _sut.JoinToRoomByRoomCodeAsync(null, "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync(null, "CODE", CancellationToken.None);
 
-            Assert.NotEqual(JoinRefusal.NicknameTaken, refusal);
             Assert.NotNull(result);
             Assert.Equal(left.Id, result!.RoomPlayerLinkId);
             Assert.True(left.IsActive);
@@ -435,15 +435,21 @@ namespace QuizGamePlatform.Backend.Tests
             _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
 
+        // вышедший возвращается, только если вышел после старта и окно не истекло;
+        // у оборвавшего связь окно возврата не раньше старта
         [Theory]
-        [InlineData(60, -20, true)]  // вышел в матче, ещё в окне
-        [InlineData(60, -41, false)] // вышел в матче, окно истекло
-        [InlineData(10, -20, false)] // вышел ещё до старта
-        public async Task Rejoin_InProgress_OnlyLeftAfterStartWithinWindow(int startedAgo, int leftAt, bool returns)
+        [InlineData(null, 60, -20, true)]                    // вышел в матче, ещё в окне
+        [InlineData(null, 60, -41, false)]                   // вышел в матче, окно истекло
+        [InlineData(null, 10, -20, false)]                   // вышел ещё до старта
+        [InlineData(ExitReason.Disconnected, 10, -20, true)]  // связь пропала за 10 с до старта, со старта прошло 10 с
+        [InlineData(ExitReason.Disconnected, 41, -50, false)] // со старта прошло больше окна
+        [InlineData(ExitReason.Disconnected, 60, -20, true)]  // обрыв уже в матче, окно от обрыва
+        public async Task Rejoin_InProgress_WindowByExitReason(ExitReason? exitReason, int startedAgo, int leftAt, bool returns)
         {
             var room = Setup(RoomStatus.InProgress);
             MatchStarted(room, startedAgo);
             var left = Participant(room, isActive: false, finishedAt: Now.AddSeconds(leftAt));
+            left.ExitReason = exitReason;
             AsGuest(left.Id);
             Mine(room, left);
 
@@ -452,6 +458,21 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(returns, result is not null);
             Assert.Equal(returns, left.IsActive);
             _notifier.Verify(n => n.RoomUpdated(room.Id), returns ? Times.Once() : Times.Never());
+        }
+
+        // команду удалили, пока не было связи: в командный матч играть не за кого
+        [Fact]
+        public async Task Reconnect_TeamMatch_DisconnectedBeforeStartWithoutTeam_NotReturned()
+        {
+            var (room, _, players) = TeamRoom(RoomStatus.InProgress);
+            MatchStarted(room, secondsAgo: 5);
+            var lost = InTeam(room, players, null, isActive: false);
+            lost.ExitReason = ExitReason.Disconnected;
+            lost.FinishedAt = Now.AddSeconds(-10);
+            _participationRepo.Setup(r => r.FindParticipant(room.Id, lost.Id, null, It.IsAny<CancellationToken>())).ReturnsAsync(lost);
+
+            Assert.False(await _sut.ReconnectAsync(room.Id, lost.Id, CancellationToken.None));
+            Assert.False(lost.IsActive);
         }
 
         [Theory]
@@ -498,10 +519,9 @@ namespace QuizGamePlatform.Backend.Tests
             _participationRepo.Setup(r => r.CreateRoomPlayer(room, "alice", user, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Participant(room, isActive: true));
 
-            var (result, refusal) = await _sut.JoinToRoomByRoomCodeAsync(null, "CODE", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync(null, "CODE", CancellationToken.None);
 
             Assert.NotNull(result);
-            Assert.NotEqual(JoinRefusal.NicknameTaken, refusal);
             _participationRepo.Verify(
                 r => r.IsNicknameTaken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -620,7 +640,6 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.True(active.IsActive);
             _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
         }
-
 
         // командный режим
 
@@ -771,9 +790,9 @@ namespace QuizGamePlatform.Backend.Tests
             var link = Participant(room, isActive: true);
             _participationRepo.Setup(r => r.CreateRoomPlayer(room, "bob", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
 
-            var (result, refusal) = await _sut.JoinToRoomByRoomCodeAsync("bob", " team2 ", CancellationToken.None);
+            var (result, _) = await _sut.JoinToRoomByRoomCodeAsync("bob", " team2 ", CancellationToken.None);
 
-            Assert.NotEqual(JoinRefusal.TeamLinkRequired, refusal);
+            Assert.NotNull(result);
             Assert.Equal(2, result!.TeamNumber);
             Assert.Equal(Now, link.TeamJoinedAt);
             LobbySaved(room);
@@ -1040,6 +1059,22 @@ namespace QuizGamePlatform.Backend.Tests
                 It.Is<List<TeamLinkResponse>>(l => l.Single().JoinLink == "http://quiz/join/NEWCODE"), It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        // «Команда 3» заняли переименованием: новая без названия получает следующее свободное
+        [Fact]
+        public async Task AddTeam_DefaultNameTaken_TakesNextFreeDefault()
+        {
+            var (room, teams, players) = TeamRoom(teamCount: 2);
+            teams[0].Name = "команда 3";
+            MeAccount(room, players, 1, isHost: true);
+            RoomTeamEntity? added = null;
+            _roomRepo.Setup(r => r.AddTeam(It.IsAny<RoomTeamEntity>())).Callback<RoomTeamEntity>(t => added = t);
+
+            var result = await _sut.AddTeamAsync(room.Id, null, CancellationToken.None);
+
+            Assert.Equal(LobbyChangeResult.Done, result);
+            Assert.Equal((3, "Команда 4"), (added!.Number, added.Name));
+        }
+
         [Theory]
         [InlineData(true, 5, LobbyChangeResult.Conflict)]
         [InlineData(false, 2, LobbyChangeResult.Forbidden)]
@@ -1268,7 +1303,8 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(4500, RoomMapper.AnswerTimings(match, match.Questions, answers)[player].CorrectMs[1]);
         }
 
-        // обычная игра: очки, вышедшие в конце, меньше сумма времени верных, больше ответов, кто раньше вошёл
+        // обычная игра: очки, вышедшие в конце, меньше сумма времени верных, больше ответов, кто раньше вошёл;
+        // ушедшего и убранного в лобби в итогах нет
         [Fact]
         public async Task RoomState_SimpleGameFinished_TiesBrokenByTimeThenAnswersThenJoin()
         {
@@ -1307,8 +1343,13 @@ namespace QuizGamePlatform.Backend.Tests
             var earlier = Player("earlier", 1, 80);
             Answer(earlier, question, 10, true);
             var leaver = Player("leaver", 0, 90, isActive: false);
+            leaver.FinishedAt = Now.AddSeconds(-50); // вышел во время игры
             Answer(leaver, question, 1, true);
             var silent = Player("silent", 0, 5);
+            Player("leftLobby", 0, 95, isActive: false).FinishedAt = match.StartedAt.AddSeconds(-5);
+            var kicked = Player("kicked", 0, 96, isActive: false);
+            kicked.FinishedAt = match.StartedAt.AddSeconds(-1);
+            kicked.ExitReason = ExitReason.Kicked;
             var me = slow;
             AsGuest(me.Id);
             Mine(room, me);
@@ -1320,6 +1361,36 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(
                 new[] { ("fast", 1, 5000L), ("slow", 2, 7000L), ("moreAnswers", 3, 10000L), ("earlier", 4, 10000L), ("later", 5, 10000L), ("silent", 6, -1L), ("leaver", 7, 1000L) },
                 state!.Players.Select(p => (p.PlayerName, p.Place!.Value, p.CorrectTimeMs ?? -1)));
+        }
+
+        // очки сохранил выходом в окне возврата к финишу: при равных очках решает время, а не то, что вышел
+        [Fact]
+        public async Task RoomState_SimpleGameFinished_LeftWithinWindow_RankedLikeActive()
+        {
+            var room = Setup(RoomStatus.Finished);
+            var question = new MatchQuestionEntity { Id = Guid.NewGuid(), Order = 0, OpenedAt = Now.AddSeconds(-60) };
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now.AddSeconds(-60), FinishedAt = Now, Questions = [question] };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            var stayed = Participant(room, isActive: true);
+            stayed.Nickname = "stayed";
+            stayed.Score = 1;
+            var dropped = Participant(room, isActive: false, finishedAt: Now.AddSeconds(-10));
+            dropped.Nickname = "dropped";
+            dropped.Score = 1;
+            var expired = Participant(room, isActive: false, finishedAt: Now.AddSeconds(-50));
+            expired.Nickname = "expired";
+            AsGuest(stayed.Id);
+            Mine(room, stayed);
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync([stayed, dropped, expired]);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync(
+            [
+                new() { MatchQuestionId = question.Id, RoomPlayerId = stayed.Id, AnsweredAt = question.OpenedAt!.Value.AddSeconds(9), SelectedOption = new() { IsCorrect = true } },
+                new() { MatchQuestionId = question.Id, RoomPlayerId = dropped.Id, AnsweredAt = question.OpenedAt!.Value.AddSeconds(3), SelectedOption = new() { IsCorrect = true } },
+            ]);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal(new[] { "dropped", "stayed", "expired" }, state!.Players.Select(p => p.PlayerName));
         }
 
         // командная: равные очки, выше команда, которая в среднем быстрее отвечала верно
@@ -1380,6 +1451,67 @@ namespace QuizGamePlatform.Backend.Tests
                 state!.Teams!.Select(t => (t.Number, t.Points!.Value, t.Place!.Value)));
             Assert.All(state.Players, p => Assert.Null(p.Score)); // личных очков в командной игре не видно
             Assert.True(state.Players.Single(p => p.TeamNumber == 2).IsCaptain); // гость тоже капитан
+        }
+
+        // оборвавший связь перед стартом сохранил команду, но в составе только если вернулся
+        [Fact]
+        public async Task RoomState_TeamGameInProgress_DisconnectedBeforeStart_NotMemberUntilReturned()
+        {
+            var (room, _, players) = TeamRoom(RoomStatus.InProgress);
+            MatchStarted(room, secondsAgo: 30);
+            MeGuest(room, players, 1);
+            InTeam(room, players, 2);
+            var lost = InTeam(room, players, 2, isActive: false);
+            lost.ExitReason = ExitReason.Disconnected;
+            lost.FinishedAt = Now.AddSeconds(-35);
+            var leftInGame = InTeam(room, players, 2, isActive: false);
+            leftInGame.FinishedAt = Now.AddSeconds(-10);
+            _matchRepo.Setup(r => r.GetAnswersAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal(new[] { (1, 1), (2, 2) }, state!.Teams!.OrderBy(t => t.Number).Select(t => (t.Number, t.Members)));
+        }
+
+        // «Вернуться» только неактивному и только когда вход его пустит
+        [Theory]
+        [InlineData(RoomStatus.Waiting, true, -500, 3, false)]     // активному возвращаться некуда
+        [InlineData(RoomStatus.Waiting, false, -500, 3, true)]     // лобби: окно не важно
+        [InlineData(RoomStatus.Waiting, false, -500, 10, false)]   // лобби заполнили
+        [InlineData(RoomStatus.InProgress, false, -20, 3, true)]   // матч: окно ещё идёт
+        [InlineData(RoomStatus.InProgress, false, -41, 3, false)]  // матч: окно истекло
+        [InlineData(RoomStatus.Finished, false, -5, 3, false)]
+        public async Task RoomState_MyCanReturn_SameRulesAsJoin(RoomStatus status, bool isActive, int leftAt, int takenSlots, bool expected)
+        {
+            var room = Setup(status);
+            MatchStarted(room, secondsAgo: 60);
+            var me = Participant(room, isActive, finishedAt: isActive ? null : Now.AddSeconds(leftAt));
+            AsGuest(me.Id);
+            Mine(room, me);
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync([me]);
+            _participationRepo.Setup(r => r.CountTakenSlots(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(takenSlots);
+            _matchRepo.Setup(r => r.GetAnswersAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal(expected, state!.MyCanReturn);
+        }
+
+        // в лобби командной без своей команды (убран) вход по ссылке комнаты не пустит
+        [Theory]
+        [InlineData(1, true)]
+        [InlineData(null, false)]
+        public async Task RoomState_TeamLobby_MyCanReturnNeedsOwnTeam(int? team, bool expected)
+        {
+            var (room, _, players) = TeamRoom();
+            var me = MeGuest(room, players, 1);
+            me.IsActive = false;
+            me.FinishedAt = Now.AddSeconds(-30);
+            me.TeamNumber = team;
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal(expected, state!.MyCanReturn);
         }
 
         // мои комнаты и приглашение
@@ -1447,7 +1579,59 @@ namespace QuizGamePlatform.Backend.Tests
             Assert.Equal(3, result.MyPlace); // двое выше с тремя
             Assert.Equal(2, result.MyPoints);
             Assert.Equal("Анна", result.WinnerName);
+            Assert.False(result.IsDraw);
             Assert.Equal("http://quiz/join/CODE", rooms[1].JoinLink);
+        }
+
+        // обычная игра, все по 0: сервер места не делит, но победителя нет; ушедшему из лобби места нет
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MyRooms_SimpleGameFinished_AllZero_DrawWithoutWinner(bool iPlayed)
+        {
+            var user = AsRegistered();
+            var room = Setup(RoomStatus.Finished);
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now.AddSeconds(-60), FinishedAt = Now };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            var me = Participant(room, isActive: iPlayed, finishedAt: iPlayed ? null : match.StartedAt.AddSeconds(-5));
+            me.UserId = user.Id;
+            room.Players = [me];
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync([me, Participant(room, isActive: true), Participant(room, isActive: true)]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+
+            var result = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None)).Result!;
+
+            Assert.True(result.IsDraw);
+            Assert.Null(result.WinnerName);
+            Assert.Equal(iPlayed ? 1 : (int?)null, result.MyPlace);
+        }
+
+        // обычная игра 0:0, второй вышел: ничья, только если к финишу его окно возврата не истекло
+        [Theory]
+        [InlineData(50, false)]
+        [InlineData(10, true)]
+        public async Task MyRooms_SimpleGameFinished_ZeroZero_LeftPlayerDrawsOnlyInsideWindow(int leftSecondsBeforeFinish, bool draw)
+        {
+            var user = AsRegistered();
+            var room = Setup(RoomStatus.Finished);
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now.AddSeconds(-60), FinishedAt = Now };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            var me = Participant(room, isActive: true);
+            me.UserId = user.Id;
+            me.Nickname = "alice";
+            room.Players = [me];
+            var left = Participant(room, isActive: false, finishedAt: match.FinishedAt.Value.AddSeconds(-leftSecondsBeforeFinish));
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync([me, left]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+
+            var result = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None)).Result!;
+
+            Assert.Equal(draw, result.IsDraw);
+            Assert.Equal(draw ? null : "alice", result.WinnerName);
+            Assert.Equal(1, result.MyPlace);
         }
 
         // командная: место и очки моей команды, победитель команда
@@ -1468,12 +1652,68 @@ namespace QuizGamePlatform.Backend.Tests
                 new() { MatchQuestionId = question.Id, RoomPlayerId = vasya.Id, SelectedOption = new AnswerOptionEntity { IsCorrect = true } },
             ]);
             _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+            PlayedTeams(room, 1, 2);
 
             var result = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None)).Result!;
 
             Assert.Equal(2, result.MyPlace);
             Assert.Equal(0, result.MyPoints);
             Assert.Equal("Команда 2", result.WinnerName);
+            Assert.False(result.IsDraw);
+        }
+
+        private void PlayedTeams(RoomEntity room, params int[] numbers)
+            => _participationRepo.Setup(r => r.GetPlayedTeamNumbersAsync(It.Is<IReadOnlyCollection<Guid>>(ids => ids.Contains(room.Id)), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Dictionary<Guid, HashSet<int>> { [room.Id] = numbers.ToHashSet() });
+
+        // командная: у лидеров поровну очков и времени, победителя нет; «из N» без пустой команды;
+        // оборвавший связь перед стартом и не вернувшийся места не получает
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MyRooms_TeamGameFinished_TiedLeaders_DrawAndOnlyPlayedTeams(bool iPlayed)
+        {
+            var (room, teams, players) = TeamRoom(RoomStatus.Finished, teamCount: 3);
+            room.Teams = teams;
+            var me = MeAccount(room, players, 1);
+            if (!iPlayed)
+            {
+                me.IsActive = false;
+                me.ExitReason = ExitReason.Disconnected;
+                me.FinishedAt = Now.AddSeconds(-70);
+            }
+            InTeam(room, players, 1);
+            InTeam(room, players, 2);
+            room.Players = [me];
+            var match = new MatchEntity { Id = Guid.NewGuid(), RoomId = room.Id, StartedAt = Now.AddSeconds(-60), FinishedAt = Now };
+            _matchRepo.Setup(r => r.GetMatchByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(match);
+            _matchRepo.Setup(r => r.GetAnswersAsync(match.Id, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+            PlayedTeams(room, 1, 2);
+
+            var myRoom = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None));
+
+            Assert.True(myRoom.Result!.IsDraw);
+            Assert.Null(myRoom.Result.WinnerName);
+            Assert.Equal(iPlayed ? 1 : (int?)null, myRoom.Result.MyPlace);
+            Assert.Equal(new[] { 1, 2 }, myRoom.Teams!.Select(t => t.Number)); // команда 3 не играла
+        }
+
+        // идущая командная игра: только игравшие команды, в лобби все
+        [Theory]
+        [InlineData(RoomStatus.InProgress, new[] { 2, 3 })]
+        [InlineData(RoomStatus.Waiting, new[] { 1, 2, 3 })]
+        public async Task MyRooms_TeamGame_TeamsAfterStartOnlyPlayed(RoomStatus status, int[] expected)
+        {
+            var (room, teams, _) = TeamRoom(status, teamCount: 3);
+            room.Teams = teams;
+            AsRegistered();
+            _roomRepo.Setup(r => r.GetRoomsOfUser("alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync([room]);
+            PlayedTeams(room, 2, 3);
+
+            var myRoom = Assert.Single(await _sut.GetMyRoomsAsync(CancellationToken.None));
+
+            Assert.Equal(expected, myRoom.Teams!.Select(t => t.Number));
         }
 
         // итоги считаем только для последних завершённых, чтобы список не тормозил
@@ -1522,6 +1762,375 @@ namespace QuizGamePlatform.Backend.Tests
             var result = await controller.GetInvite("NOPE", CancellationToken.None);
 
             Assert.IsType<NotFoundObjectResult>(result);
+        }
+        // «Сыграть ещё»
+
+        // ведущий alice на итогах прошлой игры; транзакция в тестах просто выполняет работу
+        private (UserEntity Host, RoomPlayerEntity HostOld) RematchHost(RoomEntity old, List<RoomPlayerEntity> players, int? team = null)
+        {
+            var user = AsRegistered();
+            old.HostUserId = user.Id;
+            var hostOld = InTeam(old, players, team, userId: user.Id);
+            _participationRepo.Setup(r => r.FindParticipant(old.Id, null, "alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(hostOld);
+            _roomRepo.Setup(r => r.IsOwner(old.Id, "alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            InTransaction();
+
+            return (user, hostOld);
+        }
+
+        private void InTransaction()
+            => _roomRepo.Setup(r => r.InTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+                .Returns((Func<CancellationToken, Task> work, CancellationToken ct) => work(ct));
+
+        // новая комната игры N+1 под кодом code
+        private (RoomEntity Next, RoomPlayerEntity HostLink, List<RoomTeamEntity> AddedTeams) NextCreated(UserEntity host, string code)
+        {
+            var next = new RoomEntity { Id = Guid.NewGuid(), RoomCode = code, HostUserId = host.Id };
+            var hostLink = new RoomPlayerEntity { Id = Guid.NewGuid(), Room = next, RoomId = next.Id };
+            var added = new List<RoomTeamEntity>();
+            var archived = 0;
+            _roomHelper.Setup(h => h.GenerateRoomCode(It.IsAny<int>())).Returns(() => $"ARCH{++archived}");
+            _roomRepo.Setup(r => r.CreateRoomAsync(code, host, It.IsAny<CancellationToken>())).ReturnsAsync(next);
+            _roomRepo.Setup(r => r.AddTeam(It.IsAny<RoomTeamEntity>())).Callback<RoomTeamEntity>(added.Add);
+            _participationRepo.Setup(r => r.CreateRoomPlayer(next, "alice", host, It.IsAny<CancellationToken>())).ReturnsAsync(hostLink);
+
+            return (next, hostLink, added);
+        }
+
+        // прошлая игра на итогах и последняя игра серии
+        private RoomEntity LatestGame(RoomEntity old, RoomStatus status, int gameNumber = 2, bool isTeamGame = false)
+        {
+            old.SeriesId ??= old.Id;
+            var latest = new RoomEntity
+            {
+                Id = Guid.NewGuid(),
+                RoomCode = "CODE",
+                Status = status,
+                IsTeamGame = isTeamGame,
+                SeriesId = old.SeriesId,
+                GameNumber = gameNumber,
+            };
+            _roomRepo.Setup(r => r.GetRoomByIdAsync(latest.Id, It.IsAny<CancellationToken>())).ReturnsAsync(latest);
+            _roomRepo.Setup(r => r.GetLatestInSeriesAsync(old.SeriesId.Value, It.IsAny<CancellationToken>())).ReturnsAsync(latest);
+
+            return latest;
+        }
+
+        [Fact]
+        public async Task Rematch_CopiesTeamsAndMovesCodes_WithoutMail()
+        {
+            var (old, oldTeams, players) = TeamRoom(RoomStatus.Finished);
+            var (host, hostOld) = RematchHost(old, players, team: 2);
+            var (next, hostLink, added) = NextCreated(host, "CODE");
+
+            var (result, refusal) = await _sut.RematchAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(RematchRefusal.None, refusal);
+            Assert.Equal(next.Id, result!.Id);
+            Assert.Equal((2, old.Id, old.Id), (next.GameNumber, next.SeriesId!.Value, next.PreviousRoomId!.Value));
+            Assert.Equal(old.Id, old.SeriesId);
+            Assert.True(next.IsTeamGame);
+            // ссылки переехали в новую игру, у старой архивные коды
+            Assert.Equal(new[] { (1, "TEAM1"), (2, "TEAM2") }, added.Select(t => (t.Number, t.JoinCode)));
+            Assert.DoesNotContain(oldTeams, t => t.JoinCode.StartsWith("TEAM"));
+            Assert.StartsWith("ARCH", old.RoomCode);
+            Assert.Equal(new[] { "http://quiz/join/TEAM1", "http://quiz/join/TEAM2" }, result.Teams!.Select(t => t.JoinLink));
+            // ведущий в прежней команде, капитанство заново
+            Assert.Equal(2, hostLink.TeamNumber);
+            Assert.Equal(hostOld.Id, hostLink.OriginRoomPlayerId);
+            _notifier.Verify(n => n.RoomUpdated(old.Id), Times.Once);
+            _mailer.Verify(m => m.SendTeamLinksAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<TeamLinkResponse>>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Rematch_Again_ReturnsSameNextGame()
+        {
+            var old = Setup(RoomStatus.Finished);
+            RematchHost(old, []);
+            var next = LatestGame(old, RoomStatus.Waiting);
+            _roomRepo.Setup(r => r.GetNextRoomAsync(old.Id, It.IsAny<CancellationToken>())).ReturnsAsync(next);
+
+            var (result, refusal) = await _sut.RematchAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(RematchRefusal.None, refusal);
+            Assert.Equal(next.Id, result!.Id);
+            _roomRepo.Verify(r => r.CreateRoomAsync(It.IsAny<string>(), It.IsAny<UserEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+            _notifier.Verify(n => n.RoomUpdated(It.IsAny<Guid>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData(false, RoomStatus.Finished, RematchRefusal.Forbidden)]
+        [InlineData(true, RoomStatus.Waiting, RematchRefusal.NotFinished)]
+        public async Task Rematch_NotOwnerOrNotFinished_Refused(bool isOwner, RoomStatus status, RematchRefusal expected)
+        {
+            var old = Setup(status);
+            RematchHost(old, []);
+            _roomRepo.Setup(r => r.IsOwner(old.Id, "alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(isOwner);
+
+            var (result, refusal) = await _sut.RematchAsync(old.Id, CancellationToken.None);
+
+            Assert.Null(result);
+            Assert.Equal(expected, refusal);
+            _roomRepo.Verify(r => r.CreateRoomAsync(It.IsAny<string>(), It.IsAny<UserEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        // переход с итогов
+
+        [Fact]
+        public async Task Follow_Guest_KeepsNicknameAndTeam()
+        {
+            var (old, teams, players) = TeamRoom(RoomStatus.Finished);
+            var me = MeGuest(old, players, 2, joinedAgo: 600);
+            var latest = LatestGame(old, RoomStatus.Waiting, isTeamGame: true);
+            _roomRepo.Setup(r => r.GetTeams(latest.Id, It.IsAny<CancellationToken>())).ReturnsAsync(teams);
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(latest.Id, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            var link = new RoomPlayerEntity { Id = Guid.NewGuid(), Room = latest, RoomId = latest.Id, Nickname = "bob" };
+            _participationRepo.Setup(r => r.CreateRoomPlayer(latest, "bob", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal((link.Id, 2), (result!.RoomPlayerLinkId, result.TeamNumber));
+            Assert.Equal(me.Id, link.OriginRoomPlayerId);
+            // капитанство не переносится: в новой команде время входа своё
+            Assert.Equal(Now, link.TeamJoinedAt);
+            Assert.NotEqual(me.TeamJoinedAt, link.TeamJoinedAt);
+            LobbySaved(latest);
+        }
+
+        [Fact]
+        public async Task Follow_Again_ReturnsSameParticipation()
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = Participant(old, isActive: true);
+            AsGuest(me.Id);
+            Mine(old, me);
+            var latest = LatestGame(old, RoomStatus.Waiting);
+            var mine = Participant(latest, isActive: true);
+            mine.OriginRoomPlayerId = me.Id;
+            _participationRepo.Setup(r => r.FindByOriginAsync(latest.Id, me.Id, It.IsAny<CancellationToken>())).ReturnsAsync(mine);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal(mine.Id, result!.RoomPlayerLinkId);
+            _participationRepo.Verify(r => r.CreateRoomPlayer(It.IsAny<RoomEntity>(), It.IsAny<string>(), It.IsAny<UserEntity?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Follow_NicknameTaken_AddsNumber()
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = Participant(old, isActive: true);
+            AsGuest(me.Id);
+            Mine(old, me);
+            var latest = LatestGame(old, RoomStatus.Waiting);
+            _participationRepo.Setup(r => r.IsNicknameTaken(latest.Id, "bob", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            var link = new RoomPlayerEntity { Id = Guid.NewGuid(), Room = latest, RoomId = latest.Id, Nickname = "bob 2" };
+            _participationRepo.Setup(r => r.CreateRoomPlayer(latest, "bob 2", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal("bob 2", result!.PlayerName);
+        }
+
+        [Theory]
+        [InlineData(RoomStatus.InProgress, JoinRefusal.Started)]
+        [InlineData(RoomStatus.Finished, JoinRefusal.NextFinished)]
+        public async Task Follow_LatestStartedOrFinishedWithoutMe_Refused(RoomStatus status, JoinRefusal expected)
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = Participant(old, isActive: true);
+            AsGuest(me.Id);
+            Mine(old, me);
+            LatestGame(old, status);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Null(result);
+            Assert.Equal(expected, refusal);
+        }
+
+        // уже сыгранная следующая игра со мной: открываем её итоги, состав не трогаем
+        [Fact]
+        public async Task Follow_LatestFinishedWithMe_ReturnsParticipationWithoutRejoin()
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = MeAccount(old, [], 1);
+            var latest = LatestGame(old, RoomStatus.Finished);
+            var mine = Participant(latest, isActive: false);
+            _participationRepo.Setup(r => r.FindParticipant(latest.Id, null, "alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(mine);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal(mine.Id, result!.RoomPlayerLinkId);
+            Assert.False(mine.IsActive);
+            _roomRepo.Verify(r => r.MarkChanged(It.IsAny<RoomEntity>()), Times.Never);
+        }
+
+        // пропустил игру 2: из итогов игры 1 сразу в игру 3
+        [Fact]
+        public async Task Follow_SkippedGame_EntersLatestWithOrigin()
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = Participant(old, isActive: true);
+            AsGuest(me.Id);
+            Mine(old, me);
+            var latest = LatestGame(old, RoomStatus.Waiting, gameNumber: 3);
+            var link = new RoomPlayerEntity { Id = Guid.NewGuid(), Room = latest, RoomId = latest.Id, Nickname = "bob" };
+            _participationRepo.Setup(r => r.CreateRoomPlayer(latest, "bob", null, It.IsAny<CancellationToken>())).ReturnsAsync(link);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal(latest.Id, result!.RoomId);
+            Assert.Equal(me.Id, link.OriginRoomPlayerId);
+        }
+
+        // устаревшая вкладка игры 1: человек уже перешёл в 2 и 3, второго участия не появляется
+        [Fact]
+        public async Task Follow_StaleTab_ReturnsExistingParticipationInLatest()
+        {
+            var old = Setup(RoomStatus.Finished);
+            var me = Participant(old, isActive: true);
+            AsGuest(me.Id);
+            Mine(old, me);
+            var latest = LatestGame(old, RoomStatus.Waiting, gameNumber: 3);
+            var mine = Participant(latest, isActive: true);
+            mine.OriginRoomPlayerId = me.Id;
+            _participationRepo.Setup(r => r.FindByOriginAsync(latest.Id, me.Id, It.IsAny<CancellationToken>())).ReturnsAsync(mine);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal((mine.Id, latest.Id), (result!.RoomPlayerLinkId, result.RoomId));
+            _participationRepo.Verify(r => r.CreateRoomPlayer(It.IsAny<RoomEntity>(), It.IsAny<string>(), It.IsAny<UserEntity?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        // убран в лобби игры 2 (без команды): переходит в самую маленькую команду
+        [Fact]
+        public async Task Follow_RemovedInNextLobby_GetsSmallestTeam()
+        {
+            var (old, teams, players) = TeamRoom(RoomStatus.Finished);
+            MeAccount(old, players, 1);
+            var latest = LatestGame(old, RoomStatus.Waiting, isTeamGame: true);
+            var latestPlayers = new List<RoomPlayerEntity>();
+            _roomRepo.Setup(r => r.GetTeams(latest.Id, It.IsAny<CancellationToken>())).ReturnsAsync(teams);
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(latest.Id, It.IsAny<CancellationToken>())).ReturnsAsync(latestPlayers);
+            InTeam(latest, latestPlayers, 1);
+            var mine = InTeam(latest, latestPlayers, null, isActive: false);
+            mine.ExitReason = ExitReason.Kicked;
+            _participationRepo.Setup(r => r.FindParticipant(latest.Id, null, "alice-subject", It.IsAny<CancellationToken>())).ReturnsAsync(mine);
+
+            var (result, refusal) = await _sut.FollowAsync(old.Id, CancellationToken.None);
+
+            Assert.Equal(JoinRefusal.None, refusal);
+            Assert.Equal(2, result!.TeamNumber);
+            Assert.True(mine.IsActive);
+            LobbySaved(latest);
+        }
+
+        // отмена игры 2 возвращает ссылки игре 1, следующая переигровка снова игра 2
+        [Fact]
+        public async Task CancelNextGame_ReturnsCodes_AndRematchAgainIsSameNumber()
+        {
+            var (previous, previousTeams, players) = TeamRoom(RoomStatus.Finished);
+            previous.RoomCode = "ARCH0";
+            previous.SeriesId = previous.Id;
+            previousTeams.ForEach(t => t.JoinCode = $"ARCHT{t.Number}");
+            var (host, _) = RematchHost(previous, players, team: 1);
+            var cancelled = new RoomEntity
+            {
+                Id = Guid.NewGuid(),
+                RoomCode = "CODE",
+                Status = RoomStatus.Waiting,
+                IsTeamGame = true,
+                HostUserId = host.Id,
+                PreviousRoomId = previous.Id,
+                SeriesId = previous.Id,
+                GameNumber = 2,
+            };
+            _roomRepo.Setup(r => r.GetRoomByIdAsync(cancelled.Id, It.IsAny<CancellationToken>())).ReturnsAsync(cancelled);
+            _roomRepo.Setup(r => r.GetTeams(cancelled.Id, It.IsAny<CancellationToken>())).ReturnsAsync(
+            [
+                new RoomTeamEntity { RoomId = cancelled.Id, Number = 1, Name = "Команда 1", JoinCode = "TEAM1" },
+                new RoomTeamEntity { RoomId = cancelled.Id, Number = 2, Name = "Команда 2", JoinCode = "TEAM2" },
+            ]);
+
+            var deleted = await _sut.DeleteExistingRoomByIdAsync(cancelled.Id, CancellationToken.None);
+
+            Assert.Equal(DeleteRoomResult.Deleted, deleted);
+            Assert.Equal("CODE", previous.RoomCode);
+            Assert.Equal(new[] { "TEAM1", "TEAM2" }, previousTeams.Select(t => t.JoinCode));
+            _roomRepo.Verify(r => r.RemoveRoom(cancelled), Times.Once);
+            _notifier.Verify(n => n.RoomUpdated(cancelled.Id), Times.Once);
+            _notifier.Verify(n => n.RoomUpdated(previous.Id), Times.Once);
+
+            var (next, _, _) = NextCreated(host, "CODE");
+
+            var (result, refusal) = await _sut.RematchAsync(previous.Id, CancellationToken.None);
+
+            Assert.Equal(RematchRefusal.None, refusal);
+            Assert.Equal(next.Id, result!.Id);
+            Assert.Equal(2, next.GameNumber);
+        }
+
+        // лобби игры 2: ведущему настройки прошлой игры и сколько уже перешли, игроку ничего
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task RoomState_NextLobby_PreviousSettingsOnlyForHost(bool isHost)
+        {
+            var room = Setup(RoomStatus.Waiting);
+            var previousRoomId = Guid.NewGuid();
+            room.PreviousRoomId = previousRoomId;
+            room.SeriesId = previousRoomId;
+            room.GameNumber = 2;
+            var players = new List<RoomPlayerEntity>();
+            _participationRepo.Setup(r => r.GetParticipationsByRoomId(room.Id, It.IsAny<CancellationToken>())).ReturnsAsync(players);
+            var hostId = Guid.NewGuid();
+            room.HostUserId = hostId;
+            var guest = InTeam(room, players, null);
+            guest.OriginRoomPlayerId = Guid.NewGuid();
+            InTeam(room, players, null);
+
+            if (isHost)
+            {
+                MeAccount(room, players, 1, isHost: true).TeamNumber = null;
+            }
+            else
+            {
+                AsGuest(guest.Id);
+                Mine(room, guest);
+            }
+
+            var categoryId = Guid.NewGuid();
+            _matchRepo.Setup(r => r.GetMatchByRoomId(previousRoomId, It.IsAny<CancellationToken>())).ReturnsAsync(new MatchEntity
+            {
+                RoomId = previousRoomId,
+                CategoryIds = [categoryId],
+                RequestedQuestionCount = 3,
+                RoomMode = RoomMode.Fastest,
+            });
+            _participationRepo.Setup(r => r.CountActiveNonHostAsync(previousRoomId, room.HostUserId, It.IsAny<CancellationToken>())).ReturnsAsync(2);
+
+            var state = await _sut.GetRoomStateAsync(room.Id, CancellationToken.None);
+
+            Assert.Equal((2, previousRoomId), (state!.GameNumber, state.PreviousRoomId!.Value));
+
+            if (isHost)
+            {
+                Assert.Equal((2, 1), (state.PreviousPlayers, state.ReturnedPlayers));
+                Assert.Equal([categoryId], state.PreviousSettings!.CategoryIds);
+                Assert.Equal((3, RoomMode.Fastest), (state.PreviousSettings.QuestionCount, state.PreviousSettings.Mode));
+            }
+            else
+            {
+                Assert.Equal((0, 0), (state.PreviousPlayers, state.ReturnedPlayers));
+                Assert.Null(state.PreviousSettings);
+            }
         }
     }
 }

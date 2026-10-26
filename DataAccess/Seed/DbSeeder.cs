@@ -6,8 +6,8 @@ namespace QuizGamePlatform.Backend.DataAccess.Seed
 {
     /// <summary>
     /// Досев банка вопросов из quiz_seed.json: добавляет недостающие темы и вопросы, существующие не трогает.
-    /// Тему, которой больше нет в сиде, удаляет, а если по её вопросам уже играли — прячет.
-    /// Возвращает темы, которые изменились, — их кэш надо сбросить
+    /// Тему, которой больше нет в сиде, удаляет, а если по её вопросам уже играли, прячет.
+    /// Возвращает темы, которые изменились: их кэш надо сбросить
     /// </summary>
     public static class DbSeeder
     {
@@ -29,7 +29,7 @@ namespace QuizGamePlatform.Backend.DataAccess.Seed
             if (seed?.Categories is null || seed.Categories.Count == 0)
                 return [];
 
-            // тема узнаётся по названию, вопрос — по тексту внутри темы
+            // тема узнаётся по названию, вопрос по тексту внутри темы
             var categories = await db.Categories
                 .Include(c => c.Questions)
                 .ToDictionaryAsync(c => c.Name, ct);

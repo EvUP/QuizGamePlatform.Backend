@@ -30,13 +30,21 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
         bool IsTeamGame,
         string? JoinLink,
         List<TeamLinkResponse>? Teams,
-        MyRoomResult? Result);           // только у завершённых и только у последних из них
+        MyRoomResult? Result,            // только у завершённых и только у последних из них
+        int GameNumber = 1,
+        Guid? SeriesId = null,           // Id первой игры серии, у одиночной своя Id
+        bool IsHost = false,
+        string? HostName = null,
+        int? MyTeamNumber = null,        // название берётся из Teams
+        bool IsActive = true,            // false: вышел или убран, причина в MyExitReason
+        ExitReason? MyExitReason = null);
 
     // места как на экране итогов, без дележа
     public record MyRoomResult(
         int? MyPlace,                    // в командной у моей команды; null если я ушёл до старта
         int? MyPoints,                   // в обычной мои верные ответы, в командной очки моей команды
-        string? WinnerName);             // первое место: игрок или команда
+        string? WinnerName,              // первое место: игрок или команда; null при ничьей
+        bool IsDraw = false);            // лидеры равны по очкам и времени верных, победителя нет
 
     // что видно по ссылке до входа, код комнаты и состав не раскрываем
     public record InviteResponse(
@@ -44,7 +52,8 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
         RoomStatus Status,
         string? HostName,
         int? TeamNumber,       // только у ссылки команды
-        string? TeamName);
+        string? TeamName,
+        int GameNumber = 1);
 
     // RoomCode это код из ссылки: комнаты или команды; аккаунт входит под логином, ник нужен только гостю
     public record JoinToRoomRequest(string? Username, string RoomCode);
@@ -100,7 +109,23 @@ namespace QuizGamePlatform.Backend.Application.Contracts.Room
         Guid MyRoomPlayerLinkId,
         List<RoomParticipationResponse> Players,
         bool IsTeamGame,
-        List<TeamResponse>? Teams);
+        List<TeamResponse>? Teams,
+        int GameNumber = 1,
+        Guid? PreviousRoomId = null,
+        Guid? NextRoomId = null,              // последняя игра серии, только на итогах и если она новее этой
+        int? NextGameNumber = null,
+        RoomStatus? NextRoomStatus = null,
+        int PreviousPlayers = 0,              // только ведущему в лобби игры N>1: активные в прошлой игре без него
+        int ReturnedPlayers = 0,              // то же: уже перешли из прошлой игры
+        PreviousMatchSettings? PreviousSettings = null, // то же; null если матч прошлой игры старше этих настроек
+        bool MyCanReturn = false,             // я вышел, но сервер пустит обратно: лобби или окно возврата в матч
+        bool IsDraw = false);                 // только на итогах: у двух первых поровну очков и времени, победителя нет
+
+    // с чем стартовала прошлая игра серии, ведущий может поменять
+    public record PreviousMatchSettings(
+        List<Guid> CategoryIds,
+        int QuestionCount,
+        RoomMode Mode);
 
     // общий лидерборд, только аккаунты
     public record GlobalLeaderboardEntry(

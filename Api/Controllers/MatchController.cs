@@ -56,7 +56,7 @@ namespace QuizGamePlatform.Backend.Api.Controllers
                     message: "Игра в этой комнате уже идёт",
                     method: method)),
                 StartRefusal.Finished => Conflict(new CommonErrorResponse(
-                    message: "Эта игра уже закончилась. Чтобы сыграть снова, создайте новую комнату",
+                    message: "Эта игра уже закончилась. Чтобы сыграть снова, нажмите «Сыграть ещё» на экране итогов",
                     method: method)),
                 StartRefusal.TooFewPlayers => BadRequest(new CommonErrorResponse(
                     message: "Чтобы начать, нужно хотя бы 2 игрока",
