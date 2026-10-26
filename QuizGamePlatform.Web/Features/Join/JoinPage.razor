@@ -6,7 +6,7 @@
 <PageTitle>Приглашение · QuizGame</PageTitle>
 
 <section class="join">
-    <span class="badge">Приглашение</span>
+    <span class="badge">@(invite is { GameNumber: > 1 } ? $"Приглашение · игра {invite.GameNumber}" : "Приглашение")</span>
 
     @if (linkBroken)
     {
@@ -35,7 +35,7 @@
     }
     else if (invite?.Status == RoomStatus.Finished)
     {
-        <p class="lead">Здесь уже подвели итоги. Хотите сыграть ещё — попросите у ведущего ссылку на новую комнату.</p>
+        <p class="lead">Здесь уже подвели итоги. Если ведущий соберёт ещё одну игру, эта же ссылка приведёт в неё.</p>
     }
     else
     {
@@ -74,7 +74,7 @@
                 <form class="card" @onsubmit="JoinAsGuestAsync" novalidate>
                     <label for="nickname">Ваш ник</label>
                     <input id="nickname" maxlength="@NicknameMaxLength" autocomplete="nickname" placeholder="Как вас будут видеть в игре"
-                           @bind="nickname" @bind:event="oninput"
+                           @bind="nickname" @bind:event="oninput" @bind:after="ClearNicknameError"
                            aria-invalid="@(nicknameError is null ? "false" : "true")" aria-describedby="nickname-hint" />
                     <div id="nickname-hint" class="hint @(nicknameError is null ? null : "invalid")">
                         <span>@(nicknameError ?? "Ник увидят все игроки")</span>
@@ -106,7 +106,7 @@
 @code {
     private const int NicknameMaxLength = GameRules.NicknameMaxLength;
 
-    /// <summary>Последний сегмент ссылки — код комнаты или команды. В интерфейсе не показываем.</summary>
+    /// <summary>Последний сегмент ссылки: код комнаты или команды. В интерфейсе не показываем.</summary>
     [Parameter]
     public string Code { get; set; } = "";
 
@@ -121,8 +121,8 @@
 
     private bool CanJoin => !linkBroken && invite?.Status != RoomStatus.Finished;
 
-    // гость уже играл с этого браузера — предлагаем тот же ник
-    protected override void OnInitialized() => nickname = Guest.Current?.Nickname ?? "";
+    // гость уже играл с этого браузера: предлагаем тот же ник, даже если вход истёк
+    protected override void OnInitialized() => nickname = Guest.LastNickname ?? "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -138,6 +138,9 @@
     private void LogIn() => Navigation.NavigateToLogin("authentication/login");
 
     private Task JoinAsAccountAsync() => JoinAsync(username: null);
+
+    // ошибка ника устарела, как только его поправили; заново проверим при отправке
+    private void ClearNicknameError() => nicknameError = null;
 
     private async Task JoinAsGuestAsync()
     {
@@ -163,7 +166,7 @@
             var request = new JoinToRoomRequest(username, Code);
             var result = await RoomApi.JoinAsync(request);
 
-            // гостевой токен отозван или устарел на сервере — забываем его и входим заново
+            // гостевой токен отозван или устарел на сервере: забываем его и входим заново
             if (result.Error?.StatusCode == 401 && username is not null && Guest.Current is not null)
             {
                 await Guest.ClearAsync();
@@ -177,12 +180,7 @@
             }
 
             var joined = result.Value;
-
-            if (joined.GuestAccessToken is { } token && joined.GuestTokenExpiresAtUtc is { } expiresAt)
-            {
-                await Guest.SaveAsync(new GuestToken(
-                    token, expiresAt, joined.Room.RoomId, joined.Room.RoomPlayerLinkId, joined.Room.PlayerName));
-            }
+            await Guest.SaveFromJoinAsync(joined);
 
             Navigation.NavigateTo($"room/{joined.Room.RoomId}");
         }

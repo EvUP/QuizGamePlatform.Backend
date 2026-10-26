@@ -1,6 +1,6 @@
 @inherits CountdownBase
 
-@* Кольцо таймера вопроса. Последние 5 секунд — коралловое. *@
+@* Кольцо таймера вопроса. Последние 5 секунд коралловое. *@
 <div class="ring @(Urgent ? "urgent" : null) @(Muted ? "muted" : null)"
      style="--size: @(Size)px" role="timer" aria-label="@($"Осталось {SecondsLeft} с")">
     <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -18,7 +18,7 @@
 </div>
 
 @code {
-    /// <summary>Полная длительность — для доли кольца</summary>
+    /// <summary>Полная длительность для доли кольца</summary>
     [Parameter]
     public int TotalSeconds { get; set; } = 30;
 
@@ -28,7 +28,7 @@
     [Parameter]
     public string? Caption { get; set; }
 
-    /// <summary>Серое кольцо — например, в показе ответа</summary>
+    /// <summary>Серое кольцо, например, в показе ответа</summary>
     [Parameter]
     public bool Muted { get; set; }
 

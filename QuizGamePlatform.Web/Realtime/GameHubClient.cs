@@ -6,8 +6,8 @@ using QuizGamePlatform.Web.Api.Contracts;
 namespace QuizGamePlatform.Web.Realtime;
 
 /// <summary>
-/// Одно соединение с /hubs/game на всё приложение. События — только сигнал «перечитай»,
-/// данные берутся из REST. После переподключения группы на сервере теряются — подписчик
+/// Одно соединение с /hubs/game на всё приложение. События только сигнал «перечитай»,
+/// данные берутся из REST. После переподключения группы на сервере теряются, подписчик
 /// снова вызывает JoinRoom (событие Reconnected).
 /// </summary>
 public sealed class GameHubClient : IAsyncDisposable
@@ -24,6 +24,8 @@ public sealed class GameHubClient : IAsyncDisposable
                 options.AccessTokenProvider = async () => await tokens.GetAsync();
             })
             .WithAutomaticReconnect(new GameRetryPolicy())
+            // тихий обрыв сети замечаем за 10 с, а не за 30 (сервер пингует раз в 5 с)
+            .WithServerTimeout(TimeSpan.FromSeconds(10))
             .AddJsonProtocol(options =>
             {
                 // статусы строками, как на сервере
@@ -108,7 +110,7 @@ public sealed class GameHubClient : IAsyncDisposable
         }
     }
 
-    /// <summary>Подписка на события комнаты; false — вы не участник</summary>
+    /// <summary>Подписка на события комнаты; false, если вы не участник</summary>
     public Task<bool> JoinRoomAsync(Guid roomId, CancellationToken ct = default)
         => connection.InvokeAsync<bool>("JoinRoom", roomId, ct);
 

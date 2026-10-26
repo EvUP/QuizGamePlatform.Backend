@@ -21,6 +21,12 @@
         color: var(--qg-text);
     }
 
+    /* как «Весь рейтинг →» в карточке рейтинга */
+    .section-head a {
+        font-weight: 700;
+        text-decoration: none;
+    }
+
 /* список прокручивается внутри, заголовок остаётся на месте */
 .list {
     flex: 0 1 auto;
@@ -32,94 +38,6 @@
     border: 1px solid var(--qg-line);
     background: var(--qg-surface);
     overflow-y: auto;
-}
-
-.row {
-    min-height: 58px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    padding: 9px 16px;
-    background: var(--qg-surface);
-}
-
-    .row + .row {
-        border-top: 1px solid var(--qg-line);
-    }
-
-.mark {
-    flex: none;
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--qg-on-accent);
-}
-
-    .mark.team {
-        background: var(--qg-team-3);
-    }
-
-    .mark.simple {
-        background: var(--qg-team-1);
-    }
-
-.info {
-    flex: 1 1 200px;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.title {
-    font-weight: 700;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.meta {
-    font-size: 13px;
-    color: var(--qg-muted);
-    /* с итогом строка длиннее: на узком экране переносится, но не больше двух строк */
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    line-height: 1.35;
-}
-
-.result {
-    font-weight: 700;
-    color: var(--qg-text-2);
-}
-
-.status {
-    padding: 4px 12px;
-    border-radius: 999px;
-    color: var(--qg-on-accent);
-    font-size: 13px;
-    font-weight: 800;
-}
-
-    .status.waiting {
-        background: var(--qg-accent);
-    }
-
-    .status.live {
-        background: var(--qg-danger);
-    }
-
-    .status.finished {
-        background: var(--qg-subtle);
-    }
-
-.open {
-    font-weight: 700;
-    text-decoration: none;
 }
 
 .empty {
@@ -135,8 +53,14 @@
 }
 
 .skeleton {
+    height: 62px;
+    background: var(--qg-surface);
     animation: qg-pulse 1.4s ease-in-out infinite;
 }
+
+    .skeleton + .skeleton {
+        border-top: 1px solid var(--qg-line);
+    }
 
 @keyframes qg-pulse {
     50% {
@@ -144,8 +68,7 @@
     }
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
-   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
 @supports (animation-timeline: scroll()) {
     .list {
         animation: qg-scroll-fade linear both;
@@ -153,7 +76,6 @@
     }
 }
 
-/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
 @keyframes qg-scroll-fade {
     0% {
         -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);

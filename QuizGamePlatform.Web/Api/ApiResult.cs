@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace QuizGamePlatform.Web.Api;
 
-/// <summary>Ошибка запроса с текстом для пользователя. StatusCode 0 — до сервера не достучались.</summary>
+/// <summary>Ошибка запроса с текстом для пользователя. StatusCode 0: до сервера не достучались.</summary>
 public sealed record ApiError(int StatusCode, string Message)
 {
     public bool IsNetworkError => StatusCode == 0;

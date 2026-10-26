@@ -47,18 +47,26 @@
     --qg-radius-xl: 28px;
 
     --qg-gutter: clamp(16px, 4vw, 40px);
-    --qg-content-width: 1200px;
+    --qg-content-width: 1320px;
+    --qg-game-width: 1440px;
 
     /* Отступы между крупными блоками экрана: сжимаются на низких окнах, чтобы экран помещался без прокрутки */
     --qg-space-section: clamp(10px, 2vh, 24px);
     --qg-space-block: clamp(10px, 1.8vh, 20px);
 
-    /* Внутренние поля карточек правой колонки главной (превью игры и рейтинг): общие — содержимое на одной линии */
+    /* Внутренние поля карточек правой колонки главной (превью игры и рейтинг): общие, чтобы содержимое стояло на одной линии */
     --qg-side-card-pad-y: clamp(14px, 2.6vh, 28px);
     --qg-side-card-pad-x: clamp(16px, 2.2vw, 28px);
 
     color-scheme: dark;
 }
+
+/* Большой экран (показ на проекторе): всё крупнее, чтобы читалось издалека; ступени подобраны так, что выше ступени главная начинает прокручиваться */
+:root { --qg-zoom: 1; }
+@media (min-width: 1700px) and (min-height: 1000px) { :root { --qg-zoom: 1.1; } }
+@media (min-width: 2000px) and (min-height: 1150px) { :root { --qg-zoom: 1.25; } }
+@media (min-width: 2400px) and (min-height: 1350px) { :root { --qg-zoom: 1.4; } }
+html { zoom: var(--qg-zoom); }
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -74,15 +82,11 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Фон игры ----------
-   Три слоя, всё на CSS, без JS и картинок:
-   1) html — базовый цвет + едва заметная точечная сетка, затухающая к краям, + зерно (inline SVG);
-   2) body::before / body::after — «аврора»: размытые пятна из цветов бренда с очень низкой непрозрачностью,
-      медленно плывут (только transform, 30–40 с), рисуются под контентом и не участвуют в раскладке.
-   Карточки (--qg-surface) непрозрачные — читаемость не меняется. */
+/* Фон игры на чистом CSS: html даёт цвет, точечную сетку и зерно, body::before/::after
+   дают «аврору» из бледных пятен, которые плывут только через transform под контентом. */
 html {
     background:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+        url("../images/noise.svg"),
         radial-gradient(ellipse 75% 65% at 50% 38%, transparent 0%, var(--qg-bg) 72%),
         radial-gradient(rgba(244, 241, 255, 0.085) 1px, transparent 1.6px) 0 0 / 28px 28px,
         var(--qg-bg);
@@ -102,7 +106,7 @@ body {
         transition: opacity 1.2s ease;
     }
 
-    /* лайм и фиолетовый — плывут по своей траектории (22 с) */
+    /* лайм и фиолетовый плывут по своей траектории (22 с) */
     body::before {
         background:
             radial-gradient(closest-side, rgba(200, 240, 74, 0.17), transparent),
@@ -113,7 +117,7 @@ body {
         animation: qg-aurora-a 22s ease-in-out infinite alternate;
     }
 
-    /* голубой и коралловый — бледнее, другая траектория и период (26 с), поэтому слои не качаются синхронно */
+    /* голубой и коралловый бледнее, другая траектория и период (26 с), поэтому слои не качаются синхронно */
     body::after {
         background:
             radial-gradient(closest-side, rgba(92, 200, 255, 0.12), transparent),
@@ -227,10 +231,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     outline-offset: 2px;
 }
 
-/* ---------- Полосы прокрутки ----------
-   Для всех внутренних прокручиваемых областей: тонкая, всегда видимая (на macOS системная прячется),
-   ползунок — лайм → мята → голубой, в покое приглушённый, при наведении ярче; мягкий ореол — второй слой фона
-   по border-box (box-shadow у ползунка в Chromium не работает). Дорожка с отступами, чтобы не липла к скруглённым углам. */
+/* Полосы прокрутки: тонкие и всегда видимые (на macOS системные прячутся).
+   Ореол ползунка сделан вторым слоем фона, потому что box-shadow у ползунка в Chromium не работает. */
 ::-webkit-scrollbar {
     width: 9px;
     height: 9px;
@@ -267,7 +269,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     background: transparent;
 }
 
-/* Firefox не знает ::-webkit-scrollbar. В Chromium свойства ниже отключили бы стили выше — поэтому только там, где их нет */
+/* Firefox не знает ::-webkit-scrollbar. В Chromium свойства ниже отключили бы стили выше, поэтому только там, где их нет */
 @supports not selector(::-webkit-scrollbar) {
     * {
         scrollbar-width: thin;
@@ -276,14 +278,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* Узкая шапка с аккаунтом: логотип без подписи, иначе меню переносится на вторую строку
-   (правило глобальное — :has() через границу компонентов в scoped CSS не работает) */
+   (правило глобальное: :has() через границу компонентов в scoped CSS не работает) */
 @media (max-width: 479px) {
     .header:has(.account) .logo-text {
         display: none;
     }
 }
 
-/* FocusOnNavigate ставит фокус на h1 для скринридеров — рамка не нужна (как в шаблоне Microsoft) */
+/* FocusOnNavigate ставит фокус на h1 для скринридеров, рамка не нужна (как в шаблоне Microsoft) */
 h1:focus {
     outline: none;
 }
@@ -294,7 +296,7 @@ input::placeholder {
 
 .visually-hidden {
     position: absolute;
-    /* без координат элемент встаёт на своё место в потоке — внутри прокручиваемых списков это удлиняло страницу */
+    /* без координат элемент встаёт на своё место в потоке, и внутри прокручиваемых списков это удлиняло страницу */
     top: 0;
     left: 0;
     width: 1px;
@@ -321,6 +323,11 @@ body > iframe[width="0"][height="0"] {
 }
 
 /* Загрузка приложения (до старта Blazor) */
+/* свой блочный контекст: отступ индикатора не выпадает за #app и не удлиняет страницу */
+#app {
+    display: flow-root;
+}
+
 .loading-progress {
     position: relative;
     display: block;

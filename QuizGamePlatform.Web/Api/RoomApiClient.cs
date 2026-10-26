@@ -25,6 +25,14 @@ public sealed class RoomApiClient(HttpClient http) : ApiClientBase(http)
     public Task<ApiResult<JoinToRoomResponse>> JoinAsync(JoinToRoomRequest request, CancellationToken ct = default)
         => PostAsync("api/Room/join", request, Json.JoinToRoomRequest, Json.JoinToRoomResponse, ct);
 
+    // «Сыграть ещё»: только ведущий, после итогов; повторный вызов отдаёт ту же игру
+    public Task<ApiResult<CreateRoomResponse>> RematchAsync(Guid roomId, CancellationToken ct = default)
+        => PostAsync($"api/Room/{roomId}/rematch", Json.CreateRoomResponse, ct);
+
+    // переход с итогов в последнюю игру серии; гостю новый токен
+    public Task<ApiResult<JoinToRoomResponse>> FollowAsync(Guid roomId, CancellationToken ct = default)
+        => PostAsync($"api/Room/{roomId}/follow", Json.JoinToRoomResponse, ct);
+
     public Task<ApiResult<LeaveRoomResponse>> LeaveAsync(LeaveRoomRequest request, CancellationToken ct = default)
         => PostAsync("api/Room/leave", request, Json.LeaveRoomRequest, Json.LeaveRoomResponse, ct);
 

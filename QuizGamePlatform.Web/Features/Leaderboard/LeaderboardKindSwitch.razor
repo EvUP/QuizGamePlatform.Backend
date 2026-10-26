@@ -1,4 +1,4 @@
-@* Переключатель «Обычные / Корпоративные», поддерживает @bind-Value *@
+@* Переключатель «Обычные / Командные», поддерживает @bind-Value *@
 <div class="switch @(Large ? "large" : null)" role="group" aria-label="Тип рейтинга">
     <button type="button" class="option @SelectedClass(LeaderboardKind.Regular)"
             aria-pressed="@Pressed(LeaderboardKind.Regular)" @onclick="() => SelectAsync(LeaderboardKind.Regular)">
@@ -6,7 +6,7 @@
     </button>
     <button type="button" class="option @SelectedClass(LeaderboardKind.TeamGames)"
             aria-pressed="@Pressed(LeaderboardKind.TeamGames)" @onclick="() => SelectAsync(LeaderboardKind.TeamGames)">
-        @(Large ? "Корпоративные игры" : "Корпоративные")
+        @(Large ? "Командные игры" : "Командные")
     </button>
 </div>
 

@@ -1,4 +1,5 @@
-/* Колонка команды занимает ячейку сетки лобби целиком; список игроков прокручивается внутри */
+/* Карточка команды. Десктоп (от 900px): ячейка сетки, высота по содержимому, прокручивает весь блок команд LobbyView.
+   Телефон и планшет: колонка листается вбок и занимает всю высоту, список игроков прокручивается внутри. */
 .team {
     min-width: 0;
     min-height: 0;
@@ -10,32 +11,38 @@
     flex-direction: column;
 }
 
+    /* своя команда: рамка цветом команды; тенью, а не толщиной рамки, чтобы карточка не сдвигалась на пиксель */
     .team.mine {
-        border: 2px solid var(--team-color);
+        border-color: var(--team-color);
+        box-shadow: 0 0 0 1px var(--team-color);
     }
 
 .head {
     flex: none;
-    padding: clamp(10px, 1.8vh, 18px) 14px clamp(10px, 1.6vh, 16px);
+    padding: 12px 14px;
     background: var(--team-color);
     color: var(--qg-on-accent);
     display: flex;
     flex-direction: column;
-    gap: clamp(6px, 1vh, 10px);
+    gap: 8px;
 }
 
-    /* колонка узкая — подпись переносится на вторую строку, а не обрезается */
+    /* «Скопировать ссылку» одной строкой, на всю ширину шапки */
     .head ::deep .copy {
         min-height: 34px;
-        padding: 5px 6px;
+        padding: 0 10px;
         gap: 6px;
-        font-size: 12.5px;
-        line-height: 1.15;
-        text-align: center;
-        overflow-wrap: break-word;
+        border-radius: var(--qg-radius-s);
+        font-size: 13px;
+        white-space: nowrap;
     }
 
-    /* уже копировали — на цветной шапке вторичная кнопка тёмным контуром (светлый текст тут не читается) */
+    .head ::deep .copy-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* уже копировали: на цветной шапке вторичная кнопка тёмным контуром (светлый текст тут не читается) */
     .head ::deep .copy.was-copied:not(.done):not(.failed) {
         background: rgba(20, 18, 31, 0.08);
         color: var(--qg-on-accent);
@@ -46,15 +53,20 @@
             background: rgba(20, 18, 31, 0.18);
         }
 
+/* «Команда 1 · ваша» слева, «4 / 5» справа, всегда одной строкой */
 .head-line {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0;
 }
 
 .eyebrow {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
@@ -62,19 +74,22 @@
 }
 
 .count {
+    flex: none;
+    white-space: nowrap;
     font-family: var(--qg-font-mono);
     font-weight: 700;
     font-size: 14px;
 }
 
+/* строка названия и форма переименования одной высоты, чтобы при переходе в редактирование шапка не прыгала */
 .name-line {
     display: flex;
     align-items: center;
     gap: 6px;
-    min-height: 36px;
+    min-height: 40px;
 }
 
-/* длинное название — до двух строк, полностью в подсказке */
+/* длинное название до двух строк по словам, полностью в подсказке */
 .name {
     flex: 1;
     min-width: 0;
@@ -84,21 +99,14 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-    hyphens: auto;
-    overflow-wrap: anywhere;
-}
-
-/* пять узких колонок в ряд — название мельче, чтобы слова не рвались */
-@media (min-width: 1240px) {
-    .name {
-        font-size: 15px;
-    }
+    overflow-wrap: break-word;
 }
 
 .icon-button {
     flex: none;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: 0;
     border-radius: var(--qg-radius-s);
     background: rgba(20, 18, 31, 0.12);
@@ -112,34 +120,27 @@
         background: rgba(20, 18, 31, 0.22);
     }
 
-.rename {
-    display: flex;
-    gap: 6px;
-}
-
-    .rename input {
-        flex: 1;
-        min-width: 0;
-        height: 44px;
-        padding: 0 12px;
-        border: 0;
-        border-radius: 12px;
-        background: var(--qg-on-accent);
-        color: var(--qg-text);
-        font-weight: 800;
-        font-size: 17px;
-    }
-
-.rename-save {
-    flex: none;
-    height: 44px;
-    padding: 0 14px;
+/* переименование на месте: поле выглядит как само название с чертой снизу, без своей подложки и размеров */
+.rename input {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    padding: 0 2px;
     border: 0;
-    border-radius: 12px;
-    background: var(--qg-on-accent);
-    color: var(--qg-accent);
+    border-bottom: 2px solid currentColor;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-family: var(--qg-font-display);
+    font-size: 17px;
     font-weight: 800;
+    outline: none;
 }
+
+    .rename .icon-button:disabled {
+        opacity: 0.4;
+    }
 
 .players {
     flex: 1;
@@ -147,44 +148,133 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding: 6px;
+    gap: 2px;
+    padding: 4px;
 }
 
-    /* строки игроков — дочерний компонент, поэтому ::deep; без flex: none они сжимались и наезжали друг на друга */
+    /* строка игрока одной линией: аватар · имя и значки · пересадка и «убрать».
+       Строки в дочернем компоненте, поэтому ::deep; без flex: none они сжимались и наезжали друг на друга */
     .players ::deep .player {
         flex: none;
-        padding: 6px;
+        flex-wrap: nowrap;
+        min-height: 44px;
+        gap: 6px;
+        padding: 6px 2px 6px 6px;
+        border-radius: 12px;
     }
 
     .players ::deep .avatar {
-        width: 30px;
-        height: 30px;
-        font-size: 12px;
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
     }
 
-/* в узкой колонке кнопки ведущего переносятся под имя */
+    .players ::deep .info {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    /* имя одной строкой с многоточием (полностью в подсказке), «гость», галочка и корона не переносятся */
+    .players ::deep .name-line {
+        flex-wrap: nowrap;
+        gap: 4px;
+    }
+
+    /* «гость» компактнее: в узкой карточке каждый пиксель достаётся имени */
+    .players ::deep .guest {
+        padding: 0 6px;
+        font-size: 10px;
+        line-height: 16px;
+    }
+
+    .players ::deep .name {
+        flex: 0 1 auto;
+        display: block;
+        /* снять двухстрочный clamp из PlayerRow: Chrome применяет его и к block и режет имя по слову с пустотой до «гость» */
+        -webkit-line-clamp: none;
+        line-clamp: none;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 14px;
+        line-height: 1.3;
+    }
+
+    .players ::deep .note {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+    }
+
+/* перетаскивание (десктоп): строку берут целиком, цель любая другая команда */
+.row.movable {
+    cursor: grab;
+    border-radius: 12px;
+}
+
+    .row.movable:hover {
+        background: var(--qg-surface-2);
+    }
+
+.row.dragging {
+    opacity: 0.4;
+}
+
+.team.drop-target {
+    border-style: dashed;
+    border-color: var(--team-color);
+}
+
+    .team.drop-target .players {
+        background: color-mix(in srgb, var(--team-color) 8%, transparent);
+    }
+
+/* действия ведущего справа в той же строке, что и игрок */
 .controls {
+    flex: none;
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
+/* пересадка: компактный выпадающий список со своей стрелкой, системная у select разная в каждом браузере */
 .move {
+    display: none;
     flex: none;
-    width: 58px;
-    height: 34px;
-    padding: 0 6px;
+    width: 48px;
+    height: 32px;
+    padding: 0 16px 0 7px;
     border-radius: var(--qg-radius-s);
-    border: 1px solid var(--qg-line);
-    background: var(--qg-surface-2);
+    border: 1px solid var(--qg-line-strong);
+    /* путь от бандла стилей в корне сайта, цвет стрелки как --qg-text-2 */
+    background: var(--qg-surface-2) url("images/icons/chevron-down.svg") no-repeat right 5px center;
+    -webkit-appearance: none;
+    appearance: none;
     font-weight: 700;
     font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .move:hover {
+        border-color: var(--qg-text-2);
+    }
+
+/* сенсорный экран: перетаскивание пальцем ненадёжно, переносим списком */
+@media (pointer: coarse) {
+    .move {
+        display: block;
+    }
+
+    .row.movable {
+        cursor: auto;
+    }
 }
 
 .kick {
-    width: 32px;
-    height: 34px;
+    width: 26px;
+    height: 32px;
     background: transparent;
     color: var(--qg-subtle);
 }
@@ -216,19 +306,30 @@
     font-size: 13px;
 }
 
-/* строки игроков в узкой колонке: плотнее, ник — переносом слов, а не по буквам */
-.players ::deep .name {
-    font-size: 14px;
-    line-height: 1.25;
-    hyphens: auto;
+/* свободные места до ожидаемого числа игроков: пунктирные строки «Ждём игрока» */
+.slot-empty {
+    flex: none;
+    min-height: 44px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--qg-line);
+    color: var(--qg-faint);
+    font-size: 13px;
+    font-weight: 600;
 }
 
-.players ::deep .note {
-    font-size: 11px;
+.slot-avatar {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px dashed var(--qg-line-strong);
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
-   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+/* Телефон и планшет: затухание у краёв списка, пока есть что прокрутить (scroll-driven, без JS) */
 @supports (animation-timeline: scroll()) {
     .players {
         animation: qg-scroll-fade linear both;
@@ -236,7 +337,15 @@
     }
 }
 
-/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
+/* десктоп: прокручивает весь блок команд (LobbyView), список внутри карточки по содержимому, без затухания.
+   Стоит после @supports: при равной специфичности побеждает последнее правило */
+@media (min-width: 900px) {
+    .players {
+        overflow-y: visible;
+        animation: none;
+    }
+}
+
 @keyframes qg-scroll-fade {
     0% {
         -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
@@ -252,28 +361,4 @@
         -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
         mask-image: linear-gradient(to bottom, transparent, #000 24px);
     }
-}
-
-/* свободные места до ожидаемого числа игроков — пунктирные строки «Ждём игрока» */
-.slot-empty {
-    flex: none;
-    min-height: 44px;
-    margin: 2px 0;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-radius: 12px;
-    border: 1.5px dashed var(--qg-line);
-    color: var(--qg-faint);
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.slot-avatar {
-    flex: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 1.5px dashed var(--qg-line-strong);
 }

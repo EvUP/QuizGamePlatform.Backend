@@ -1,7 +1,4 @@
-@*
-    Разбор вопросов поверх итогов. Грузит ResultsView, здесь только показ.
-    Esc и клик по фону закрывают, Tab не уходит из панели.
-*@
+@* Разбор вопросов поверх итогов: грузит ResultsView, здесь только показ. Esc и клик по фону закрывают, Tab не уходит из панели. *@
 <div class="backdrop" @onclick="OnClose" @onkeydown="OnKeyDownAsync">
     @* ловушки фокуса по краям панели: Shift+Tab с начала уводит в конец, Tab с конца в начало *@
     <span class="trap" tabindex="0" @onfocus="FocusLastAsync"></span>
@@ -14,6 +11,10 @@
                 @if (Review is { Questions.Count: > 0 } review)
                 {
                     <p>@Summary(review)</p>
+                }
+                @if (Notice is not null)
+                {
+                    <p class="notice" role="status">@Notice</p>
                 }
             </div>
             <button type="button" class="close" aria-label="Закрыть разбор" @ref="closeButton" @onclick="OnClose">
@@ -86,7 +87,7 @@
 @code {
     private const string Letters = "ABCD";
 
-    /// <summary>null — ещё грузится</summary>
+    /// <summary>null, пока грузится</summary>
     [Parameter]
     public MatchReviewResponse? Review { get; set; }
 
@@ -98,6 +99,10 @@
 
     [Parameter, EditorRequired]
     public EventCallback OnClose { get; set; }
+
+    /// <summary>Плашка в шапке: ведущий собрал следующую игру, переход после закрытия</summary>
+    [Parameter]
+    public string? Notice { get; set; }
 
     private ElementReference sheet;
     private ElementReference closeButton;
@@ -121,7 +126,7 @@
 
     private async Task FocusFirstAsync() => await closeButton.FocusAsync();
 
-    // последний фокусируемый — список, пока его нет — сама панель
+    // последний фокусируемый: список, а пока его нет, сама панель
     private async Task FocusLastAsync()
     {
         if (Review is { Questions.Count: > 0 } && Error is null)

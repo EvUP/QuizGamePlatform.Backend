@@ -43,9 +43,14 @@
         <div class="podium">
             @foreach (var row in rows.Take(3))
             {
-                <article class="top-card medal-@row.Place">
+                var mine = row.IsMine(myName);
+                <article class="top-card medal-@row.Place @(mine ? "mine" : null)">
                     <div class="top-card-head">
                         <PlaceBadge Place="row.Place" Large="true" />
+                        @if (mine)
+                        {
+                            <span class="you-tag">вы</span>
+                        }
                         <span class="top-score">@row.Entry.Score</span>
                     </div>
                     <span class="top-name" title="@row.Entry.UserName">@row.Entry.UserName</span>
@@ -64,7 +69,7 @@
                     <thead>
                         <tr>
                             <th scope="col" class="col-place">#</th>
-                            <th scope="col">Игрок</th>
+                            <th scope="col" class="col-name">Игрок</th>
                             <th scope="col" class="num">Очки</th>
                             <th scope="col" class="num">Игр</th>
                             <th scope="col" class="col-accuracy">Точность</th>
@@ -73,9 +78,16 @@
                     <tbody>
                         @foreach (var row in rows.Skip(3))
                         {
-                            <tr>
+                            var mine = row.IsMine(myName);
+                            <tr class="@(mine ? "mine" : null)">
                                 <td class="col-place">@row.Place</td>
-                                <td class="name" title="@row.Entry.UserName">@row.Entry.UserName</td>
+                                <td class="name" title="@row.Entry.UserName">
+                                    @row.Entry.UserName
+                                    @if (mine)
+                                    {
+                                        <span class="you">· вы</span>
+                                    }
+                                </td>
                                 <td class="num score">@row.Entry.Score</td>
                                 <td class="num muted">@row.Entry.MatchesPlayed</td>
                                 <td class="col-accuracy">
@@ -96,9 +108,14 @@
 @code {
     private const string TeamGamesTab = "team";
 
-    /// <summary>?tab=team — корпоративные игры, без параметра — обычные</summary>
+    /// <summary>?tab=team: командные игры, без параметра обычные</summary>
     [SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? myName;
 
     private readonly LatestRequest request = new();
     private LeaderboardKind kind;
@@ -108,6 +125,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // свою строку подсвечиваем по логину, вход и выход меняют AuthState
+        myName = await LeaderboardRow.MyNameAsync(AuthState);
         kind = Tab == TeamGamesTab ? LeaderboardKind.TeamGames : LeaderboardKind.Regular;
 
         if (kind != loadedKind)

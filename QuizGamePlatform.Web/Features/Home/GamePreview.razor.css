@@ -1,4 +1,4 @@
-/* отступы и шрифты сжимаются по высоте окна — превью не выталкивает рейтинг вниз */
+/* отступы и шрифты сжимаются по высоте окна, чтобы превью не выталкивало рейтинг вниз */
 .preview {
     min-width: 0;
     margin: 0;
@@ -41,7 +41,7 @@
         color: var(--qg-faint);
     }
 
-/* ---------- смена вопроса: карточка поворачивается по оси X, как грань кубика ---------- */
+/* смена вопроса: карточка поворачивается по оси X, как грань кубика */
 
 .stage {
     perspective: 900px;
@@ -84,7 +84,7 @@
     }
 }
 
-/* под вопрос всегда зарезервированы три строки (хватает самому длинному из шести) —
+/* под вопрос всегда зарезервированы три строки (хватает самому длинному из шести):
    смена не дёргает раскладку, короткий вопрос стоит по центру этой высоты */
 .preview-question {
     height: calc(3em * 1.25);
@@ -112,11 +112,14 @@
 
 /* варианты появляются по очереди; при показе ответа верный подсвечивается, остальные гаснут */
 .preview-option {
+    position: relative;
     min-width: 0;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: clamp(5px, 1.1vh, 11px) 10px;
+    /* высота всегда под две строки текста: смена вопроса с длинным вариантом не дёргает раскладку */
+    min-height: calc(2 * 1.2 * 15px + 2 * clamp(4px, 0.8vh, 8px) + 3px);
+    padding: clamp(4px, 0.8vh, 8px) 10px;
     border-radius: 12px;
     border: 1.5px solid transparent;
     background: var(--qg-surface-2);
@@ -136,16 +139,25 @@
         background: var(--qg-success-bg);
     }
 
+/* длинный вариант («Сальвадор Дали») переносится на вторую строку, а не режется многоточием */
 .option-text {
     flex: 1;
     min-width: 0;
+    font-size: 15px;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: break-word;
 }
 
+/* галочка значком на углу поверх рамки, место в строке не занимает: текст при показе ответа не сдвигается и не переносится */
 .mark {
-    flex: none;
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    box-shadow: 0 0 0 3px var(--qg-surface);
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -194,98 +206,13 @@
     font-weight: 800;
 }
 
-.divider {
-    height: 1px;
-    background: var(--qg-line);
-}
-
-.preview-teams {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(6px, 1.1vh, 12px);
-}
-
-.preview-caption {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--qg-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.team {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.team-name {
-    width: 112px;
-    font-weight: 700;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.team-bar {
-    flex: 1;
-    height: 12px;
-    border-radius: 6px;
-    background: var(--qg-surface-2);
-    overflow: hidden;
-}
-
-    /* полоса растёт через transform: scaleX — без пересчёта раскладки */
-    .team-bar span {
-        display: block;
-        width: 100%;
-        height: 12px;
-        border-radius: 6px;
-        transform-origin: left center;
-        transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-/* новое число очков «выезжает» снизу */
-.team-points {
-    width: 44px;
-    overflow: hidden;
-    text-align: right;
-    font-family: var(--qg-font-mono);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-
-    .team-points span {
-        display: inline-block;
-        animation: qg-roll 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    }
-
-@keyframes qg-roll {
-    from {
-        opacity: 0;
-        transform: translateY(70%);
-    }
-
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-/* на низком окне показываем только вопрос и варианты — таблица команд уступает место рейтингу */
-@media (max-height: 860px) {
-    .divider, .preview-teams {
-        display: none;
-    }
-}
-
-/* без движения: вопросы просто сменяются, полосы и числа — без анимации */
+/* без движения: вопросы просто сменяются, без анимации */
 @media (prefers-reduced-motion: reduce) {
-    .card, .card.leaving, .preview-option, .mark, .team-points span {
+    .card, .card.leaving, .preview-option, .mark {
         animation: none;
     }
 
-    .team-bar span, .preview-option {
+    .preview-option {
         transition: none;
     }
 }

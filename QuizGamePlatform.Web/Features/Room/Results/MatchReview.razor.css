@@ -63,6 +63,15 @@ h2 {
     font-size: 14px;
 }
 
+.head .notice {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: var(--qg-radius-s);
+    background: var(--qg-success-bg);
+    color: var(--qg-accent);
+    font-weight: 700;
+}
+
 .close {
     flex: none;
     width: 44px;
@@ -310,7 +319,7 @@ h2 {
     }
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю */
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
 @supports (animation-timeline: scroll()) {
     .questions {
         animation: qg-scroll-fade linear both;

@@ -86,7 +86,7 @@ input {
     margin-top: 6px;
     min-height: clamp(48px, 7vh, 60px);
     border: 0;
-    border-radius: 18px;
+    border-radius: var(--qg-radius-m);
     background: var(--qg-accent);
     color: var(--qg-on-accent);
     font-weight: 800;
@@ -119,7 +119,7 @@ input {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border-radius: 18px;
+    border-radius: var(--qg-radius-m);
     border: 2px solid var(--qg-text);
     background: transparent;
     font-weight: 700;

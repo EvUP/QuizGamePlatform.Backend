@@ -1,13 +1,14 @@
+@using QuizGamePlatform.Web.Features.History
 @implements IDisposable
 @inject RoomApiClient RoomApi
 
-@* «Мои комнаты» на главной, только для аккаунта: сам грузит GET /api/Room/my *@
+@* «Мои комнаты» на главной, только для аккаунта: сам грузит GET /api/Room/my, всё остальное на странице «Вся история» *@
 <section class="my-rooms" aria-labelledby="my-rooms-title">
     <div class="section-head">
         <h2 id="my-rooms-title">Мои комнаты</h2>
-        @if (rooms is { Count: > MaxShown })
+        @if (series is { Count: > 0 })
         {
-            <span>последние @MaxShown из @rooms.Count</span>
+            <a href="history">Вся история →</a>
         }
     </div>
 
@@ -15,17 +16,17 @@
     {
         <ErrorBanner Message="@error.Message" OnRetry="LoadAsync" />
     }
-    else if (rooms is null)
+    else if (series is null)
     {
         <div class="list" aria-busy="true">
             <span class="visually-hidden" role="status">Загружаем комнаты</span>
             @for (var i = 0; i < 3; i++)
             {
-                <div class="row skeleton"></div>
+                <div class="skeleton"></div>
             }
         </div>
     }
-    else if (rooms.Count == 0)
+    else if (series.Count == 0)
     {
         <div class="empty">
             <p>Здесь пока пусто — самое время позвать коллег.</p>
@@ -35,34 +36,9 @@
     else
     {
         <ul class="list">
-            @foreach (var room in rooms.Take(MaxShown))
+            @foreach (var item in series.Take(MaxShown))
             {
-                var result = ResultText(room);
-
-                <li class="row">
-                    <span class="mark @(room.IsTeamGame ? "team" : "simple")" aria-hidden="true">
-                        <Icon Name="@(room.IsTeamGame ? IconName.Users : IconName.User)" />
-                    </span>
-                    <span class="info">
-                        <span class="title">@Title(room)</span>
-                        @* итог в строке с датой, чтобы строка не росла; целиком в подсказке *@
-                        <span class="meta" title="@result">@RussianDates.Short(room.CreatedAt)@if (result is not null){<span class="result">@($" · {result}")</span>}</span>
-                    </span>
-                    @* у завершённой с итогом статус говорит сам итог *@
-                    @if (result is null)
-                    {
-                        <span class="status @StatusClass(room.Status)">@StatusText(room.Status)</span>
-                    }
-                    @if (room.Status == RoomStatus.Finished)
-                    {
-                        @* завершённая комната открывается сразу на итогах *@
-                        <a class="open" href="room/@room.Id" aria-label="@($"Итоги игры: {Title(room)}, {RussianDates.Short(room.CreatedAt)}{(result is null ? "" : $". {result}")}")">Итоги →</a>
-                    }
-                    else
-                    {
-                        <a class="open" href="room/@room.Id" aria-label="@($"Открыть комнату: {Title(room)}, {RussianDates.Short(room.CreatedAt)}")">Открыть →</a>
-                    }
-                </li>
+                <RoomHistoryRow @key="item.Last.SeriesId ?? item.Last.Id" Series="item" />
             }
         </ul>
     }
@@ -72,14 +48,14 @@
     private const int MaxShown = 6;
 
     private readonly LatestRequest request = new();
-    private List<MyRoomResponse>? rooms;
+    private List<RoomSeries>? series;
     private ApiError? error;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync()
     {
-        rooms = null;
+        series = null;
         error = null;
         var ct = request.Next();
 
@@ -94,7 +70,7 @@
 
             if (result.IsSuccess)
             {
-                rooms = result.Value.OrderByDescending(r => r.CreatedAt).ToList();
+                series = RoomHistory.Build(result.Value);
             }
             else
             {
@@ -106,57 +82,6 @@
             // ушли со страницы
         }
     }
-
-    // GET /api/Room/my команды не отдаёт (teams = null) — тогда просто тип игры
-    private static string Title(MyRoomResponse room) => room switch
-    {
-        { IsTeamGame: true, Teams.Count: > 0 } => string.Join(" · ", room.Teams.Select(t => t.Name)),
-        { IsTeamGame: true } => "Командная игра",
-        _ => "Обычная игра"
-    };
-
-    // коротко, без рода у имён: «2-е место · победитель: Анна», «Ваша команда — 2-я · победила «Бухгалтерия»»
-    private static string? ResultText(MyRoomResponse room)
-    {
-        if (room.Result is not { WinnerName: { } winner } result)
-        {
-            return null;
-        }
-
-        if (room.IsTeamGame)
-        {
-            return result.MyPlace switch
-            {
-                1 => "Ваша команда победила!",
-                { } place => $"Ваша команда — {place}-я · победила {Quoted(winner)}",
-                null => $"Победила {Quoted(winner)}"
-            };
-        }
-
-        return result.MyPlace switch
-        {
-            1 => "Вы победили!",
-            { } place => $"{place}-е место · победитель: {winner}",
-            null => $"Победитель: {winner}"
-        };
-    }
-
-    // в названии могут быть свои «» — тогда не обрамляем
-    private static string Quoted(string name) => name.Contains('«') ? name : $"«{name}»";
-
-    private static string StatusText(RoomStatus status) => status switch
-    {
-        RoomStatus.Waiting => "В лобби",
-        RoomStatus.InProgress => "Идёт",
-        _ => "Завершена"
-    };
-
-    private static string StatusClass(RoomStatus status) => status switch
-    {
-        RoomStatus.Waiting => "waiting",
-        RoomStatus.InProgress => "live",
-        _ => "finished"
-    };
 
     public void Dispose() => request.Dispose();
 }

@@ -24,9 +24,14 @@ else
     <ol class="list">
         @foreach (var row in Rows)
         {
-            <li class="row">
+            var mine = row.IsMine(myName);
+            <li class="row @(mine ? "mine" : null)">
                 <PlaceBadge Place="row.Place" />
                 <span class="name" title="@row.Entry.UserName">@row.Entry.UserName</span>
+                @if (mine)
+                {
+                    <span class="you">· вы</span>
+                }
                 <span class="accuracy">точность @row.Entry.AccuracyPercent%</span>
                 <span class="score">@row.Entry.Score</span>
             </li>
@@ -43,4 +48,12 @@ else
 
     [Parameter]
     public EventCallback OnRetry { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? myName;
+
+    // вход и выход меняют AuthState, тогда пересчитываем свою строку
+    protected override async Task OnParametersSetAsync() => myName = await LeaderboardRow.MyNameAsync(AuthState);
 }

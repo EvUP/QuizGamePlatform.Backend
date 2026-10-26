@@ -1,12 +1,37 @@
+/* экран ошибки по центру свободного места, а не прижат к шапке */
 .not-found {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     gap: 12px;
+    max-width: 440px;
+    margin: 0 auto;
     padding: 64px 0;
+    text-align: center;
 }
 
     .not-found p {
         color: var(--qg-muted);
+    }
+
+/* «На главную» как на странице входа по ссылке: контурная кнопка на всю ширину блока */
+.home {
+    align-self: stretch;
+    min-height: clamp(46px, 6.4vh, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--qg-radius-m);
+    border: 2px solid var(--qg-text);
+    color: var(--qg-text);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+    .home:hover {
+        background: var(--qg-surface);
     }
 
 .authorizing {

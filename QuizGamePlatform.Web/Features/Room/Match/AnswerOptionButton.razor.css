@@ -1,25 +1,30 @@
+/* Плитка варианта: тянется на высоту своей ячейки сетки (MatchView решает, сколько места дать) */
 .option {
+    position: relative;
     width: 100%;
     height: 100%;
-    min-height: clamp(54px, 10vh, 84px);
+    min-height: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px clamp(10px, 1.2vw, 16px);
-    padding: clamp(8px, 1.5vh, 16px) clamp(12px, 1.4vw, 18px);
-    border-radius: 22px;
+    align-content: center;
+    gap: 8px clamp(12px, 1.4vw, 20px);
+    padding: clamp(10px, 1.8vh, 20px) clamp(14px, 1.6vw, 24px);
+    border-radius: 24px;
     border: 3px solid var(--qg-line);
     background: var(--qg-surface);
     text-align: left;
-    transition: opacity 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+    transition: opacity 0.2s ease, border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
 }
 
+    /* цвет буквы подсвечивает плитку при наведении */
     .option:hover:not(:disabled) {
         border-color: var(--letter-color);
+        background: color-mix(in srgb, var(--letter-color) 8%, var(--qg-surface));
     }
 
     .option:active:not(:disabled) {
-        transform: scale(0.99);
+        transform: scale(0.985);
     }
 
     .option:disabled {
@@ -29,9 +34,9 @@
 
 .letter {
     flex: none;
-    width: clamp(36px, 6vh, 48px);
-    height: clamp(36px, 6vh, 48px);
-    border-radius: 14px;
+    width: clamp(40px, 7vh, 56px);
+    height: clamp(40px, 7vh, 56px);
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -39,15 +44,15 @@
     color: var(--qg-on-accent);
     font-family: var(--qg-font-display);
     font-weight: 800;
-    font-size: 20px;
+    font-size: clamp(18px, 3vh, 24px);
 }
 
 /* текст варианта не уходит под бейдж: если рядом не помещается, бейдж переносится на строку ниже */
 .text {
-    flex: 1 1 120px;
+    flex: 1 1 140px;
     min-width: 0;
     font-weight: 800;
-    font-size: clamp(16px, min(1.8vw, 2.9vh), 21px);
+    font-size: clamp(17px, min(1.9vw, 3.2vh), 30px);
     line-height: 1.25;
     overflow-wrap: anywhere;
 }
@@ -62,35 +67,40 @@
     border-radius: 999px;
     font-weight: 800;
     font-size: 13px;
+    white-space: nowrap;
 }
 
+/* мой выбор, пока ждём остальных */
 .selected {
     border-color: var(--qg-text);
     background: var(--qg-surface-3);
 }
 
-.dimmed {
-    opacity: 0.4;
+/* .option.* не слабее .option:disabled выше, иначе притушивание не срабатывает (варианты в это время disabled) */
+.option.dimmed {
+    opacity: 0.38;
 }
 
+/* показ ответа: правильный вариант лаймовый, с лёгким «щелчком» */
 .correct {
     border-color: var(--qg-accent);
     background: var(--qg-success-bg);
+    box-shadow: 0 0 0 4px rgba(200, 240, 74, 0.14);
+    animation: option-pop 0.32s ease-out;
 }
 
-.wrong {
-    border-color: var(--qg-danger);
+/* показ ответа: мой неправильный вариант без красного «мимо», просто подписан и притушен */
+.option.wrong {
+    border-color: var(--qg-line-strong);
+    border-style: dashed;
+    opacity: 0.75;
 }
 
 .badge.correct {
     border: 0;
+    box-shadow: none;
+    animation: none;
     background: var(--qg-accent);
-    color: var(--qg-on-accent);
-}
-
-.badge.wrong {
-    border: 0;
-    background: var(--qg-danger);
     color: var(--qg-on-accent);
 }
 
@@ -99,22 +109,43 @@
     color: var(--qg-on-accent);
 }
 
+@keyframes option-pop {
+    /* без шага больше 1: в прокручиваемой колонке край карточки обрезался */
+    0% {
+        transform: scale(0.97);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* широкий экран (трансляция): бейдж крупнее, на 1280×720 без изменений */
+@media (min-width: 1400px) and (min-height: 800px) {
+    .badge {
+        padding: 7px 14px;
+        font-size: 15px;
+    }
+}
+
 @media (max-width: 599px) {
     .option {
-        min-height: 50px;
-        padding: 6px 12px;
-        border-radius: 16px;
+        min-height: 56px;
+        padding: 8px 12px;
+        border-radius: 18px;
         border-width: 2px;
+        gap: 6px 12px;
     }
 
     .letter {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
         font-size: 16px;
     }
 
     .text {
+        flex-basis: 100px;
         font-size: 16px;
     }
 

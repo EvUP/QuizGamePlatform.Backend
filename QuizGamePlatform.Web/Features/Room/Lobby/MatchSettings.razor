@@ -1,12 +1,16 @@
 @implements IDisposable
 @inject CategoriesApiClient CategoriesApi
 
-@* Настройки и старт матча — только ведущему. Темы грузит сам, условия по составу даёт LobbyView. *@
+@* Настройки и старт матча, только ведущему. Темы грузит сам, условия по составу даёт LobbyView. *@
 <aside class="settings" aria-labelledby="settings-title">
     <h2 id="settings-title">Настройки игры</h2>
+    @if (applied)
+    {
+        <p class="muted prefilled">Подставили настройки прошлой игры — можно поменять.</p>
+    }
 
     <fieldset class="group">
-        @* «Выбрать все» — в строке заголовка справа: тем стало много, каждая строка панели на счету *@
+        @* «Выбрать все» в строке заголовка справа: тем стало много, каждая строка панели на счету *@
         <legend>
             <span>Темы · @selected.Count из @(categories?.Count ?? 0)</span>
             @if (categoriesError is null && categories is not null)
@@ -39,7 +43,7 @@
         }
     </fieldset>
 
-    @* число вопросов — одной строкой: подпись, ползунок, значение *@
+    @* число вопросов одной строкой: подпись, ползунок, значение *@
     <div class="group count">
         <div class="count-head">
             <label for="question-count">Вопросов</label>
@@ -47,6 +51,10 @@
         </div>
         <input id="question-count" type="range" min="1" max="@GameRules.MaxQuestionCount" @bind="questionCount" @bind:event="oninput" />
         <span class="muted">Если в темах вопросов меньше — сыграем, сколько есть</span>
+        @if (GameNumber > 1)
+        {
+            <span class="muted">Вопросы прошлых игр не повторятся, пока их хватает.</span>
+        }
     </div>
 
     <div class="group" role="radiogroup" aria-label="Темп">
@@ -65,7 +73,7 @@
         </div>
     </div>
 
-    @* условия и кнопка старта прилипают к низу панели — видны, даже если темы прокручены *@
+    @* условия и кнопка старта прилипают к низу панели и видны, даже если темы прокручены *@
     <div class="launch">
         <ul class="checks">
             @foreach (var check in AllChecks)
@@ -105,6 +113,13 @@
     [Parameter]
     public EventCallback<MatchSettingsChoice> OnStart { get; set; }
 
+    /// <summary>Настройки прошлой игры серии (только в лобби N>1): подставляются один раз, дальше поля обычные</summary>
+    [Parameter]
+    public PreviousMatchSettings? PreviousSettings { get; set; }
+
+    [Parameter]
+    public int GameNumber { get; set; } = 1;
+
     private readonly LatestRequest request = new();
     private readonly HashSet<Guid> selected = [];
     private List<CategoryDto>? categories;
@@ -112,12 +127,55 @@
     private int questionCount = DefaultQuestionCount;
     private RoomMode mode = RoomMode.Simple;
 
+    // подстановка прошлых настроек: число и темп сразу, темы когда загрузятся
+    private bool prefilled;
+    private bool categoriesPrefilled;
+    private bool applied;
+
     private IEnumerable<ReadinessCheck> AllChecks => RosterChecks.Append(
         selected.Count > 0 ? new ReadinessCheck("Темы выбраны", true) : new ReadinessCheck("Выберите хотя бы одну тему", false));
 
     private bool IsReady => AllChecks.All(c => c.IsMet);
 
+    // число и темп до первого рендера: OnParametersSet придёт только после загрузки тем и затёр бы то, что ведущий успел сдвинуть
+    protected override void OnInitialized() => PrefillCountAndMode();
+
     protected override Task OnInitializedAsync() => LoadCategoriesAsync();
+
+    protected override void OnParametersSet()
+    {
+        PrefillCountAndMode();
+        PrefillCategories();
+    }
+
+    private void PrefillCountAndMode()
+    {
+        if (prefilled || PreviousSettings is not { } previous)
+        {
+            return;
+        }
+
+        prefilled = true;
+        questionCount = Math.Clamp(previous.QuestionCount, 1, GameRules.MaxQuestionCount);
+        mode = previous.Mode;
+        applied = true;
+    }
+
+    // темы прошлой игры, которые ещё есть в списке; выбор ведущего не затираем
+    private void PrefillCategories()
+    {
+        if (categoriesPrefilled || PreviousSettings is not { } previous || categories is null)
+        {
+            return;
+        }
+
+        categoriesPrefilled = true;
+
+        if (selected.Count == 0)
+        {
+            selected.UnionWith(previous.CategoryIds.Where(id => categories.Exists(c => c.Id == id)));
+        }
+    }
 
     private async Task LoadCategoriesAsync()
     {
@@ -137,6 +195,7 @@
             if (result.IsSuccess)
             {
                 categories = result.Value;
+                PrefillCategories();
             }
             else
             {
@@ -156,14 +215,10 @@
         }
     }
 
+    // кнопка «Выбрать все» есть только при загруженных темах
     private void ToggleAll()
     {
-        if (categories is null)
-        {
-            return;
-        }
-
-        if (selected.Count == categories.Count)
+        if (selected.Count == categories!.Count)
         {
             selected.Clear();
         }

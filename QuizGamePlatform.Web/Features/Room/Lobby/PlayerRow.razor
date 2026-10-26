@@ -1,6 +1,6 @@
-@* Участник: аватар, имя, «гость» овалом или галочка аккаунта, корона капитана. Действия ведущего — в ChildContent. *@
+@* Участник: аватар, имя, «гость» овалом или галочка аккаунта, корона капитана. Действия ведущего в ChildContent. *@
 <div class="player @(IsMe ? "me" : null) @(IsOffline ? "offline" : null)">
-    <span class="avatar" aria-hidden="true">@Initials</span>
+    <span class="avatar" aria-hidden="true">@PlayerInitials.Of(Player.PlayerName)</span>
     <span class="info">
         <span class="name-line">
             <span class="name" title="@Player.PlayerName">@Player.PlayerName</span>
@@ -36,16 +36,6 @@
     public RenderFragment? ChildContent { get; set; }
 
     private bool IsOffline => !Player.IsActive && Player.ExitReason == ExitReason.Disconnected;
-
-    private string Initials
-    {
-        get
-        {
-            var words = Player.PlayerName.Split([' ', '.', '_', '-'], StringSplitOptions.RemoveEmptyEntries);
-            var letters = words.Length >= 2 ? $"{words[0][0]}{words[1][0]}" : Player.PlayerName[..Math.Min(2, Player.PlayerName.Length)];
-            return letters.ToUpperInvariant();
-        }
-    }
 
     private string? Note
     {

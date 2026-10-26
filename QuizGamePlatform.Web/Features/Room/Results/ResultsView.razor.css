@@ -36,13 +36,15 @@
     font-size: 14px;
 }
 
-/* «Первое место делят: …» с длинными названиями без пробелов переносится, а не вылезает за экран */
+/* заголовок с длинным именем без пробелов переносится, а не вылезает за экран */
 h1 {
     max-width: 100%;
     min-width: 0;
     font-size: clamp(22px, min(4.4vw, 5vh), 48px);
     line-height: 1.08;
     overflow-wrap: anywhere;
+    /* без одинокого слова на второй строке */
+    text-wrap: balance;
 }
 
 .hero p {
@@ -59,7 +61,9 @@ h1 {
     align-items: end;
 }
 
+/* очередь вырастания пьедестала: 3, затем 2, затем 1 */
 .pillar {
+    --d: 0.15s;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -68,25 +72,48 @@ h1 {
     text-align: center;
 }
 
+    .pillar.place-2 {
+        --d: 0.6s;
+    }
+
+    .pillar.place-1 {
+        --d: 1.05s;
+    }
+
 /* подписи над столбиками компактные: имя до двух строк (полностью в подсказке), очки мелко */
 .pillar-name {
     max-width: 100%;
     font-weight: 800;
-    font-size: clamp(13px, 1.9vh, 14px);
+    font-size: clamp(13px, 1.9vh, 17px);
     line-height: 1.2;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-    hyphens: auto;
+    hyphens: manual;
     overflow-wrap: anywhere;
 }
 
 .pillar-points {
     font-family: var(--qg-font-mono);
     font-weight: 700;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--qg-subtle);
+}
+
+/* подписи проявляются чуть после своего блока; backwards: после анимации transform не остаётся.
+   Слой выше конфетти: имя победителя не перекрывается */
+.pillar-name, .pillar-points {
+    position: relative;
+    z-index: 2;
+    animation: qg-podium-label 0.35s ease-out calc(var(--d) + 0.3s) backwards;
+}
+
+/* время у равных на пьедестале отдельной строкой под очками */
+.pillar-time {
+    display: block;
+    font-weight: 500;
+    font-size: 14px;
 }
 
 .block {
@@ -103,6 +130,10 @@ h1 {
     font-weight: 800;
     font-size: 12px;
     box-shadow: inset 0 -8px 0 rgba(20, 18, 31, 0.18);
+    /* блок вырастает снизу; position для конфетти */
+    position: relative;
+    transform-origin: bottom;
+    animation: qg-podium-grow 0.4s cubic-bezier(0.3, 1.25, 0.5, 1) var(--d) backwards;
 }
 
     .block.place-1 {
@@ -160,9 +191,71 @@ h1 {
             border-top: 1px solid var(--qg-line);
         }
 
+        /* своя строка видна издалека: полоса акцента слева */
         .table li.mine {
             background: var(--qg-surface-3);
+            box-shadow: inset 4px 0 0 var(--qg-accent);
         }
+
+            /* бейдж без медали иначе сливается с фоном своей строки */
+            .table li.mine ::deep .place:not(.medal-1):not(.medal-2):not(.medal-3) {
+                background: var(--qg-surface);
+                box-shadow: inset 0 0 0 2px var(--qg-accent);
+            }
+
+        /* вышедший до финала: строка тише, пометка заметнее */
+        .table li.left {
+            opacity: 0.6;
+        }
+
+        .table li.left.tied {
+            opacity: 1;
+        }
+
+        .table li.left .note {
+            color: var(--qg-danger-soft);
+        }
+
+/* больше 6 строк: строка в одну линию (пометка рядом с именем, время слева от очков), бейдж меньше,
+   чтобы 10 мест помещались на большом экране без прокрутки; телефон не трогаем */
+@media (min-width: 600px) {
+    .table.compact li {
+        padding-top: clamp(3px, 0.4vh, 5px);
+        padding-bottom: clamp(3px, 0.4vh, 5px);
+    }
+
+    .table.compact ::deep .place {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--qg-radius-s);
+        font-size: 15px;
+    }
+
+    .table.compact .info {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 10px;
+    }
+
+    .table.compact .name {
+        flex: 0 1 auto;
+        min-width: 0;
+        -webkit-line-clamp: 1;
+    }
+
+    .table.compact .note {
+        flex: none;
+    }
+
+    /* в row-reverse начало справа: очки без времени прижаты к краю, как у остальных */
+    .table.compact .points {
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+        align-items: baseline;
+        gap: 10px;
+        line-height: 1.2;
+    }
+}
 
 .info {
     flex: 1 1 160px;
@@ -180,7 +273,7 @@ h1 {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-    hyphens: auto;
+    hyphens: manual;
     overflow-wrap: anywhere;
 }
 
@@ -189,23 +282,16 @@ h1 {
     color: var(--qg-subtle);
 }
 
-.bar {
-    flex: 0 1 220px;
-    height: 10px;
-    border-radius: 5px;
-    background: var(--qg-surface-3);
-    overflow: hidden;
-}
-
-    .bar span {
-        display: block;
-        height: 10px;
-        border-radius: 5px;
-    }
-
+/* очки крупно, под ними время у равных; колонка справа одной ширины, строки не съезжают */
 .points {
     flex: none;
-    min-width: 56px;
+    min-width: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    align-self: center;
+    justify-content: center;
+    line-height: 1.1;
     text-align: right;
     font-family: var(--qg-font-mono);
     font-weight: 700;
@@ -224,45 +310,31 @@ h1 {
 .rule {
     text-align: center;
     color: var(--qg-subtle);
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 4px 12px;
 }
 
-.primary, .secondary, .link {
-    min-height: clamp(46px, 7vh, 56px);
+/* главное действие «Сыграть ещё» в RematchActions, здесь только тихие ссылки */
+.link {
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
-    padding: 0 24px;
+    padding: 0 16px;
     border-radius: var(--qg-radius-m);
     text-decoration: none;
     font-weight: 800;
-}
-
-.primary {
-    background: var(--qg-accent);
-    color: var(--qg-on-accent);
-    box-shadow: 0 5px 0 var(--qg-accent-shadow);
-}
-
-    .primary:hover {
-        background: var(--qg-accent-hover);
-        color: var(--qg-on-accent);
-    }
-
-.secondary {
-    border: 2px solid var(--qg-text);
-    color: var(--qg-text);
-}
-
-.link {
     color: var(--qg-text-2);
 }
+
+    .link:hover {
+        color: var(--qg-text);
+    }
 
 /* разбор вторичный: как ссылка, но с пунктиром, чтобы читалось как действие */
 .review {
@@ -276,12 +348,12 @@ h1 {
         color: var(--qg-text);
     }
 
-/* широкое окно: пьедестал и таблица рядом, по центру, низы на одной линии — как сцена с полом */
+/* широкое окно: пьедестал и таблица рядом, по центру по обеим осям */
 @media (min-width: 1000px) {
     .stage {
         flex-direction: row;
         justify-content: center;
-        align-items: flex-end;
+        align-items: center;
         gap: clamp(32px, 4vw, 56px);
     }
 
@@ -290,10 +362,41 @@ h1 {
         min-width: 0;
         max-height: 100%;
     }
+}
 
-    /* в таблице рядом с пьедесталом полоса короче — имя помещается в строку */
-    .stage .bar {
-        flex-basis: 130px;
+/* большой экран защиты: пьедестал крупнее, читается из зала */
+@media (min-width: 1400px) and (min-height: 820px) {
+    .results {
+        max-width: 1240px;
+    }
+
+    .podium {
+        grid-auto-columns: minmax(0, 188px);
+        gap: 16px;
+    }
+
+    .pillar-name {
+        font-size: clamp(15px, 2.2vh, 20px);
+    }
+
+    .pillar-points {
+        font-size: 17px;
+    }
+
+    .block {
+        height: clamp(48px, 12vh, 130px);
+    }
+
+        .block.place-2 {
+            height: clamp(64px, 18vh, 175px);
+        }
+
+        .block.place-1 {
+            height: clamp(84px, 24vh, 230px);
+        }
+
+    .block-place {
+        font-size: 56px;
     }
 }
 
@@ -316,7 +419,7 @@ h1 {
         font-size: clamp(24px, 4vh, 36px);
     }
 
-    /* на телефоне пьедестал ниже — таблице больше места */
+    /* на телефоне пьедестал ниже, таблице больше места */
     .block {
         height: clamp(66px, 8.6vh, 84px);
     }
@@ -344,17 +447,13 @@ h1 {
         font-size: 15px;
     }
 
-    .bar {
-        flex-basis: 56px;
-    }
-
     .points {
-        min-width: 36px;
+        min-width: 64px;
         font-size: 18px;
     }
 
     .time {
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .rule {
@@ -362,18 +461,127 @@ h1 {
         line-height: 1.35;
     }
 
-    .actions {
-        gap: 8px;
+    /* низкий экран телефона: высоты не хватает, поэтому листается весь экран;
+       таблица прокручивается сама, только если мест много */
+    .results {
+        min-height: auto;
     }
 
-    .primary, .secondary, .link {
-        min-height: 44px;
-        padding: 0 16px;
+    .stage, .stage > .table {
+        flex: none;
+    }
+
+    .stage > .table {
+        min-height: 0;
+        max-height: max(132px, 40vh);
+    }
+
+    .actions {
+        gap: 0 4px;
+    }
+
+    .link {
+        padding: 0 10px;
+        font-size: 14px;
     }
 }
 
-/* Прокручиваемая область: снизу мягкое затухание, пока есть что прокрутить, — без «срезанной» строки на краю.
-   Работает на scroll-driven анимации (без JS): если прокручивать нечего, затухания нет. */
+/* конфетти над первым местом: один залп после вырастания блока, клики не перехватывает */
+.confetti {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+    .confetti i {
+        position: absolute;
+        left: -4px;
+        top: -6px;
+        width: 8px;
+        height: 12px;
+        border-radius: 2px;
+        background: var(--c);
+        /* вне анимации частиц не видно */
+        opacity: 0;
+        animation: qg-confetti 1.9s ease-out calc(var(--d) + 0.45s + var(--j)) backwards;
+    }
+
+        .confetti i:nth-child(3n) {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+@keyframes qg-podium-grow {
+    from {
+        transform: scaleY(0.05);
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+@keyframes qg-podium-label {
+    from {
+        transform: translateY(8px);
+        opacity: 0;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+/* взлёт с замедлением, затем падение с ускорением и затухание */
+@keyframes qg-confetti {
+    0% {
+        transform: translate(0, 0) scale(0.4) rotate(0deg);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    40% {
+        transform: translate(calc(var(--x) * 0.6), calc(-1 * var(--h))) scale(1) rotate(calc(var(--r) * 0.4));
+        animation-timing-function: ease-in;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--x), var(--f)) scale(1) rotate(var(--r));
+        opacity: 0;
+    }
+}
+
+/* глобальное правило укорачивает анимации, но задержки оставляет: здесь глушим целиком */
+@media (prefers-reduced-motion: reduce) {
+    .block, .pillar-name, .pillar-points {
+        animation: none;
+    }
+
+    .confetti {
+        display: none;
+    }
+}
+
+/* Затухание у краёв, пока есть что прокрутить: scroll-driven анимация, без JS */
 @supports (animation-timeline: scroll()) {
     .stage > .table {
         animation: qg-scroll-fade linear both;
@@ -381,7 +589,6 @@ h1 {
     }
 }
 
-/* в начале — затухание только снизу, в середине — сверху и снизу, в конце — только сверху */
 @keyframes qg-scroll-fade {
     0% {
         -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);

@@ -1,10 +1,6 @@
 @implements IDisposable
 
-@*
-    Иллюстрация на главной: мини-сценарий игры по кругу — вопрос, тикает таймер, показ верного ответа,
-    таблица команд пересчитывает очки, следующий вопрос (поворот карточки). Данные-пример, не с сервера:
-    вопросы и верные ответы взяты из Seed/quiz_seed.json. Блок декоративный — скрыт от скринридеров.
-*@
+@* Декоративная иллюстрация на главной: мини-сценарий игры по кругу на данных-примерах, скрыт от скринридеров. *@
 <figure class="preview" aria-hidden="true">
     <div class="preview-head">
         <span class="preview-label">Так выглядит игра · вопрос @(FirstQuestionNumber + index) из 10</span>
@@ -30,59 +26,30 @@
             </div>
         </div>
     </div>
-
-    <div class="divider"></div>
-    <div class="preview-teams">
-        <span class="preview-caption">Таблица команд</span>
-        @for (var t = 0; t < Teams.Length; t++)
-        {
-            var team = Teams[t];
-            var points = teamPoints[t];
-            <div class="team">
-                <span class="team-name">@team.Name</span>
-                <span class="team-bar">
-                    <span style="transform: scaleX(@BarScale(points)); background: @team.Color"></span>
-                </span>
-                <span class="team-points"><span @key="points">@points</span></span>
-            </div>
-        }
-    </div>
 </figure>
 
 @code {
     private const string Letters = "ABCD";
     private const int FirstQuestionNumber = 3;
-    private const int BarMaxPoints = 800;
 
-    // шаг сценария — полсекунды; на вопрос 14 шагов (7 с)
+    // шаг сценария полсекунды; на вопрос 14 шагов (7 с)
     private static readonly TimeSpan Step = TimeSpan.FromMilliseconds(500);
     private const int RevealStep = 8;   // 4 с вопрос, таймер 0:12 → 0:09
-    private const int LeaveStep = 12;   // 2 с показ ответа и пересчёт очков
+    private const int LeaveStep = 12;   // 2 с показ ответа
     private const int NextStep = 13;    // поворот карточки
 
-    // вопросы и верные ответы — из Seed/quiz_seed.json; Gain — очки команд за вопрос (до 100)
+    // вопросы и верные ответы из Seed/quiz_seed.json
     private static readonly DemoQuestion[] Questions =
     [
-        new("Big Floppa, он же Большой Шлёпа, — какой зверь?", ["Каракал", "Рысь", "Сервал", "Манул"], 0, [100, 67, 50]),
-        new("Кто бежит через пустыню в Chrome, когда пропал интернет?", ["Кот", "Тираннозавр", "Пингвин", "Кролик"], 1, [83, 100, 67]),
-        new("Как зовут верную кобылу Геральта в «Ведьмаке»?", ["Карась", "Буцефал", "Плотва", "Звёздочка"], 2, [67, 50, 100]),
-        new("Сколько сердец у осьминога?", ["Одно", "Два", "Восемь", "Три"], 3, [100, 83, 67]),
-        new("Какой год Excel до сих пор ошибочно считает високосным?", ["2000", "1900", "1800", "2100"], 1, [50, 100, 83]),
-        new("Какой художник придумал логотип леденцов Chupa Chups?", ["Пабло Пикассо", "Энди Уорхол", "Сальвадор Дали", "Жоан Миро"], 2, [83, 67, 100])
+        new("Big Floppa, он же Большой Шлёпа, — какой зверь?", ["Каракал", "Рысь", "Сервал", "Манул"], 0),
+        new("Кто бежит через пустыню в Chrome, когда пропал интернет?", ["Кот", "Тираннозавр", "Пингвин", "Кролик"], 1),
+        new("Как зовут верную кобылу Геральта в «Ведьмаке»?", ["Карась", "Буцефал", "Плотва", "Звёздочка"], 2),
+        new("Сколько сердец у осьминога?", ["Одно", "Два", "Восемь", "Три"], 3),
+        new("Какой год Excel до сих пор ошибочно считает високосным?", ["2000", "1900", "1800", "2100"], 1),
+        new("Какой художник придумал логотип леденцов Chupa Chups?", ["Пабло Пикассо", "Энди Уорхол", "Сальвадор Дали", "Жоан Миро"], 2)
     ];
-
-    private static readonly (string Name, string Color)[] Teams =
-    [
-        ("IT", "var(--qg-team-2)"),
-        ("Бухгалтерия", "var(--qg-team-1)"),
-        ("Продажи", "var(--qg-team-3)")
-    ];
-
-    // очки после двух сыгранных вопросов — с них начинается круг
-    private static readonly int[] StartPoints = [183, 167, 150];
 
     private readonly CancellationTokenSource cts = new();
-    private readonly int[] teamPoints = [.. StartPoints];
     private int index;
     private int step;
     private int seconds = 12;
@@ -101,7 +68,7 @@
 
     private async Task RunAsync(CancellationToken ct)
     {
-        // один лёгкий таймер; вкладка в фоне — браузер сам притормаживает таймеры, CSS-анимации не идут
+        // один лёгкий таймер; во вкладке в фоне браузер сам притормаживает таймеры, CSS-анимации не идут
         using var timer = new PeriodicTimer(Step);
 
         try
@@ -129,10 +96,6 @@
         else if (step == RevealStep)
         {
             revealed = true;
-            for (var t = 0; t < teamPoints.Length; t++)
-            {
-                teamPoints[t] += Current.Gain[t];
-            }
         }
         else if (step == LeaveStep)
         {
@@ -141,13 +104,6 @@
         else if (step >= NextStep)
         {
             index = (index + 1) % Questions.Length;
-
-            // круг замкнулся — партия начинается заново
-            if (index == 0)
-            {
-                StartPoints.CopyTo(teamPoints, 0);
-            }
-
             step = 0;
             seconds = 12;
             revealed = false;
@@ -155,14 +111,11 @@
         }
     }
 
-    private static string BarScale(int points)
-        => Math.Min(1.0, (double)points / BarMaxPoints).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
-
     public void Dispose()
     {
         cts.Cancel();
         cts.Dispose();
     }
 
-    private sealed record DemoQuestion(string Text, string[] Options, int Correct, int[] Gain);
+    private sealed record DemoQuestion(string Text, string[] Options, int Correct);
 }
