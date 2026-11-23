@@ -36,9 +36,9 @@ namespace QuizGamePlatform.Backend.Application.Services
                     : "Эти же ссылки есть в лобби — если письмо затеряется, их можно скопировать оттуда.")
                 .AppendLine()
                 .AppendLine("Удачной игры!")
-                .AppendLine("QuizGame");
+                .AppendLine("QuizSharp");
 
-            var subject = single ? "QuizGame: ссылка для новой команды" : "QuizGame: ссылки для команд";
+            var subject = single ? "QuizSharp: ссылка для новой команды" : "QuizSharp: ссылки для команд";
 
             // зависший SMTP не держит создание комнаты
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);

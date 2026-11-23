@@ -8,7 +8,7 @@
 @inject GameSession Session
 @inject GuestSession Guest
 
-<PageTitle>@PageTitleText · QuizGame</PageTitle>
+<PageTitle>@PageTitleText · QuizSharp</PageTitle>
 
 @* гостевой токен истёк на итогах: хаб без него не вернётся, «переподключаемся» было бы неправдой, объясняет RematchActions *@
 @if (Session.Status == SessionStatus.Ready && !Session.AuthExpired)

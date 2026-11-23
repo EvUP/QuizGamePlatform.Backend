@@ -56,9 +56,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Quiz API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "QuizSharp API v1");
         options.OAuthClientId(keycloak.ClientId);
-        options.OAuthAppName("Quest Game - Swagger");
+        options.OAuthAppName("QuizSharp - Swagger");
         options.OAuthUsePkce();
     });
     app.UseCors();

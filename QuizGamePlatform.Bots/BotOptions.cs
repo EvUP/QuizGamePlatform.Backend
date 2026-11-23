@@ -5,7 +5,7 @@ public enum BotMode { Join, Host }
 public sealed class BotOptions
 {
     public const string Help = """
-        Боты-игроки для QuizGamePlatform: входят по ссылке, держат связь через SignalR и отвечают как люди.
+        Боты-игроки для QuizSharp: входят по ссылке, держат связь через SignalR и отвечают как люди.
 
         Войти в вашу комнату (вы ведущий и жмёте «Начать игру»):
           dotnet run --project QuizGamePlatform.Bots -- join <ссылка или код> [ещё ссылки команд...] [параметры]

@@ -1,7 +1,7 @@
 {
   "realm": "quizgame",
   "enabled": true,
-  "displayName": "QuizGame",
+  "displayName": "QuizSharp",
   "loginTheme": "keycloak.v2",
   "internationalizationEnabled": true,
   "supportedLocales": ["ru"],
@@ -23,7 +23,7 @@
   "clients": [
     {
       "clientId": "quiz-backend",
-      "name": "Quiz Game Backend",
+      "name": "QuizSharp Backend",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": true,
