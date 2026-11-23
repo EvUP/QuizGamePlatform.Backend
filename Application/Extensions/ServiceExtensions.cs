@@ -216,7 +216,7 @@ namespace QuizGamePlatform.Backend.Application.Extensions
                 .Configure<IOptions<KeycloakOptions>>((options, keycloakOptions) =>
                 {
                     var keycloak = keycloakOptions.Value;
-                    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Quiz Game API", Version = "v1" });
+                    options.SwaggerDoc("v1", new OpenApiInfo { Title = "QuizSharp API", Version = "v1" });
 
                     options.AddSecurityDefinition("Keycloak", new OpenApiSecurityScheme
                     {
